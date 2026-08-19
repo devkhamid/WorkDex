@@ -48,18 +48,18 @@ const ProtectedLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen max-w-[1440px] mx-auto bg-[#f6f7f9] shadow-2xl">
+    <div className="flex min-h-screen max-w-[1500px] mx-auto bg-white border-x border-[#f0f2f5] shadow-xs">
       {/* Sidebar matching prototype */}
       <Sidebar onOpenNewProject={() => setIsNewProjectModalOpen(true)} />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 bg-white">
         <Header
           title={getPageTitle(location.pathname)}
           onOpenNewProject={() => setIsNewProjectModalOpen(true)}
         />
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto bg-white">
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/projects" element={<ProjectsPage onOpenNewProject={() => setIsNewProjectModalOpen(true)} />} />

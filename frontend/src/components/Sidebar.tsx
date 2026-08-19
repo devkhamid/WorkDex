@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Building2,
@@ -25,6 +25,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ onOpenNewProject }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeProjects, setActiveProjects] = useState<Project[]>([]);
 
   useEffect(() => {
@@ -81,16 +82,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenNewProject }) => {
       <nav className="px-2.5 space-y-0.5">
         {navItems.map((item) => {
           const Icon = item.icon;
+          const isItemActive = item.to === '/'
+            ? location.pathname === '/'
+            : location.pathname.startsWith(item.to);
+
           return (
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.to === '/'}
-              className={({ isActive }) =>
+              className={() =>
                 `w-full text-left px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2.5 transition-colors ${
-                  isActive
+                  isItemActive
                     ? 'bg-[#eef5ff] text-[#2563c7] font-semibold'
-                    : 'text-[#626a78] hover:bg-gray-100 hover:text-[#171b25]'
+                    : 'text-[#626a78] hover:bg-gray-50 hover:text-[#171b25]'
                 }`
               }
             >

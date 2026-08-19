@@ -3,20 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   DollarSign,
-  Calendar,
   CheckCircle2,
-  Clock,
   Plus,
   FileSpreadsheet,
-  Download,
-  Package,
-  HardHat,
   Camera,
   FileText,
-  MessageSquare,
-  Sparkles,
-  TrendingUp,
-  AlertCircle
+  UserPlus,
+  PackagePlus
 } from 'lucide-react';
 import { projectsApi, reportsApi, materialsApi, workersApi } from '../api/services';
 import {
@@ -32,7 +25,6 @@ import {
   ExtraWork,
   ProjectPhoto,
   ProjectDocument,
-  ProjectUpdate,
   ProjectStage,
   Material,
   Worker
@@ -59,7 +51,6 @@ export const ProjectDetailPage: React.FC = () => {
   const [extraWorks, setExtraWorks] = useState<ExtraWork[]>([]);
   const [photos, setPhotos] = useState<ProjectPhoto[]>([]);
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
-  const [updates, setUpdates] = useState<ProjectUpdate[]>([]);
 
   // Modals state
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -89,13 +80,20 @@ export const ProjectDetailPage: React.FC = () => {
   const [newExpAmount, setNewExpAmount] = useState<number | ''>('');
   const [newExpDesc, setNewExpDesc] = useState('');
 
-  // Purchase Form State
+  // Purchase Form State (with inline new material)
+  const [isNewMaterial, setIsNewMaterial] = useState(false);
+  const [newPurMatName, setNewPurMatName] = useState('');
+  const [newPurMatUnit, setNewPurMatUnit] = useState('dona');
   const [newPurMatId, setNewPurMatId] = useState('');
   const [newPurQty, setNewPurQty] = useState<number | ''>('');
   const [newPurPrice, setNewPurPrice] = useState<number | ''>('');
   const [newPurSupplier, setNewPurSupplier] = useState('');
 
-  // Worker Payment Form State
+  // Worker Payment Form State (with inline new worker)
+  const [isNewWorker, setIsNewWorker] = useState(false);
+  const [newWorkerFullName, setNewWorkerFullName] = useState('');
+  const [newWorkerPhone, setNewWorkerPhone] = useState('');
+  const [newWorkerSpecialty, setNewWorkerSpecialty] = useState('');
   const [newWorkId, setNewWorkId] = useState('');
   const [newWorkDesc, setNewWorkDesc] = useState('');
   const [newWorkAgreed, setNewWorkAgreed] = useState<number | ''>('');
@@ -133,7 +131,6 @@ export const ProjectDetailPage: React.FC = () => {
         ew,
         ph,
         doc,
-        upd,
         cMat,
         cWork
       ] = await Promise.all([
@@ -150,7 +147,6 @@ export const ProjectDetailPage: React.FC = () => {
         projectsApi.getExtraWorks(projId),
         projectsApi.getPhotos(projId),
         projectsApi.getDocuments(projId),
-        projectsApi.getUpdates(projId),
         materialsApi.getAll(),
         workersApi.getAll()
       ]);
@@ -168,7 +164,6 @@ export const ProjectDetailPage: React.FC = () => {
       setExtraWorks(ew);
       setPhotos(ph);
       setDocuments(doc);
-      setUpdates(upd);
       setCatalogMaterials(cMat);
       setCatalogWorkers(cWork);
 
@@ -250,14 +245,26 @@ export const ProjectDetailPage: React.FC = () => {
     e.preventDefault();
     if (!id) return;
     try {
+      let finalMaterialId = newPurMatId;
+
+      if (isNewMaterial) {
+        const createdMat = await materialsApi.create({
+          name: newPurMatName,
+          unit: newPurMatUnit
+        });
+        finalMaterialId = createdMat.id;
+      }
+
       await projectsApi.createPurchase(id, {
-        materialId: newPurMatId,
+        materialId: finalMaterialId,
         quantity: Number(newPurQty) || 0,
         unitPrice: Number(newPurPrice) || 0,
         supplier: newPurSupplier || undefined,
         purchaseDate: new Date().toISOString()
       });
       setIsPurchaseModalOpen(false);
+      setIsNewMaterial(false);
+      setNewPurMatName('');
       setNewPurQty('');
       setNewPurPrice('');
       loadAllData(id);
@@ -270,12 +277,26 @@ export const ProjectDetailPage: React.FC = () => {
     e.preventDefault();
     if (!id) return;
     try {
+      let finalWorkerId = newWorkId;
+
+      if (isNewWorker) {
+        const createdWorker = await workersApi.create({
+          fullName: newWorkerFullName,
+          phoneNumber: newWorkerPhone,
+          specialty: newWorkerSpecialty || undefined
+        });
+        finalWorkerId = createdWorker.id;
+      }
+
       await projectsApi.createWorkerPayment(id, {
-        workerId: newWorkId,
+        workerId: finalWorkerId,
         jobDescription: newWorkDesc,
         agreedAmount: Number(newWorkAgreed) || 0,
       });
       setIsWorkerModalOpen(false);
+      setIsNewWorker(false);
+      setNewWorkerFullName('');
+      setNewWorkerPhone('');
       setNewWorkDesc('');
       setNewWorkAgreed('');
       loadAllData(id);
@@ -286,7 +307,7 @@ export const ProjectDetailPage: React.FC = () => {
 
   const handlePayWorker = async (paymentId: string) => {
     if (!id) return;
-    const amountStr = prompt("To'lanadigan summani kiriting ($):");
+    const amountStr = prompt("Ustaga to'lanadigan summani kiriting ($):");
     if (!amountStr) return;
     const amount = Number(amountStr);
     if (isNaN(amount) || amount <= 0) return alert("Noto'g'ri summa");
@@ -301,7 +322,7 @@ export const ProjectDetailPage: React.FC = () => {
 
   const handleUpdateWorkAmount = async (paymentId: string) => {
     if (!id) return;
-    const amountStr = prompt("Bajarilgan ish hajmi summasini kiriting (Work Amount / Ish haqi $):");
+    const amountStr = prompt("Bajarilgan ish hajmi summasini kiriting (Ish haqi $):");
     if (!amountStr) return;
     const workAmount = Number(amountStr);
     if (isNaN(workAmount) || workAmount < 0) return alert("Noto'g'ri summa");
@@ -368,8 +389,8 @@ export const ProjectDetailPage: React.FC = () => {
   }
 
   return (
-    <div className="p-6 space-y-4">
-      {/* Detail Head matching prototype */}
+    <div className="p-6 space-y-4 bg-white">
+      {/* Detail Head */}
       <div className="flex flex-wrap items-start gap-4">
         <button
           onClick={() => navigate('/projects')}
@@ -390,7 +411,7 @@ export const ProjectDetailPage: React.FC = () => {
           {/* Excel Export Button */}
           <button
             onClick={() => reportsApi.downloadProjectExcel(project.id)}
-            className="border border-[#e4e7ec] bg-white hover:bg-emerald-50 text-emerald-700 rounded-lg h-[34px] px-3 text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors"
+            className="border border-emerald-200 bg-white hover:bg-emerald-50 text-emerald-700 rounded-lg h-[34px] px-3 text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors"
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
             <span>9 Varaqli Excel</span>
@@ -398,7 +419,7 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Detail Navigation Tabs matching prototype */}
+      {/* Detail Navigation Tabs */}
       <div className="flex gap-1.5 overflow-x-auto pb-1 border-b border-[#e4e7ec]">
         {[
           { id: 'overview', label: 'Umumiy ko‘rinish' },
@@ -424,7 +445,7 @@ export const ProjectDetailPage: React.FC = () => {
         ))}
       </div>
 
-      {/* 4 Finance Cards matching prototype */}
+      {/* 4 Finance Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-3.5 shadow-xs">
           <small className="block text-[9px] font-bold text-[#8e95a0] uppercase tracking-wider">SHARTNOMA</small>
@@ -519,7 +540,7 @@ export const ProjectDetailPage: React.FC = () => {
               </div>
               <button
                 onClick={() => setIsTaskModalOpen(true)}
-                className="bg-[#ff7a16] hover:bg-[#e86807] text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-xs transition-colors"
+                className="bg-[#ff7a16] hover:bg-[#e86807] text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg flex items-center gap-1 shadow-xs transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Vazifa qo'shish</span>
@@ -529,11 +550,11 @@ export const ProjectDetailPage: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-[#e4e7ec] bg-gray-50/50">
-                  <th className="py-2 px-4 font-bold text-[#7c838e] text-[10px]">HOLAT</th>
-                  <th className="py-2 px-4 font-bold text-[#7c838e] text-[10px]">VAZIFA</th>
-                  <th className="py-2 px-4 font-bold text-[#7c838e] text-[10px]">BOSQICH</th>
-                  <th className="py-2 px-4 font-bold text-[#7c838e] text-[10px]">OG'IRLIK</th>
-                  <th className="py-2 px-4 font-bold text-[#7c838e] text-[10px]">MUDDAT</th>
+                  <th className="py-2.5 px-4 font-bold text-[#7c838e] text-[10px]">HOLAT</th>
+                  <th className="py-2.5 px-4 font-bold text-[#7c838e] text-[10px]">VAZIFA</th>
+                  <th className="py-2.5 px-4 font-bold text-[#7c838e] text-[10px]">BOSQICH</th>
+                  <th className="py-2.5 px-4 font-bold text-[#7c838e] text-[10px]">OG'IRLIK</th>
+                  <th className="py-2.5 px-4 font-bold text-[#7c838e] text-[10px]">MUDDAT</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#eef0f3]">
@@ -687,7 +708,7 @@ export const ProjectDetailPage: React.FC = () => {
           <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs">
             <div className="flex justify-between items-center pb-3 border-b border-[#e4e7ec] mb-3">
               <div>
-                <h3 className="font-bold text-xs text-[#171b25]">Materiallar Xulosasi (Katta tahlil)</h3>
+                <h3 className="font-bold text-xs text-[#171b25]">Materiallar Xulosasi (Tahlil)</h3>
                 <div className="text-[10px] text-[#9399a4]">Qaysi materialdan qancha olingani va jami summasi</div>
               </div>
               <button
@@ -701,7 +722,7 @@ export const ProjectDetailPage: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {materialsSummary.map((m) => (
-                <div key={m.materialId} className="p-3 bg-gray-50/70 border border-gray-200 rounded-lg">
+                <div key={m.materialId} className="p-3 bg-white border border-gray-200 rounded-lg shadow-xs">
                   <div className="font-semibold text-xs text-gray-900 truncate">{m.materialName}</div>
                   <div className="flex justify-between mt-2 text-xs">
                     <span className="text-gray-500">Miqdor:</span>
@@ -766,7 +787,7 @@ export const ProjectDetailPage: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {workersSummary.map((w) => (
-                <div key={w.workerId} className="p-3 bg-purple-50/40 border border-purple-100 rounded-lg">
+                <div key={w.workerId} className="p-3 bg-white border border-purple-200 rounded-lg shadow-xs">
                   <div className="font-bold text-xs text-purple-950">{w.workerName} ({w.specialty || 'Usta'})</div>
                   <div className="mt-2 space-y-1 text-xs">
                     <div className="flex justify-between text-gray-600"><span>Kelishilgan:</span> <b>${w.totalAgreedAmount.toLocaleString()}</b></div>
@@ -845,7 +866,7 @@ export const ProjectDetailPage: React.FC = () => {
 
           <div className="space-y-2">
             {extraWorks.map((ew) => (
-              <div key={ew.id} className="p-3.5 bg-gray-50/70 border border-gray-200 rounded-lg flex items-center justify-between">
+              <div key={ew.id} className="p-3.5 bg-white border border-gray-200 rounded-lg flex items-center justify-between shadow-xs">
                 <div>
                   <div className="font-bold text-xs text-gray-900">{ew.title}</div>
                   <div className="text-[10px] text-gray-500 mt-0.5">{ew.description || 'Izohsiz'}</div>
@@ -893,7 +914,7 @@ export const ProjectDetailPage: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {photos.map((ph) => (
-              <div key={ph.id} className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+              <div key={ph.id} className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-xs">
                 <img
                   src={ph.photoUrl}
                   alt={ph.caption || 'Photo'}
@@ -1096,25 +1117,72 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL 4: ADD MATERIAL PURCHASE */}
+      {/* MODAL 4: ADD MATERIAL PURCHASE (With inline creation) */}
       {isPurchaseModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl border border-gray-200 space-y-4">
-            <h3 className="font-bold text-sm text-[#171b25]">Material Xaridi Kiritish</h3>
+            <div className="flex justify-between items-center">
+              <h3 className="font-bold text-sm text-[#171b25]">Material Xaridi Kiritish</h3>
+              <button
+                type="button"
+                onClick={() => setIsNewMaterial(!isNewMaterial)}
+                className="text-[11px] text-[#ff7a16] font-semibold hover:underline flex items-center gap-1"
+              >
+                <PackagePlus className="w-3.5 h-3.5" />
+                <span>{isNewMaterial ? "Katalogdan tanlash" : "+ Yangi material qo'shish"}</span>
+              </button>
+            </div>
+
             <form onSubmit={handleCreatePurchase} className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold mb-1">Material *</label>
-                <select
-                  value={newPurMatId}
-                  onChange={(e) => setNewPurMatId(e.target.value)}
-                  required
-                  className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs bg-white outline-none"
-                >
-                  {catalogMaterials.map((m) => (
-                    <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>
-                  ))}
-                </select>
-              </div>
+              {isNewMaterial ? (
+                <div className="p-3 bg-orange-50/50 border border-orange-200 rounded-lg space-y-2">
+                  <div>
+                    <label className="block text-[11px] font-semibold mb-1">Material Nomi *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ispan kafeli 60x60"
+                      value={newPurMatName}
+                      onChange={(e) => setNewPurMatName(e.target.value)}
+                      className="w-full h-8 px-2.5 border border-gray-300 rounded text-xs bg-white outline-none focus:border-[#ff7a16]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold mb-1">O'lchov Birligi *</label>
+                    <select
+                      value={newPurMatUnit}
+                      onChange={(e) => setNewPurMatUnit(e.target.value)}
+                      className="w-full h-8 px-2 border border-gray-300 rounded text-xs bg-white outline-none"
+                    >
+                      <option value="dona">dona</option>
+                      <option value="m²">m²</option>
+                      <option value="kg">kg</option>
+                      <option value="qop">qop</option>
+                      <option value="m³">m³</option>
+                      <option value="metr">metr</option>
+                      <option value="litr">litr</option>
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Material *</label>
+                  <select
+                    value={newPurMatId}
+                    onChange={(e) => setNewPurMatId(e.target.value)}
+                    required
+                    className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs bg-white outline-none"
+                  >
+                    {catalogMaterials.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>
+                    ))}
+                    {catalogMaterials.length === 0 && (
+                      <option value="">Materiallar yo'q — tepadan yangi qo'shing</option>
+                    )}
+                  </select>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs font-semibold mb-1">Miqdor *</label>
@@ -1162,25 +1230,79 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL 5: ADD WORKER */}
+      {/* MODAL 5: ADD WORKER (With inline creation) */}
       {isWorkerModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl border border-gray-200 space-y-4">
-            <h3 className="font-bold text-sm text-[#171b25]">Ustaga Ish Biriktirish</h3>
+            <div className="flex justify-between items-center">
+              <h3 className="font-bold text-sm text-[#171b25]">Ustaga Ish Biriktirish</h3>
+              <button
+                type="button"
+                onClick={() => setIsNewWorker(!isNewWorker)}
+                className="text-[11px] text-[#ff7a16] font-semibold hover:underline flex items-center gap-1"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>{isNewWorker ? "Katalogdan tanlash" : "+ Yangi usta qo'shish"}</span>
+              </button>
+            </div>
+
             <form onSubmit={handleCreateWorkerPayment} className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold mb-1">Usta *</label>
-                <select
-                  value={newWorkId}
-                  onChange={(e) => setNewWorkId(e.target.value)}
-                  required
-                  className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs bg-white outline-none"
-                >
-                  {catalogWorkers.map((w) => (
-                    <option key={w.id} value={w.id}>{w.fullName} ({w.specialty || 'Usta'})</option>
-                  ))}
-                </select>
-              </div>
+              {isNewWorker ? (
+                <div className="p-3 bg-purple-50/50 border border-purple-200 rounded-lg space-y-2">
+                  <div>
+                    <label className="block text-[11px] font-semibold mb-1">Usta Ismi va Familiyasi *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Hasan Usta"
+                      value={newWorkerFullName}
+                      onChange={(e) => setNewWorkerFullName(e.target.value)}
+                      className="w-full h-8 px-2.5 border border-gray-300 rounded text-xs bg-white outline-none focus:border-[#ff7a16]"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-semibold mb-1">Telefon *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="+998901112233"
+                        value={newWorkerPhone}
+                        onChange={(e) => setNewWorkerPhone(e.target.value)}
+                        className="w-full h-8 px-2 border border-gray-300 rounded text-xs bg-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold mb-1">Mutaxassisligi</label>
+                      <input
+                        type="text"
+                        placeholder="Kafelchi, Suvoqchi"
+                        value={newWorkerSpecialty}
+                        onChange={(e) => setNewWorkerSpecialty(e.target.value)}
+                        className="w-full h-8 px-2 border border-gray-300 rounded text-xs bg-white outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Usta *</label>
+                  <select
+                    value={newWorkId}
+                    onChange={(e) => setNewWorkId(e.target.value)}
+                    required
+                    className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs bg-white outline-none"
+                  >
+                    {catalogWorkers.map((w) => (
+                      <option key={w.id} value={w.id}>{w.fullName} ({w.specialty || 'Usta'})</option>
+                    ))}
+                    {catalogWorkers.length === 0 && (
+                      <option value="">Ustalar yo'q — tepadan yangi qo'shing</option>
+                    )}
+                  </select>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-semibold mb-1">Ish Tavsifi *</label>
                 <input
