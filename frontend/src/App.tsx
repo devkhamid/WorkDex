@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -20,11 +20,12 @@ import { ReportsPage } from './pages/ReportsPage';
 const ProtectedLayout: React.FC = () => {
   const { token, isLoading } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f6f7f9] text-xs text-gray-500">
+      <div className="min-h-screen flex items-center justify-center bg-white text-xs text-gray-500 font-medium">
         WorkDex yuklanmoqda...
       </div>
     );
@@ -47,6 +48,20 @@ const ProtectedLayout: React.FC = () => {
     return 'Boshqaruv paneli';
   };
 
+  const navTabs = [
+    { label: 'Umumiy ko‘rinish', path: '/' },
+    { label: 'Loyihalar', path: '/projects' },
+    { label: 'Jamoa', path: '/workers' },
+    { label: 'Moliya', path: '/finance' },
+    { label: 'Vazifalar', path: '/tasks' },
+    { label: 'Hisobotlar', path: '/reports' },
+  ];
+
+  const isTabActive = (tabPath: string) => {
+    if (tabPath === '/') return location.pathname === '/';
+    return location.pathname.startsWith(tabPath);
+  };
+
   return (
     <div className="flex min-h-screen max-w-[1500px] mx-auto bg-white border-x border-[#f0f2f5] shadow-xs">
       {/* Sidebar matching prototype */}
@@ -58,6 +73,26 @@ const ProtectedLayout: React.FC = () => {
           title={getPageTitle(location.pathname)}
           onOpenNewProject={() => setIsNewProjectModalOpen(true)}
         />
+
+        {/* Persistent Sub-header Navigation Tabs (Never disappears) */}
+        <div className="h-[48px] bg-white flex items-end px-6 border-b border-[#e4e7ec] gap-1 overflow-x-auto">
+          {navTabs.map((tab) => {
+            const active = isTabActive(tab.path);
+            return (
+              <button
+                key={tab.path}
+                onClick={() => navigate(tab.path)}
+                className={`h-11 px-3.5 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
+                  active
+                    ? 'text-[#111827] border-[#ff7a16] font-bold'
+                    : 'text-[#64748b] border-transparent hover:text-gray-900 hover:border-gray-300'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
 
         <main className="flex-1 overflow-y-auto bg-white">
           <Routes>
