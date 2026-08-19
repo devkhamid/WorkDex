@@ -13,15 +13,15 @@ export const FinancePage: React.FC = () => {
   }, []);
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="p-6 space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold text-[#171b25]">Moliya & Kompaniya Balansi</h2>
           <p className="text-xs text-[#7b8190] mt-0.5">Kompaniyaning umumiy moliyaviy ko'rinishi va loyiha xarajatlari tahlili</p>
         </div>
         <button
           onClick={() => reportsApi.downloadAllProjectsExcel()}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-[34px] px-3.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-all"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-[36px] px-4 rounded-lg flex items-center gap-1.5 shadow-xs transition-all"
         >
           <FileSpreadsheet className="w-4 h-4" />
           <span>Barcha moliyaviy hisobotni Excelda yuklash</span>
@@ -29,94 +29,102 @@ export const FinancePage: React.FC = () => {
       </div>
 
       {/* 4 Financial KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs relative overflow-hidden">
-          <div className="absolute left-0 top-3.5 w-1 h-8 rounded-r bg-[#ff7a16]" />
-          <small className="block text-[11px] font-medium text-[#697180] mb-1">Loyiha Daromadi (Shartnoma)</small>
-          <b className="text-2xl font-extrabold text-[#171b25] block mt-1">${stats?.totalContractValue.toLocaleString() ?? 0}</b>
-          <div className="text-[10px] font-semibold text-emerald-600 mt-1.5 flex items-center gap-1">
-            <ArrowUpRight className="w-3 h-3" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between min-h-[110px]">
+          <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#ff7a16]" />
+          <div>
+            <small className="block text-[11px] font-medium text-[#697180] mb-1">Loyiha Daromadi (Shartnoma)</small>
+            <b className="text-2xl font-extrabold text-[#171b25] block mt-1">${stats?.totalContractValue.toLocaleString() ?? 0}</b>
+          </div>
+          <div className="text-[11px] font-semibold text-emerald-600 mt-2 flex items-center gap-1">
+            <ArrowUpRight className="w-3.5 h-3.5" />
             <span>Olingan tushum: ${stats?.totalRevenueReceived.toLocaleString() ?? 0}</span>
           </div>
         </div>
 
-        <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs relative overflow-hidden">
-          <div className="absolute left-0 top-3.5 w-1 h-8 rounded-r bg-[#3b82f6]" />
-          <small className="block text-[11px] font-medium text-[#697180] mb-1">Kutilayotgan Qoldiq Tushum</small>
-          <b className="text-2xl font-extrabold text-[#3b82f6] block mt-1">${stats?.totalPendingReceivables.toLocaleString() ?? 0}</b>
-          <div className="text-[10px] font-medium text-gray-500 mt-1.5">
+        <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between min-h-[110px]">
+          <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#3b82f6]" />
+          <div>
+            <small className="block text-[11px] font-medium text-[#697180] mb-1">Kutilayotgan Qoldiq Tushum</small>
+            <b className="text-2xl font-extrabold text-[#3b82f6] block mt-1">${stats?.totalPendingReceivables.toLocaleString() ?? 0}</b>
+          </div>
+          <div className="text-[11px] font-medium text-gray-500 mt-2">
             <span>Mijozlar tomonidan to'lanishi kutilmoqda</span>
           </div>
         </div>
 
-        <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs relative overflow-hidden">
-          <div className="absolute left-0 top-3.5 w-1 h-8 rounded-r bg-[#ef5350]" />
-          <small className="block text-[11px] font-medium text-[#697180] mb-1">Jami Loyiha Xarajatlari</small>
-          <b className="text-2xl font-extrabold text-[#ef5350] block mt-1">${stats?.totalExpenses.toLocaleString() ?? 0}</b>
-          <div className="text-[10px] font-medium text-red-600 mt-1.5 flex items-center gap-1">
-            <ArrowDownRight className="w-3 h-3" />
+        <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between min-h-[110px]">
+          <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#ef5350]" />
+          <div>
+            <small className="block text-[11px] font-medium text-[#697180] mb-1">Jami Loyiha Xarajatlari</small>
+            <b className="text-2xl font-extrabold text-[#ef5350] block mt-1">${stats?.totalExpenses.toLocaleString() ?? 0}</b>
+          </div>
+          <div className="text-[11px] font-medium text-red-600 mt-2 flex items-center gap-1">
+            <ArrowDownRight className="w-3.5 h-3.5" />
             <span>Material, usta, transport va boshqalar</span>
           </div>
         </div>
 
-        <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs relative overflow-hidden">
-          <div className="absolute left-0 top-3.5 w-1 h-8 rounded-r bg-[#8b5cf6]" />
-          <small className="block text-[11px] font-medium text-[#697180] mb-1">Kutilayotgan Sof Foyda</small>
-          <b className="text-2xl font-extrabold text-emerald-600 block mt-1">${stats?.totalNetProfit.toLocaleString() ?? 0}</b>
-          <div className="text-[10px] font-semibold text-emerald-600 mt-1.5 flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" />
+        <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between min-h-[110px]">
+          <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#8b5cf6]" />
+          <div>
+            <small className="block text-[11px] font-medium text-[#697180] mb-1">Kutilayotgan Sof Foyda</small>
+            <b className="text-2xl font-extrabold text-emerald-600 block mt-1">${stats?.totalNetProfit.toLocaleString() ?? 0}</b>
+          </div>
+          <div className="text-[11px] font-semibold text-emerald-600 mt-2 flex items-center gap-1">
+            <TrendingUp className="w-3.5 h-3.5" />
             <span>Daromad va xarajat farqi</span>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Left: Kompaniya Moliya Xulosasi */}
-        <div className="lg:col-span-8 bg-white border border-[#e4e7ec] rounded-xl p-4.5 shadow-xs space-y-3">
-          <div className="pb-2 border-b border-gray-100">
+        <div className="lg:col-span-8 bg-white border border-[#e4e7ec] rounded-xl p-6 shadow-xs space-y-4">
+          <div className="pb-3 border-b border-gray-100">
             <h3 className="font-bold text-xs text-[#171b25]">Kompaniya Moliya Xulosasi</h3>
             <div className="text-[10px] text-[#9399a4]">Barcha faol loyihalar va operatsion tushumlar</div>
           </div>
 
-          <div className="divide-y divide-gray-100 text-xs">
-            <div className="py-2.5 flex justify-between items-center">
+          <div className="divide-y divide-gray-100 text-xs space-y-1">
+            <div className="py-3 flex justify-between items-center">
               <span className="font-semibold text-gray-700">Loyiha tushumlari (Mijoz to'lovlari)</span>
               <b className="text-emerald-600 font-bold text-sm">+${stats?.totalRevenueReceived.toLocaleString() ?? 0}</b>
             </div>
-            <div className="py-2.5 flex justify-between items-center">
+            <div className="py-3 flex justify-between items-center">
               <span className="font-semibold text-gray-700">Loyiha xarajatlari (Material, usta, xizmatlar)</span>
               <b className="text-red-600 font-bold text-sm">-${stats?.totalExpenses.toLocaleString() ?? 0}</b>
             </div>
-            <div className="py-2.5 flex justify-between items-center">
+            <div className="py-3 flex justify-between items-center">
               <span className="font-semibold text-gray-700">Kutilayotgan qarzdorliklar tushumi</span>
               <b className="text-blue-600 font-bold text-sm">+${stats?.totalPendingReceivables.toLocaleString() ?? 0}</b>
             </div>
-            <div className="py-3 flex justify-between items-center bg-gray-50/80 px-3 rounded-lg mt-2 border border-gray-200">
-              <span className="font-bold text-gray-900 text-xs uppercase">Yakuniy sof natija (Foyda):</span>
-              <b className="text-emerald-700 font-extrabold text-base">${stats?.totalNetProfit.toLocaleString() ?? 0}</b>
+            <div className="p-4 flex justify-between items-center bg-emerald-50/60 border border-emerald-200 rounded-xl mt-4">
+              <span className="font-bold text-emerald-950 text-xs uppercase tracking-wide">YAKUNIY SOF NATIJA (FOYDA):</span>
+              <b className="text-emerald-700 font-extrabold text-lg">${stats?.totalNetProfit.toLocaleString() ?? 0}</b>
             </div>
           </div>
         </div>
 
         {/* Right: Kutilayotgan To'lovlar */}
-        <div className="lg:col-span-4 bg-white border border-[#e4e7ec] rounded-xl p-4.5 shadow-xs space-y-3">
-          <div className="pb-2 border-b border-gray-100">
-            <h3 className="font-bold text-xs text-[#171b25]">Kutilayotgan To'lovlar</h3>
-            <div className="text-[10px] text-[#9399a4]">Loyiha va operatsion majburiyatlar</div>
+        <div className="lg:col-span-4 bg-white border border-[#e4e7ec] rounded-xl p-6 shadow-xs space-y-4">
+          <div className="pb-3 border-b border-gray-100">
+            <h3 className="font-bold text-xs text-[#171b25]">Loyiha Majburiyatlari</h3>
+            <div className="text-[10px] text-[#9399a4]">Loyiha va operatsion qoldiq to'lovlar</div>
           </div>
 
           <div className="divide-y divide-gray-100 text-xs">
-            <div className="py-2.5 flex justify-between items-center">
-              <span className="text-gray-600">Ustalar haqi to'lovlari</span>
-              <b className="text-gray-900">$2,400</b>
+            <div className="py-3 flex justify-between items-center">
+              <span className="text-gray-600 font-medium">Ustalar haqi to'lovlari</span>
+              <b className="text-gray-900 font-semibold">$0</b>
             </div>
-            <div className="py-2.5 flex justify-between items-center">
-              <span className="text-gray-600">Material xaridlari qoldig'i</span>
-              <b className="text-gray-900">$1,850</b>
+            <div className="py-3 flex justify-between items-center">
+              <span className="text-gray-600 font-medium">Material xaridlari qoldig'i</span>
+              <b className="text-gray-900 font-semibold">$0</b>
             </div>
-            <div className="py-2.5 flex justify-between items-center">
-              <span className="text-gray-600">Transport & Logistika</span>
-              <b className="text-gray-900">$350</b>
+            <div className="py-3 flex justify-between items-center">
+              <span className="text-gray-600 font-medium">Transport & Logistika</span>
+              <b className="text-gray-900 font-semibold">$0</b>
             </div>
           </div>
         </div>
@@ -124,7 +132,7 @@ export const FinancePage: React.FC = () => {
 
       {/* Projects Financial Table */}
       <div className="bg-white border border-[#e4e7ec] rounded-xl shadow-xs overflow-hidden">
-        <div className="p-4 border-b border-[#e4e7ec] bg-gray-50/50 flex justify-between items-center">
+        <div className="p-5 border-b border-[#e4e7ec] bg-white flex justify-between items-center">
           <h3 className="font-bold text-xs text-[#171b25]">Loyihalar Kesimida Moliyaviy Holat</h3>
           <span className="text-xs text-gray-500 font-medium">{projects.length} ta loyiha</span>
         </div>
@@ -132,28 +140,35 @@ export const FinancePage: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-[#e4e7ec] bg-gray-50/70">
-                <th className="py-2.5 px-4 font-bold text-[#7c838e] text-[10px] uppercase">LOYIHA NOMI</th>
-                <th className="py-2.5 px-4 font-bold text-[#7c838e] text-[10px] uppercase">MIJOZ</th>
-                <th className="py-2.5 px-4 font-bold text-[#7c838e] text-[10px] uppercase">SHARTNOMA</th>
-                <th className="py-2.5 px-4 font-bold text-[#7c838e] text-[10px] uppercase">REJALI BYUDJET</th>
-                <th className="py-2.5 px-4 font-bold text-[#7c838e] text-[10px] uppercase">HOLATI</th>
+              <tr className="border-b border-[#e4e7ec] bg-gray-50/50">
+                <th className="py-3 px-5 font-bold text-[#7c838e] text-[10px] uppercase">LOYIHA NOMI</th>
+                <th className="py-3 px-5 font-bold text-[#7c838e] text-[10px] uppercase">MIJOZ</th>
+                <th className="py-3 px-5 font-bold text-[#7c838e] text-[10px] uppercase">SHARTNOMA</th>
+                <th className="py-3 px-5 font-bold text-[#7c838e] text-[10px] uppercase">REJALI BYUDJET</th>
+                <th className="py-3 px-5 font-bold text-[#7c838e] text-[10px] uppercase">HOLATI</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-[#eef0f3]">
               {projects.map((p) => (
-                <tr key={p.id} className="hover:bg-gray-50/50">
-                  <td className="py-3 px-4 font-semibold text-gray-900">{p.name}</td>
-                  <td className="py-3 px-4 text-gray-600">{p.customerName || '-'}</td>
-                  <td className="py-3 px-4 font-bold text-gray-900">${p.contractAmount.toLocaleString()}</td>
-                  <td className="py-3 px-4 text-gray-600">${p.budget.toLocaleString()}</td>
-                  <td className="py-3 px-4">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#e6f8ee] text-[#159452]">
+                <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
+                  <td className="py-3.5 px-5 font-bold text-[#171b25]">{p.name}</td>
+                  <td className="py-3.5 px-5 text-gray-700">{p.customerName || '-'}</td>
+                  <td className="py-3.5 px-5 font-semibold text-gray-900">${p.contractAmount.toLocaleString()}</td>
+                  <td className="py-3.5 px-5 text-gray-600">${p.budget.toLocaleString()}</td>
+                  <td className="py-3.5 px-5">
+                    <span className="px-2.5 py-0.5 bg-gray-100 text-gray-700 rounded-full text-[10px] font-bold">
                       {p.statusName}
                     </span>
                   </td>
                 </tr>
               ))}
+              {projects.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-xs text-gray-400">
+                    Hozircha loyihalar mavjud emas
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
