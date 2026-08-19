@@ -215,26 +215,39 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
             </div>
           </div>
 
-          {/* Dates */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Dates in Day.Month.Year format */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Boshlanish Sanasi *</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                Boshlanish Sanasi * <span className="text-[10px] text-gray-400 font-normal">(Kun / Oy / Yil)</span>
+              </label>
               <input
                 type="date"
                 required
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full h-9 px-3 border border-[#e4e7ec] rounded-lg text-xs focus:border-[#ff7a16] outline-none"
+                className="w-full h-9 px-3 border border-[#e4e7ec] rounded-lg text-xs focus:border-[#ff7a16] outline-none bg-white"
               />
+              <div className="text-[10px] text-gray-500 mt-1 flex justify-between">
+                <span>Tanlangan: {startDate ? new Date(startDate).toLocaleDateString('uz-UZ') : '-'}</span>
+                <span className="text-[#ff7a16] font-medium">Kun.Oy.Yil</span>
+              </div>
             </div>
+
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Rejalashtirilgan Tugash</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                Rejalashtirilgan Tugash <span className="text-[10px] text-gray-400 font-normal">(Kun / Oy / Yil)</span>
+              </label>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full h-9 px-3 border border-[#e4e7ec] rounded-lg text-xs focus:border-[#ff7a16] outline-none"
+                className="w-full h-9 px-3 border border-[#e4e7ec] rounded-lg text-xs focus:border-[#ff7a16] outline-none bg-white"
               />
+              <div className="text-[10px] text-gray-500 mt-1 flex justify-between">
+                <span>Tanlangan: {endDate ? new Date(endDate).toLocaleDateString('uz-UZ') : '-'}</span>
+                <span className="text-[#ff7a16] font-medium">Kun.Oy.Yil</span>
+              </div>
             </div>
           </div>
 

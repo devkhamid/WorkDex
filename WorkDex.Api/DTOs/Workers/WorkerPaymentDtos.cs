@@ -16,10 +16,10 @@ public class CreateWorkerPaymentDto
     public decimal AgreedAmount { get; set; }
 
     [Range(0, double.MaxValue, ErrorMessage = "Bajarilgan ish haqi manfiy bo'lishi mumkin emas.")]
-    public decimal WorkAmount { get; set; } // Dastlab tasdiqlangan ish haqi
+    public decimal WorkAmount { get; set; } 
 
     [Range(0, double.MaxValue, ErrorMessage = "To'langan summa manfiy bo'lishi mumkin emas.")]
-    public decimal PaidAmount { get; set; } // Dastlab to'langan qismi
+    public decimal PaidAmount { get; set; }
 
     public DateTime? PaymentDate { get; set; }
 
@@ -31,7 +31,7 @@ public class UpdateWorkerWorkAmountDto
 {
     [Required]
     [Range(0, double.MaxValue, ErrorMessage = "Bajarilgan ish haqi manfiy bo'lishi mumkin emas.")]
-    public decimal WorkAmount { get; set; } // Yangi tasdiqlangan bajarilgan ish haqi summasi
+    public decimal WorkAmount { get; set; } 
 
     [MaxLength(1000)]
     public string? Notes { get; set; }
