@@ -9,7 +9,8 @@ import {
   Camera,
   FileText,
   UserPlus,
-  PackagePlus
+  PackagePlus,
+  Clock
 } from 'lucide-react';
 import { projectsApi, reportsApi, materialsApi, workersApi } from '../api/services';
 import {
@@ -29,6 +30,16 @@ import {
   Material,
   Worker
 } from '../types';
+
+export const formatDateUz = (dateStr?: string | Date | null) => {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '-';
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}.${month}.${year}`;
+};
 
 export const ProjectDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -80,7 +91,7 @@ export const ProjectDetailPage: React.FC = () => {
   const [newExpAmount, setNewExpAmount] = useState<number | ''>('');
   const [newExpDesc, setNewExpDesc] = useState('');
 
-  // Purchase Form State (with inline new material)
+  // Purchase Form State
   const [isNewMaterial, setIsNewMaterial] = useState(false);
   const [newPurMatName, setNewPurMatName] = useState('');
   const [newPurMatUnit, setNewPurMatUnit] = useState('dona');
@@ -89,7 +100,7 @@ export const ProjectDetailPage: React.FC = () => {
   const [newPurPrice, setNewPurPrice] = useState<number | ''>('');
   const [newPurSupplier, setNewPurSupplier] = useState('');
 
-  // Worker Payment Form State (with inline new worker)
+  // Worker Payment Form State
   const [isNewWorker, setIsNewWorker] = useState(false);
   const [newWorkerFullName, setNewWorkerFullName] = useState('');
   const [newWorkerPhone, setNewWorkerPhone] = useState('');
@@ -470,34 +481,36 @@ export const ProjectDetailPage: React.FC = () => {
         <div className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
             {/* Timeline Progress */}
-            <div className="lg:col-span-7 bg-white border border-[#e4e7ec] rounded-xl p-4.5 shadow-xs">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-xs text-[#171b25]">Loyiha rivojlanishi (Avtomatik Progress)</h3>
-                  <div className="text-[10px] text-[#9399a4]">Vazifalar og'irligi asosida hisoblangan</div>
+            <div className="lg:col-span-7 bg-white border border-[#e4e7ec] rounded-xl p-4.5 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-xs text-[#171b25]">Loyiha rivojlanishi (Avtomatik Progress)</h3>
+                    <div className="text-[10px] text-[#9399a4]">Vazifalar og'irligi asosida hisoblangan</div>
+                  </div>
+                  <span className="text-base font-extrabold text-[#21bd68]">{project.progressPercent}%</span>
                 </div>
-                <span className="text-base font-extrabold text-[#21bd68]">{project.progressPercent}%</span>
+
+                <div className="h-2 bg-[#edf0f3] rounded-full overflow-hidden my-4">
+                  <div
+                    style={{ width: `${Math.max(project.progressPercent, 4)}%` }}
+                    className="h-full bg-[#ff7a16] rounded-full transition-all"
+                  />
+                </div>
               </div>
 
-              <div className="h-2 bg-[#edf0f3] rounded-full overflow-hidden my-4">
-                <div
-                  style={{ width: `${Math.max(project.progressPercent, 4)}%` }}
-                  className="h-full bg-[#ff7a16] rounded-full transition-all"
-                />
-              </div>
-
-              <div className="flex justify-between text-[10px] text-[#8c929d]">
+              <div className="flex justify-between text-[11px] text-[#8c929d] pt-2 border-t border-gray-100">
                 <div>
-                  <div>{new Date(project.startDate).toLocaleDateString()}</div>
-                  <b className="text-gray-700">Boshlanish</b>
+                  <div className="font-bold text-gray-900">{formatDateUz(project.startDate)}</div>
+                  <span className="text-gray-500 text-[10px]">Boshlanish</span>
                 </div>
                 <div className="text-center">
-                  <div>Bugun</div>
-                  <b className="text-[#ff7a16]">Jarayonda</b>
+                  <div className="font-bold text-[#ff7a16]">Bugun</div>
+                  <span className="text-[#ff7a16] text-[10px] font-semibold">Jarayonda</span>
                 </div>
                 <div className="text-right">
-                  <div>{project.endDate ? new Date(project.endDate).toLocaleDateString() : 'Belgilanmagan'}</div>
-                  <b className="text-gray-700">Topshirish</b>
+                  <div className="font-bold text-gray-900">{project.endDate ? formatDateUz(project.endDate) : 'Belgilanmagan'}</div>
+                  <span className="text-gray-500 text-[10px]">Topshirish</span>
                 </div>
               </div>
             </div>
@@ -509,8 +522,8 @@ export const ProjectDetailPage: React.FC = () => {
                 {payments.slice(0, 2).map((p) => (
                   <div key={p.id} className="py-2 flex justify-between items-center">
                     <div>
-                      <div className="font-medium text-gray-800">Mijoz to‘lovi ({p.paymentMethodName})</div>
-                      <div className="text-[10px] text-gray-400">{new Date(p.paymentDate).toLocaleDateString()}</div>
+                      <div className="font-semibold text-gray-800">Mijoz to‘lovi ({p.paymentMethodName})</div>
+                      <div className="text-[10px] text-gray-400">{formatDateUz(p.paymentDate)}</div>
                     </div>
                     <span className="text-[#21bd68] font-bold">+${p.amount.toLocaleString()}</span>
                   </div>
@@ -518,14 +531,14 @@ export const ProjectDetailPage: React.FC = () => {
                 {expenses.slice(0, 2).map((e) => (
                   <div key={e.id} className="py-2 flex justify-between items-center">
                     <div>
-                      <div className="font-medium text-gray-800">{e.categoryName}: {e.description}</div>
-                      <div className="text-[10px] text-gray-400">{new Date(e.expenseDate).toLocaleDateString()}</div>
+                      <div className="font-semibold text-gray-800">{e.categoryName}: {e.description}</div>
+                      <div className="text-[10px] text-gray-400">{formatDateUz(e.expenseDate)}</div>
                     </div>
                     <span className="text-[#ef5350] font-bold">-${e.amount.toLocaleString()}</span>
                   </div>
                 ))}
                 {payments.length === 0 && expenses.length === 0 && (
-                  <div className="py-4 text-center text-gray-400 text-[11px]">Hali harakatlar mavjud emas</div>
+                  <div className="py-6 text-center text-gray-400 text-[11px]">Hali harakatlar mavjud emas</div>
                 )}
               </div>
             </div>
@@ -550,38 +563,50 @@ export const ProjectDetailPage: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-[#e4e7ec] bg-gray-50/50">
-                  <th className="py-2.5 px-4 font-bold text-[#7c838e] text-[10px]">HOLAT</th>
-                  <th className="py-2.5 px-4 font-bold text-[#7c838e] text-[10px]">VAZIFA</th>
-                  <th className="py-2.5 px-4 font-bold text-[#7c838e] text-[10px]">BOSQICH</th>
-                  <th className="py-2.5 px-4 font-bold text-[#7c838e] text-[10px]">OG'IRLIK</th>
-                  <th className="py-2.5 px-4 font-bold text-[#7c838e] text-[10px]">MUDDAT</th>
+                  <th className="py-3 px-4 font-bold text-[#7c838e] text-[10px] uppercase w-20">HOLAT</th>
+                  <th className="py-3 px-4 font-bold text-[#7c838e] text-[10px] uppercase">VAZIFA</th>
+                  <th className="py-3 px-4 font-bold text-[#7c838e] text-[10px] uppercase">BOSQICH</th>
+                  <th className="py-3 px-4 font-bold text-[#7c838e] text-[10px] uppercase">OG'IRLIK</th>
+                  <th className="py-3 px-4 font-bold text-[#7c838e] text-[10px] uppercase">MUDDAT</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#eef0f3]">
                 {tasks.map((t) => (
                   <tr key={t.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="py-2.5 px-4">
+                    <td className="py-3 px-4">
                       <button
                         onClick={() => handleToggleTask(t.id)}
-                        className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${
+                        className={`w-6 h-6 rounded-md flex items-center justify-center border transition-all ${
                           t.isCompleted
-                            ? 'bg-[#21bd68] border-[#21bd68] text-white'
-                            : 'border-gray-300 hover:border-[#ff7a16]'
+                            ? 'bg-[#21bd68] border-[#21bd68] text-white shadow-xs'
+                            : 'border-gray-300 hover:border-[#ff7a16] bg-white'
                         }`}
+                        title={t.isCompleted ? "Bajarildi" : "Bajarish uchun bosing"}
                       >
-                        {t.isCompleted && <CheckCircle2 className="w-3.5 h-3.5" />}
+                        {t.isCompleted && <CheckCircle2 className="w-4 h-4" />}
                       </button>
                     </td>
-                    <td className={`py-2.5 px-4 font-semibold ${t.isCompleted ? 'line-through text-gray-400' : 'text-gray-800'}`}>
-                      {t.title}
+                    <td className="py-3 px-4 font-semibold text-gray-900">
+                      <div className="flex items-center gap-2">
+                        <span>{t.title}</span>
+                        {t.isCompleted && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#e6f8ee] text-[#159452]">
+                            Bajarildi ✓
+                          </span>
+                        )}
+                      </div>
                     </td>
-                    <td className="py-2.5 px-4 text-gray-500">{t.stageName || '-'}</td>
-                    <td className="py-2.5 px-4 font-bold text-gray-700">{t.weight} ball</td>
-                    <td className="py-2.5 px-4 text-gray-500">{t.dueDate ? new Date(t.dueDate).toLocaleDateString() : '-'}</td>
+                    <td className="py-3 px-4 text-gray-600 font-medium">{t.stageName || 'Asosiy bosqich'}</td>
+                    <td className="py-3 px-4">
+                      <span className="px-2 py-0.5 bg-gray-100 border border-gray-200 text-gray-800 rounded font-bold text-[11px]">
+                        {t.weight} ball
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-gray-700 font-medium">{formatDateUz(t.dueDate)}</td>
                   </tr>
                 ))}
                 {tasks.length === 0 && (
-                  <tr><td colSpan={5} className="py-6 text-center text-xs text-gray-400">Vazifalar qo'shilmagan</td></tr>
+                  <tr><td colSpan={5} className="py-8 text-center text-xs text-gray-400">Vazifalar qo'shilmagan</td></tr>
                 )}
               </tbody>
             </table>
@@ -614,7 +639,7 @@ export const ProjectDetailPage: React.FC = () => {
                   <div key={p.id} className="p-3 flex justify-between items-center text-xs">
                     <div>
                       <div className="font-semibold text-gray-800">${p.amount.toLocaleString()} ({p.paymentMethodName})</div>
-                      <div className="text-[10px] text-gray-400">{new Date(p.paymentDate).toLocaleDateString()} · Qabul qildi: {p.receivedByName}</div>
+                      <div className="text-[10px] text-gray-400">{formatDateUz(p.paymentDate)} · Qabul qildi: {p.receivedByName}</div>
                       {p.notes && <div className="text-[10px] text-gray-500 italic mt-0.5">{p.notes}</div>}
                     </div>
                     <span className="text-emerald-600 font-bold text-sm">+${p.amount.toLocaleString()}</span>
@@ -647,7 +672,7 @@ export const ProjectDetailPage: React.FC = () => {
                   <div key={e.id} className="p-3 flex justify-between items-center text-xs">
                     <div>
                       <div className="font-semibold text-gray-800"><span className="px-1.5 py-0.5 bg-red-100 text-red-800 rounded text-[9px] mr-1">{e.categoryName}</span> {e.description}</div>
-                      <div className="text-[10px] text-gray-400">{new Date(e.expenseDate).toLocaleDateString()} · Kiritdi: {e.createdByName}</div>
+                      <div className="text-[10px] text-gray-400">{formatDateUz(e.expenseDate)} · Kiritdi: {e.createdByName}</div>
                     </div>
                     <span className="text-red-600 font-bold text-sm">-${e.amount.toLocaleString()}</span>
                   </div>
@@ -689,13 +714,20 @@ export const ProjectDetailPage: React.FC = () => {
                     {t.isCompleted && <CheckCircle2 className="w-3.5 h-3.5" />}
                   </div>
                   <div>
-                    <div className={`text-xs font-semibold ${t.isCompleted ? 'line-through text-gray-400' : 'text-gray-800'}`}>{t.title}</div>
-                    <div className="text-[10px] text-gray-400">Bosqich: {t.stageName || 'Umumiy'} · Muddat: {t.dueDate ? new Date(t.dueDate).toLocaleDateString() : '-'}</div>
+                    <div className="text-xs font-semibold text-gray-900">{t.title}</div>
+                    <div className="text-[10px] text-gray-400">Bosqich: {t.stageName || 'Asosiy'} · Muddat: {formatDateUz(t.dueDate)}</div>
                   </div>
                 </div>
-                <span className="text-xs font-bold px-2 py-0.5 bg-gray-100 text-gray-700 rounded">
-                  {t.weight} ball
-                </span>
+                <div className="flex items-center gap-2">
+                  {t.isCompleted && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#e6f8ee] text-[#159452]">
+                      Bajarildi ✓
+                    </span>
+                  )}
+                  <span className="text-xs font-bold px-2 py-0.5 bg-gray-100 text-gray-700 rounded">
+                    {t.weight} ball
+                  </span>
+                </div>
               </div>
             ))}
           </div>
@@ -753,7 +785,7 @@ export const ProjectDetailPage: React.FC = () => {
               <tbody className="divide-y divide-gray-100">
                 {purchases.map((pur) => (
                   <tr key={pur.id}>
-                    <td className="py-2.5 px-3">{new Date(pur.purchaseDate).toLocaleDateString()}</td>
+                    <td className="py-2.5 px-3">{formatDateUz(pur.purchaseDate)}</td>
                     <td className="py-2.5 px-3 font-semibold">{pur.materialName}</td>
                     <td className="py-2.5 px-3">{pur.quantity} {pur.unit}</td>
                     <td className="py-2.5 px-3">${pur.unitPrice}</td>
@@ -873,7 +905,7 @@ export const ProjectDetailPage: React.FC = () => {
                   <div className="flex gap-4 mt-2 text-xs">
                     <span className="text-gray-600">Mijoz narxi: <b>${ew.customerAmount.toLocaleString()}</b></span>
                     <span className="text-gray-600">Tannarx: <b>${ew.actualCost.toLocaleString()}</b></span>
-                    <span className="text-emerald-700 font-bold">Foyda: +${ew.profitImpact.toLocaleString()}</span>
+                    <span className="text-emerald-700 font-bold">Foyda: +${(ew.customerAmount - ew.actualCost).toLocaleString()}</span>
                   </div>
                 </div>
                 <button
@@ -926,7 +958,7 @@ export const ProjectDetailPage: React.FC = () => {
                 <div className="p-2.5">
                   <div className="text-xs font-semibold text-gray-800 truncate">{ph.caption || 'Tavsifsiz rasm'}</div>
                   <div className="flex justify-between text-[10px] text-gray-400 mt-1">
-                    <span>{new Date(ph.photoDate).toLocaleDateString()}</span>
+                    <span>{formatDateUz(ph.photoDate)}</span>
                     <span className={ph.isVisibleToCustomer ? 'text-emerald-600 font-bold' : 'text-gray-500'}>
                       {ph.isVisibleToCustomer ? 'Mijozga ochiq' : 'Ichki'}
                     </span>
@@ -1117,7 +1149,7 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL 4: ADD MATERIAL PURCHASE (With inline creation) */}
+      {/* MODAL 4: ADD MATERIAL PURCHASE */}
       {isPurchaseModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl border border-gray-200 space-y-4">
@@ -1230,7 +1262,7 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL 5: ADD WORKER (With inline creation) */}
+      {/* MODAL 5: ADD WORKER */}
       {isWorkerModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl border border-gray-200 space-y-4">
