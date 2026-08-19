@@ -3,14 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp,
   TrendingDown,
-  Building2,
-  DollarSign,
-  Briefcase,
-  AlertTriangle,
   Download,
   Filter,
-  CheckCircle2,
-  Clock,
   ArrowRight
 } from 'lucide-react';
 import { dashboardApi, projectsApi, reportsApi } from '../api/services';
@@ -22,14 +16,12 @@ export const DashboardPage: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchData();
   }, []);
 
   const fetchData = async () => {
-    setLoading(true);
     try {
       const [statsData, projectsData] = await Promise.all([
         dashboardApi.getStats(),
@@ -39,8 +31,6 @@ export const DashboardPage: React.FC = () => {
       setProjects(projectsData);
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -53,13 +43,13 @@ export const DashboardPage: React.FC = () => {
   const getStatusPill = (status: ProjectStatus) => {
     switch (status) {
       case ProjectStatus.InProgress:
-        return <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#e6f8ee] text-[#159452]">Faol</span>;
+        return <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#e6f8ee] text-[#159452]">Faol</span>;
       case ProjectStatus.OnHold:
-        return <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#fff1df] text-[#c96b08]">Kechikkan / Muzlatilgan</span>;
+        return <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#fff1df] text-[#c96b08]">Kechikkan</span>;
       case ProjectStatus.Planning:
-        return <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#f0eaff] text-[#7650d7]">Rejalashtirish</span>;
+        return <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#f0eaff] text-[#7650d7]">Rejalashtirish</span>;
       case ProjectStatus.Completed:
-        return <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#edf5ff] text-[#2563c7]">Yakunlangan</span>;
+        return <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#edf5ff] text-[#2563c7]">Yakunlangan</span>;
       default:
         return null;
     }
@@ -280,7 +270,7 @@ export const DashboardPage: React.FC = () => {
               <Download className="w-3 h-3 text-gray-500" />
               <span>Eksport (Excel)</span>
             </button>
-            <div className="ml-auto text-[11px] text-[#969ca7] font-medium">
+            <div className="ml-auto text-[11px] text-[#969ca7] font-semibold">
               {filteredProjects.length} ta loyiha
             </div>
           </div>
@@ -290,13 +280,13 @@ export const DashboardPage: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-[#e4e7ec] bg-gray-50/50">
-                  <th className="py-2.5 px-4 font-bold text-[#7c838e] text-[10px] uppercase tracking-wider">LOYIHA NOMI</th>
-                  <th className="py-2.5 px-4 font-bold text-[#7c838e] text-[10px] uppercase tracking-wider">HOLAT</th>
-                  <th className="py-2.5 px-4 font-bold text-[#7c838e] text-[10px] uppercase tracking-wider">RIVOJLANISH</th>
-                  <th className="py-2.5 px-4 font-bold text-[#7c838e] text-[10px] uppercase tracking-wider">SHARTNOMA / BYUDJET</th>
-                  <th className="py-2.5 px-4 font-bold text-[#7c838e] text-[10px] uppercase tracking-wider">MUDDAT</th>
-                  <th className="py-2.5 px-4 font-bold text-[#7c838e] text-[10px] uppercase tracking-wider">MIJOZ</th>
-                  <th className="py-2.5 px-4 font-bold text-[#7c838e] text-[10px] uppercase tracking-wider text-right">AMAL</th>
+                  <th className="py-3 px-4 font-bold text-[#7c838e] text-[10px] uppercase tracking-wider">LOYIHA NOMI</th>
+                  <th className="py-3 px-4 font-bold text-[#7c838e] text-[10px] uppercase tracking-wider">HOLAT</th>
+                  <th className="py-3 px-4 font-bold text-[#7c838e] text-[10px] uppercase tracking-wider">RIVOJLANISH</th>
+                  <th className="py-3 px-4 font-bold text-[#7c838e] text-[10px] uppercase tracking-wider">SHARTNOMA / BYUDJET</th>
+                  <th className="py-3 px-4 font-bold text-[#7c838e] text-[10px] uppercase tracking-wider">MUDDAT</th>
+                  <th className="py-3 px-4 font-bold text-[#7c838e] text-[10px] uppercase tracking-wider">MIJOZ</th>
+                  <th className="py-3 px-4 font-bold text-[#7c838e] text-[10px] uppercase tracking-wider text-right">AMAL</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#eef0f3]">
@@ -306,17 +296,17 @@ export const DashboardPage: React.FC = () => {
                     onClick={() => navigate(`/projects/${p.id}`)}
                     className="hover:bg-[#fafbfc] cursor-pointer transition-colors"
                   >
-                    <td className="py-3 px-4">
-                      <div className="font-semibold text-xs text-[#171b25]">{p.name}</div>
-                      <div className="text-[10px] text-[#999faa]">{p.projectType || 'Loyiha'} · {p.location || 'Toshkent'}</div>
+                    <td className="py-3.5 px-4">
+                      <div className="font-bold text-xs text-[#171b25]">{p.name}</div>
+                      <div className="text-[10px] text-[#999faa] mt-0.5">{p.projectType || 'Loyiha'} · {p.location || 'Toshkent'}</div>
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-3.5 px-4">
                       {getStatusPill(p.status)}
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-xs">{p.progressPercent}%</span>
-                        <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <span className="font-bold text-xs w-8">{p.progressPercent}%</span>
+                        <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                           <div
                             style={{ width: `${Math.max(p.progressPercent, 4)}%` }}
                             className={`h-full ${getProgressColor(p.progressPercent)}`}
@@ -324,22 +314,23 @@ export const DashboardPage: React.FC = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4 font-semibold text-xs text-[#171b25]">
-                      {formatMoney(p.contractAmount, p.currency)} <span className="text-gray-400 font-normal">/ {formatMoney(p.budget, p.currency)}</span>
+                    <td className="py-3.5 px-4">
+                      <span className="font-bold text-gray-900">${p.contractAmount.toLocaleString()}</span>
+                      <span className="text-gray-400 font-normal"> / ${p.budget.toLocaleString()}</span>
                     </td>
-                    <td className="py-3 px-4 text-gray-600 text-xs">
+                    <td className="py-3.5 px-4 text-gray-600 text-xs">
                       {new Date(p.startDate).toLocaleDateString()} {p.endDate ? `— ${new Date(p.endDate).toLocaleDateString()}` : ''}
                     </td>
-                    <td className="py-3 px-4 text-gray-700 font-medium">
+                    <td className="py-3.5 px-4 text-gray-700 font-medium">
                       {p.customerName || '-'}
                     </td>
-                    <td className="py-3 px-4 text-right">
+                    <td className="py-3.5 px-4 text-right">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/projects/${p.id}`);
                         }}
-                        className="px-2.5 py-1 text-[11px] font-semibold text-[#ff7a16] hover:bg-orange-50 rounded-md border border-orange-200 transition-colors"
+                        className="px-3 py-1 text-[11px] font-bold text-[#ff7a16] hover:bg-orange-50 rounded-lg border border-orange-200 transition-colors"
                       >
                         Ochish →
                       </button>
