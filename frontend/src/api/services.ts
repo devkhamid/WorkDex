@@ -329,10 +329,38 @@ export const portalApi = {
 };
 
 export const reportsApi = {
-  downloadProjectExcel: (projectId: string) => {
-    window.open(`${apiClient.defaults.baseURL}/reports/projects/${projectId}/excel`, '_blank');
+  downloadProjectExcel: async (projectId: string) => {
+    try {
+      const response = await apiClient.get(`/reports/projects/${projectId}/excel`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `WorkDex_Project_${projectId}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert("Excel hisobotni yuklab olishda xatolik yuz berdi");
+    }
   },
-  downloadAllProjectsExcel: () => {
-    window.open(`${apiClient.defaults.baseURL}/reports/all-projects/excel`, '_blank');
+  downloadAllProjectsExcel: async () => {
+    try {
+      const response = await apiClient.get('/reports/all-projects/excel', {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `WorkDex_All_Projects_${new Date().toISOString().split('T')[0]}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert("Excel hisobotni yuklab olishda xatolik yuz berdi");
+    }
   }
 };
