@@ -480,37 +480,59 @@ export const ProjectDetailPage: React.FC = () => {
       {activeTab === 'overview' && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
-            {/* Timeline Progress */}
-            <div className="lg:col-span-7 bg-white border border-[#e4e7ec] rounded-xl p-4.5 shadow-xs flex flex-col justify-between">
+            {/* Timeline Progress Card */}
+            <div className="lg:col-span-7 bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs flex flex-col justify-between space-y-4">
               <div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-2">
                   <div>
                     <h3 className="font-bold text-xs text-[#171b25]">Loyiha rivojlanishi (Avtomatik Progress)</h3>
-                    <div className="text-[10px] text-[#9399a4]">Vazifalar og'irligi asosida hisoblangan</div>
+                    <div className="text-[10px] text-[#9399a4]">Vazifalar og'irligi asosida avtomatik hisoblangan</div>
                   </div>
-                  <span className="text-base font-extrabold text-[#21bd68]">{project.progressPercent}%</span>
+                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#e6f8ee] text-[#159452]">
+                    {project.progressPercent}% Bajarildi
+                  </span>
                 </div>
 
-                <div className="h-2 bg-[#edf0f3] rounded-full overflow-hidden my-4">
-                  <div
-                    style={{ width: `${Math.max(project.progressPercent, 4)}%` }}
-                    className="h-full bg-[#ff7a16] rounded-full transition-all"
-                  />
+                {/* Progress bar */}
+                <div className="my-3.5">
+                  <div className="h-2.5 bg-[#edf0f3] rounded-full overflow-hidden">
+                    <div
+                      style={{ width: `${Math.max(project.progressPercent, 2)}%` }}
+                      className="h-full bg-gradient-to-r from-[#ff7a16] to-[#ff9438] rounded-full transition-all duration-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Timeline Dates */}
+                <div className="grid grid-cols-3 text-xs pt-1">
+                  <div>
+                    <span className="block text-[10px] text-[#8c929d]">Boshlanish</span>
+                    <strong className="text-gray-900 font-bold text-xs">{formatDateUz(project.startDate)}</strong>
+                  </div>
+                  <div className="text-center">
+                    <span className="block text-[10px] text-[#ff7a16] font-semibold">Holati</span>
+                    <strong className="text-[#ff7a16] font-bold text-xs">{project.statusName}</strong>
+                  </div>
+                  <div className="text-right">
+                    <span className="block text-[10px] text-[#8c929d]">Topshirish</span>
+                    <strong className="text-gray-900 font-bold text-xs">{project.endDate ? formatDateUz(project.endDate) : 'Belgilanmagan'}</strong>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex justify-between text-[11px] text-[#8c929d] pt-2 border-t border-gray-100">
+              {/* Mini Stats Footer */}
+              <div className="grid grid-cols-3 gap-2 pt-2.5 border-t border-gray-100 bg-gray-50/70 p-2.5 rounded-lg text-xs">
                 <div>
-                  <div className="font-bold text-gray-900">{formatDateUz(project.startDate)}</div>
-                  <span className="text-gray-500 text-[10px]">Boshlanish</span>
+                  <span className="block text-[10px] text-gray-500">Jami vazifalar:</span>
+                  <b className="text-gray-800">{tasks.length} ta</b>
                 </div>
                 <div className="text-center">
-                  <div className="font-bold text-[#ff7a16]">Bugun</div>
-                  <span className="text-[#ff7a16] text-[10px] font-semibold">Jarayonda</span>
+                  <span className="block text-[10px] text-gray-500">Bajarilgan:</span>
+                  <b className="text-emerald-600">{tasks.filter(t => t.isCompleted).length} ta</b>
                 </div>
                 <div className="text-right">
-                  <div className="font-bold text-gray-900">{project.endDate ? formatDateUz(project.endDate) : 'Belgilanmagan'}</div>
-                  <span className="text-gray-500 text-[10px]">Topshirish</span>
+                  <span className="block text-[10px] text-gray-500">Kutilmoqda:</span>
+                  <b className="text-orange-600">{tasks.filter(t => !t.isCompleted).length} ta</b>
                 </div>
               </div>
             </div>
