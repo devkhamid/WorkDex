@@ -1,0 +1,21 @@
+namespace WorkDex.Api.Models;
+
+// PDF §4 — Loyiha xarajatlari (7 kategoriya)
+public class Expense
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid ProjectId { get; set; }
+
+    public ExpenseCategory Category { get; set; }
+    public decimal Amount { get; set; }
+
+    public string Description { get; set; } = string.Empty;
+    public DateTime ExpenseDate { get; set; }
+    public string? Notes { get; set; }
+
+    public Guid CreatedByUserId { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public Project Project { get; set; } = null!;
+    public User CreatedByUser { get; set; } = null!;
+}

@@ -1,0 +1,94 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using WorkDex.Api.DTOs.Users;
+using WorkDex.Api.Helpers;
+using WorkDex.Api.Services;
+
+namespace WorkDex.Api.Controllers;
+
+[ApiController]
+[Route("api/users")]
+[Authorize] // Barcha endpointlar uchun login talab qilinadi
+public class UsersController : ControllerBase
+{
+    private readonly IUserService _userService;
+
+    public UsersController(IUserService userService)
+    {
+        _userService = userService;
+    }
+
+    // Har qanday login qilgan foydalanuvchi o'z ma'lumotlarini ko'ra oladi
+    [HttpGet("me")]
+    public async Task<IActionResult> GetMe()
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            var result = await _userService.GetCurrentUserAsync(userId);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    // Faqat Admin barcha foydalanuvchilarni ko'ra oladi
+    [HttpGet]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAll()
+    {
+        var users = await _userService.GetAllUsersAsync();
+        return Ok(users);
+    }
+
+    // Faqat Admin bitta foydalanuvchini ko'ra oladi
+    [HttpGet("{id:guid}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetById(Guid id)
+    {
+        try
+        {
+            var user = await _userService.GetUserByIdAsync(id);
+            return Ok(user);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    // Faqat Admin foydalanuvchini tahrirlaydi
+    [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateUserDto dto)
+    {
+        try
+        {
+            var result = await _userService.UpdateUserAsync(id, dto);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    // Faqat Admin hisobni faollashtiradi yoki o'chiradi
+    [HttpPatch("{id:guid}/toggle-active")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ToggleActive(Guid id)
+    {
+        try
+        {
+            var result = await _userService.ToggleActiveAsync(id);
+            var status = result.IsActive ? "faollashtirildi" : "o'chirildi";
+            return Ok(new { message = $"Hisob {status}.", user = result });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+}
