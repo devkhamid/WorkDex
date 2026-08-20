@@ -689,73 +689,50 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 2: FINANCE & PAYMENTS */}
+      {/* TAB 2: FINANCE & PAYMENTS (Mijoz To'lovlari / Kirim) */}
       {activeTab === 'finance' && (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Payments Card */}
-            <div className="bg-white border border-[#e4e7ec] rounded-xl shadow-xs overflow-hidden">
-              <div className="flex items-center justify-between p-4 border-b border-[#e4e7ec] bg-emerald-50/30">
-                <div className="font-bold text-xs text-emerald-800 flex items-center gap-1.5">
+          <div className="bg-white border border-[#e4e7ec] rounded-xl shadow-xs overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-[#e4e7ec] bg-emerald-50/30">
+              <div>
+                <div className="font-bold text-xs text-emerald-900 flex items-center gap-1.5">
                   <DollarSign className="w-4 h-4 text-emerald-600" />
-                  <span>Mijoz To'lovlari (Kirim)</span>
+                  <span>Mijoz To'lovlari (Kirim & Shartnoma To'lovlari)</span>
                 </div>
-                <button
-                  onClick={() => setIsPaymentModalOpen(true)}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1 rounded-lg flex items-center gap-1 shadow-xs"
-                >
-                  <Plus className="w-3 h-3" />
-                  <span>To'lov qabul qilish</span>
-                </button>
+                <div className="text-[10px] text-gray-500 mt-0.5">
+                  Mijoz tomonidan loyiha shartnomasi bo'yicha amalga oshirilgan to'lovlar
+                </div>
               </div>
-
-              <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto custom-scrollbar">
-                {payments.map((p) => (
-                  <div key={p.id} className="p-3 flex justify-between items-center text-xs">
-                    <div>
-                      <div className="font-semibold text-gray-800">${p.amount.toLocaleString()} ({p.paymentMethodName})</div>
-                      <div className="text-[10px] text-gray-400">{formatDateUz(p.paymentDate)} · Qabul qildi: {p.receivedByName}</div>
-                      {p.notes && <div className="text-[10px] text-gray-500 italic mt-0.5">{p.notes}</div>}
-                    </div>
-                    <span className="text-emerald-600 font-bold text-sm">+${p.amount.toLocaleString()}</span>
-                  </div>
-                ))}
-                {payments.length === 0 && (
-                  <div className="py-6 text-center text-xs text-gray-400">To'lovlar mavjud emas</div>
-                )}
-              </div>
+              <button
+                onClick={() => setIsPaymentModalOpen(true)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg flex items-center gap-1 shadow-xs transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ To'lov qabul qilish</span>
+              </button>
             </div>
 
-            {/* Expenses Card */}
-            <div className="bg-white border border-[#e4e7ec] rounded-xl shadow-xs overflow-hidden">
-              <div className="flex items-center justify-between p-4 border-b border-[#e4e7ec] bg-red-50/30">
-                <div className="font-bold text-xs text-red-800 flex items-center gap-1.5">
-                  <DollarSign className="w-4 h-4 text-red-600" />
-                  <span>Xarajatlar (Chiqim — 7 Kategoriya)</span>
-                </div>
-                <button
-                  onClick={() => setIsExpenseModalOpen(true)}
-                  className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1 rounded-lg flex items-center gap-1 shadow-xs"
-                >
-                  <Plus className="w-3 h-3" />
-                  <span>Xarajat kiritish</span>
-                </button>
-              </div>
-
-              <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto custom-scrollbar">
-                {expenses.map((e) => (
-                  <div key={e.id} className="p-3 flex justify-between items-center text-xs">
-                    <div>
-                      <div className="font-semibold text-gray-800"><span className="px-1.5 py-0.5 bg-red-100 text-red-800 rounded text-[9px] mr-1">{e.categoryName}</span> {e.description}</div>
-                      <div className="text-[10px] text-gray-400">{formatDateUz(e.expenseDate)} · Kiritdi: {e.createdByName}</div>
+            <div className="divide-y divide-gray-100 max-h-[450px] overflow-y-auto custom-scrollbar">
+              {payments.map((p) => (
+                <div key={p.id} className="p-4 flex justify-between items-center text-xs hover:bg-gray-50/50 transition-colors">
+                  <div className="space-y-0.5">
+                    <div className="font-bold text-sm text-gray-900 flex items-center gap-2">
+                      <span>${p.amount.toLocaleString()}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">{p.paymentMethodName}</span>
                     </div>
-                    <span className="text-red-600 font-bold text-sm">-${e.amount.toLocaleString()}</span>
+                    <div className="text-[11px] text-gray-400">
+                      Sana: {formatDateUz(p.paymentDate)} · Qabul qildi: <b className="text-gray-700">{p.receivedByName}</b>
+                    </div>
+                    {p.notes && <div className="text-[11px] text-gray-600 bg-gray-50 px-2 py-1 rounded mt-1 border border-gray-100">Izoh: {p.notes}</div>}
                   </div>
-                ))}
-                {expenses.length === 0 && (
-                  <div className="py-6 text-center text-xs text-gray-400">Xarajatlar mavjud emas</div>
-                )}
-              </div>
+                  <span className="text-emerald-700 font-extrabold text-base">+${p.amount.toLocaleString()}</span>
+                </div>
+              ))}
+              {payments.length === 0 && (
+                <div className="py-12 text-center text-xs text-gray-400">
+                  Mijozdan to'lovlar hali qabul qilinmagan. Yuqoridagi "+ To'lov qabul qilish" orqali kiritishingiz mumkin.
+                </div>
+              )}
             </div>
           </div>
         </div>
