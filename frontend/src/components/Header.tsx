@@ -1,5 +1,7 @@
 import React from 'react';
 import { Calendar, Bell, Plus } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { UserRole } from '../types';
 
 interface HeaderProps {
   title: string;
@@ -7,6 +9,9 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ title, onOpenNewProject }) => {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === UserRole.SuperAdmin;
+
   return (
     <header className="h-[66px] bg-white border-b border-[#e4e7ec] flex items-center px-6 gap-3">
       {/* Breadcrumb */}
@@ -30,14 +35,16 @@ export const Header: React.FC<HeaderProps> = ({ title, onOpenNewProject }) => {
         <span className="absolute w-2 h-2 bg-[#ef5350] rounded-full right-2 top-2 ring-2 ring-white" />
       </button>
 
-      {/* New Project Primary Button */}
-      <button
-        onClick={onOpenNewProject}
-        className="bg-[#ff7a16] hover:bg-[#e86807] border border-[#ff7a16] text-white font-semibold text-xs h-[34px] px-3.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
-      >
-        <Plus className="w-4 h-4" />
-        <span>Yangi loyiha</span>
-      </button>
+      {/* New Project Primary Button (Only for Company Admins / Managers, not SuperAdmin) */}
+      {!isSuperAdmin && (
+        <button
+          onClick={onOpenNewProject}
+          className="bg-[#ff7a16] hover:bg-[#e86807] border border-[#ff7a16] text-white font-semibold text-xs h-[34px] px-3.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Yangi loyiha</span>
+        </button>
+      )}
     </header>
   );
 };

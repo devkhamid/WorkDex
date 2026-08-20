@@ -96,7 +96,7 @@ export const SuperAdminPage: React.FC = () => {
           className="bg-[#ff7a16] hover:bg-[#e86807] text-white font-semibold text-xs h-[36px] px-4 rounded-lg flex items-center gap-1.5 shadow-xs transition-all"
         >
           <Plus className="w-4 h-4" />
-          <span>+ Yangi Kompaniya & Admin qo'shish</span>
+          <span>Yangi Kompaniya & Admin qo'shish</span>
         </button>
       </div>
 

@@ -23,6 +23,7 @@ public static class DbInitializer
         // SuperAdmin parolini 'superadmin' ga yangilash
         var superAdminHash = BCrypt.Net.BCrypt.HashPassword("superadmin");
         await context.Database.ExecuteSqlRawAsync($"UPDATE \"Users\" SET \"PasswordHash\" = '{superAdminHash}' WHERE \"Role\" = 0;");
+        await context.Database.ExecuteSqlRawAsync("UPDATE \"Users\" SET \"IsActive\" = TRUE WHERE \"IsActive\" = FALSE;");
 
         // Agar bazada foydalanuvchilar bo'lsa, hech narsaga tegilmaydi va o'chirilmaydi!
         if (await context.Users.AnyAsync())
