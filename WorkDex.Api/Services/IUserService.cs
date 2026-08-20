@@ -9,4 +9,5 @@ public interface IUserService
     Task<UserDto> GetUserByIdAsync(Guid id);
     Task<UserDto> UpdateUserAsync(Guid id, UpdateUserDto dto);
     Task<UserDto> ToggleActiveAsync(Guid id);
+    Task DeleteUserAsync(Guid id);
 }

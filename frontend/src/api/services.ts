@@ -70,6 +70,10 @@ export const usersApi = {
   toggleActive: async (id: string): Promise<any> => {
     const res = await apiClient.patch(`/users/${id}/toggle-active`);
     return res.data;
+  },
+  deleteUser: async (id: string): Promise<any> => {
+    const res = await apiClient.delete(`/users/${id}`);
+    return res.data;
   }
 };
 

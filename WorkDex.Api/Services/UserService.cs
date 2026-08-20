@@ -79,6 +79,20 @@ public class UserService : IUserService
         return MapToDto(user);
     }
 
+    public async Task DeleteUserAsync(Guid id)
+    {
+        var user = await _context.Users.FindAsync(id);
+
+        if (user is null)
+            throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
+
+        if (user.Role == UserRole.SuperAdmin)
+            throw new InvalidOperationException("Asosiy SuperAdmin hisobini o'chirib bo'lmaydi.");
+
+        _context.Users.Remove(user);
+        await _context.SaveChangesAsync();
+    }
+
     // User entity ni UserDto ga aylantirish — PasswordHash hech qachon qaytarilmaydi
     private static UserDto MapToDto(User user) => new()
     {

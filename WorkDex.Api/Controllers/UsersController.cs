@@ -75,7 +75,7 @@ public class UsersController : ControllerBase
         }
     }
 
-    // SuperAdmin va Admin hisobni faollashtiradi yoki o'chiradi
+    // SuperAdmin va Admin hisobni faollashtiradi yoki to'xtatadi
     [HttpPatch("{id:guid}/toggle-active")]
     [Authorize(Roles = "SuperAdmin,Admin")]
     public async Task<IActionResult> ToggleActive(Guid id)
@@ -83,12 +83,32 @@ public class UsersController : ControllerBase
         try
         {
             var result = await _userService.ToggleActiveAsync(id);
-            var status = result.IsActive ? "faollashtirildi" : "o'chirildi";
+            var status = result.IsActive ? "faollashtirildi" : "to'xtatildi";
             return Ok(new { message = $"Hisob {status}.", user = result });
         }
         catch (KeyNotFoundException ex)
         {
             return NotFound(new { message = ex.Message });
+        }
+    }
+
+    // SuperAdmin foydalanuvchini butunlay o'chiradi
+    [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        try
+        {
+            await _userService.DeleteUserAsync(id);
+            return Ok(new { message = "Foydalanuvchi muvaffaqiyatli o'chirildi." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
     }
 }
