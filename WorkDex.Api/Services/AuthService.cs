@@ -32,6 +32,7 @@ public class AuthService : IAuthService
             Email = dto.Email.Trim().ToLower(),
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
             PhoneNumber = dto.PhoneNumber?.Trim(),
+            CompanyName = dto.CompanyName?.Trim(),
             Role = dto.Role,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,

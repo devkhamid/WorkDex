@@ -16,6 +16,7 @@ import { WorkforcePage } from './pages/WorkforcePage';
 import { FinancePage } from './pages/FinancePage';
 import { TasksPage } from './pages/TasksPage';
 import { ReportsPage } from './pages/ReportsPage';
+import { SuperAdminPage } from './pages/SuperAdminPage';
 
 const ProtectedLayout: React.FC = () => {
   const { token, isLoading } = useAuth();
@@ -38,6 +39,7 @@ const ProtectedLayout: React.FC = () => {
   const getPageTitle = (pathname: string) => {
     if (pathname === '/') return 'Boshqaruv paneli';
     if (pathname.startsWith('/projects/') && pathname !== '/projects') return 'Loyiha Tafsiloti';
+    if (pathname === '/superadmin') return 'Super Admin — Kompaniyalar & Adminlar';
     if (pathname === '/projects') return 'Loyihalar';
     if (pathname === '/customers') return 'Mijozlar';
     if (pathname === '/materials') return 'Materiallar';
@@ -97,6 +99,7 @@ const ProtectedLayout: React.FC = () => {
         <main className="flex-1 overflow-y-auto bg-white">
           <Routes>
             <Route path="/" element={<DashboardPage />} />
+            <Route path="/superadmin" element={<SuperAdminPage />} />
             <Route path="/projects" element={<ProjectsPage onOpenNewProject={() => setIsNewProjectModalOpen(true)} />} />
             <Route path="/projects/:id" element={<ProjectDetailPage />} />
             <Route path="/customers" element={<CustomersPage />} />

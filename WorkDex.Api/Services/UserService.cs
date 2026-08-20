@@ -85,6 +85,7 @@ public class UserService : IUserService
         FullName = user.FullName,
         Email = user.Email,
         PhoneNumber = user.PhoneNumber,
+        CompanyName = user.CompanyName,
         Role = user.Role,
         RoleName = user.Role.ToString(),
         IsActive = user.IsActive,

@@ -10,6 +10,7 @@ public class UserDto
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
+    public string? CompanyName { get; set; }
     public UserRole Role { get; set; }
     public string RoleName { get; set; } = string.Empty;
     public bool IsActive { get; set; }

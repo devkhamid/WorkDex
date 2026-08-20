@@ -25,7 +25,8 @@ public class RegisterDto
     [MaxLength(20)]
     public string? PhoneNumber { get; set; }
 
-    // Dastlab kim ro'yxatdan o'tkazayotganiga qarab rol beriladi.
-    // Phase 4 da faqat Admin yangi xodim yarata olishiga cheklov qo'yiladi.
+    [MaxLength(200)]
+    public string? CompanyName { get; set; }
+
     public UserRole Role { get; set; } = UserRole.FieldWorker;
 }

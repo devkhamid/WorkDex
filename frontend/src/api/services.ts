@@ -50,6 +50,29 @@ export const authApi = {
   }
 };
 
+export const usersApi = {
+  getAll: async (): Promise<User[]> => {
+    const res = await apiClient.get<User[]>('/users');
+    return res.data;
+  },
+  createAdmin: async (data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber?: string;
+    companyName: string;
+    password: string;
+    role: number;
+  }): Promise<AuthResponse> => {
+    const res = await apiClient.post<AuthResponse>('/auth/register', data);
+    return res.data;
+  },
+  toggleActive: async (id: string): Promise<any> => {
+    const res = await apiClient.patch(`/users/${id}/toggle-active`);
+    return res.data;
+  }
+};
+
 export const dashboardApi = {
   getStats: async (): Promise<DashboardStats> => {
     const res = await apiClient.get<DashboardStats>('/dashboard/stats');

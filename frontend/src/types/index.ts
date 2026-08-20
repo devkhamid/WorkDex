@@ -1,4 +1,5 @@
 export enum UserRole {
+  SuperAdmin = 0,
   Admin = 1,
   ProjectManager = 2,
   FieldWorker = 3,
@@ -35,6 +36,7 @@ export interface User {
   email: string;
   fullName: string;
   phoneNumber: string;
+  companyName?: string;
   role: UserRole;
   roleName: string;
   isActive: boolean;

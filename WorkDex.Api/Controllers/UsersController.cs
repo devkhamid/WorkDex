@@ -34,18 +34,18 @@ public class UsersController : ControllerBase
         }
     }
 
-    // Faqat Admin barcha foydalanuvchilarni ko'ra oladi
+    // SuperAdmin va Admin barcha foydalanuvchilarni ko'ra oladi
     [HttpGet]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
     public async Task<IActionResult> GetAll()
     {
         var users = await _userService.GetAllUsersAsync();
         return Ok(users);
     }
 
-    // Faqat Admin bitta foydalanuvchini ko'ra oladi
+    // SuperAdmin va Admin bitta foydalanuvchini ko'ra oladi
     [HttpGet("{id:guid}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
     public async Task<IActionResult> GetById(Guid id)
     {
         try
@@ -59,9 +59,9 @@ public class UsersController : ControllerBase
         }
     }
 
-    // Faqat Admin foydalanuvchini tahrirlaydi
+    // SuperAdmin va Admin foydalanuvchini tahrirlaydi
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateUserDto dto)
     {
         try
@@ -75,9 +75,9 @@ public class UsersController : ControllerBase
         }
     }
 
-    // Faqat Admin hisobni faollashtiradi yoki o'chiradi
+    // SuperAdmin va Admin hisobni faollashtiradi yoki o'chiradi
     [HttpPatch("{id:guid}/toggle-active")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
     public async Task<IActionResult> ToggleActive(Guid id)
     {
         try

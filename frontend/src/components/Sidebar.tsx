@@ -12,7 +12,8 @@ import {
   ExternalLink,
   LogOut,
   Search,
-  Grid
+  Grid,
+  ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { projectsApi } from '../api/services';
@@ -36,6 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenNewProject }) => {
 
   const navItems = [
     { to: '/', label: 'Boshqaruv paneli', icon: LayoutDashboard },
+    { to: '/superadmin', label: 'Adminlar & Kompaniyalar', icon: ShieldCheck },
     { to: '/projects', label: 'Loyihalar', icon: Building2 },
     { to: '/customers', label: 'Mijozlar', icon: Users },
     { to: '/materials', label: 'Materiallar', icon: Package },
@@ -134,7 +136,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenNewProject }) => {
         </div>
         <div className="min-w-0 flex-1">
           <div className="font-semibold text-xs text-[#171b25] truncate">{user?.fullName || 'Foydalanuvchi'}</div>
-          <div className="text-[10px] text-[#7b8190] truncate">{user?.roleName || 'Admin'}</div>
+          <div className="text-[10px] text-[#ff7a16] font-medium truncate">{user?.companyName || user?.roleName || 'Admin'}</div>
         </div>
         <button
           onClick={logout}
