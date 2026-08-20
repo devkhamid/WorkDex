@@ -23,12 +23,28 @@ public class ProjectService : IProjectService
             .Include(p => p.Stages)
             .AsQueryable();
 
-        // Admin va Finance barcha loyihalarni ko'radi
-        // ProjectManager va FieldWorker faqat o'zi a'zo bo'lgan loyihalarni ko'radi
-        if (requestingUserRole == UserRole.ProjectManager || requestingUserRole == UserRole.FieldWorker)
+        // 1. SuperAdmin barcha platformadagi loyihalarni ko'radi
+        if (requestingUserRole == UserRole.SuperAdmin)
+        {
+            // Barcha loyihalar
+        }
+        // 2. Admin faqat o'z kompaniyasining loyihalarini ko'radi
+        else if (requestingUserRole == UserRole.Admin)
         {
             query = query.Where(p =>
                 p.CreatedByUserId == requestingUserId ||
+                p.CompanyAdminId == requestingUserId ||
+                (p.CreatedByUser != null && p.CreatedByUser.CompanyAdminId == requestingUserId));
+        }
+        // 3. ProjectManager, FieldWorker, Finance faqat o'z kompaniyasi/a'zo bo'lgan loyihalarni ko'radi
+        else
+        {
+            var user = await _context.Users.FindAsync(requestingUserId);
+            var targetCompanyAdminId = user?.CompanyAdminId ?? requestingUserId;
+
+            query = query.Where(p =>
+                p.CreatedByUserId == requestingUserId ||
+                p.CompanyAdminId == targetCompanyAdminId ||
                 p.Members.Any(m => m.UserId == requestingUserId));
         }
 
@@ -58,6 +74,11 @@ public class ProjectService : IProjectService
         if (!customerExists)
             throw new KeyNotFoundException("Tanlangan mijoz topilmadi.");
 
+        var requestingUser = await _context.Users.FindAsync(createdByUserId);
+        var companyAdminId = requestingUser?.Role == UserRole.Admin 
+            ? createdByUserId 
+            : (requestingUser?.CompanyAdminId ?? createdByUserId);
+
         var project = new Project
         {
             Name = dto.Name.Trim(),
@@ -66,7 +87,7 @@ public class ProjectService : IProjectService
             CustomerId = dto.CustomerId,
             ContractAmount = dto.ContractAmount,
             Budget = dto.Budget,
-            Currency = dto.Currency,
+            Currency = string.IsNullOrWhiteSpace(dto.Currency) ? "USD" : dto.Currency.Trim(),
             StartDate = dto.StartDate,
             EndDate = dto.EndDate,
             Location = dto.Location?.Trim(),
@@ -74,6 +95,7 @@ public class ProjectService : IProjectService
             Status = ProjectStatus.Planning,
             ProgressPercent = 0,
             CreatedByUserId = createdByUserId,
+            CompanyAdminId = companyAdminId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };

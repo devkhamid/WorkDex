@@ -9,6 +9,11 @@ public static class DbInitializer
     {
         await context.Database.EnsureCreatedAsync();
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Users\" ADD COLUMN IF NOT EXISTS \"CompanyName\" VARCHAR(200);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Users\" ADD COLUMN IF NOT EXISTS \"CompanyAdminId\" UUID;");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Customers\" ADD COLUMN IF NOT EXISTS \"CompanyAdminId\" UUID;");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Materials\" ADD COLUMN IF NOT EXISTS \"CompanyAdminId\" UUID;");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Workers\" ADD COLUMN IF NOT EXISTS \"CompanyAdminId\" UUID;");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Projects\" ADD COLUMN IF NOT EXISTS \"CompanyAdminId\" UUID;");
 
         // Agar bazada foydalanuvchilar bo'lsa, hech narsaga tegilmaydi va o'chirilmaydi!
         if (await context.Users.AnyAsync())

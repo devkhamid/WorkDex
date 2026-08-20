@@ -20,11 +20,11 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin,ProjectManager,Finance,FieldWorker")]
+    [Authorize(Roles = "SuperAdmin,Admin,ProjectManager,Finance,FieldWorker")]
     public async Task<IActionResult> GetAll()
     {
         var userId = User.GetUserId();
-        var role = Enum.Parse<UserRole>(User.GetRole());
+        var role = User.GetUserRole();
         var projects = await _projectService.GetAllAsync(userId, role);
         return Ok(projects);
     }

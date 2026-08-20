@@ -9,6 +9,7 @@ public class User
     public string PasswordHash { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
     public string? CompanyName { get; set; }
+    public Guid? CompanyAdminId { get; set; }
     public UserRole Role { get; set; } = UserRole.FieldWorker;
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

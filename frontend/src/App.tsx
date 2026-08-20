@@ -17,9 +17,10 @@ import { FinancePage } from './pages/FinancePage';
 import { TasksPage } from './pages/TasksPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { SuperAdminPage } from './pages/SuperAdminPage';
+import { UserRole } from './types';
 
 const ProtectedLayout: React.FC = () => {
-  const { token, isLoading } = useAuth();
+  const { token, user, isLoading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
@@ -50,17 +51,26 @@ const ProtectedLayout: React.FC = () => {
     return 'Boshqaruv paneli';
   };
 
-  const navTabs = [
-    { label: 'Umumiy ko‘rinish', path: '/' },
-    { label: 'Loyihalar', path: '/projects' },
-    { label: 'Jamoa', path: '/workers' },
-    { label: 'Moliya', path: '/finance' },
-    { label: 'Vazifalar', path: '/tasks' },
-    { label: 'Hisobotlar', path: '/reports' },
-  ];
+  const isSuperAdmin = user?.role === UserRole.SuperAdmin;
+
+  const navTabs = isSuperAdmin
+    ? [
+        { label: 'Adminlar & Kompaniyalar', path: '/superadmin' },
+        { label: 'Loyihalar Monitoringi', path: '/projects' },
+        { label: 'Moliya Monitoringi', path: '/finance' },
+        { label: 'Hisobotlar', path: '/reports' },
+      ]
+    : [
+        { label: 'Umumiy ko‘rinish', path: '/' },
+        { label: 'Loyihalar', path: '/projects' },
+        { label: 'Jamoa', path: '/workers' },
+        { label: 'Moliya', path: '/finance' },
+        { label: 'Vazifalar', path: '/tasks' },
+        { label: 'Hisobotlar', path: '/reports' },
+      ];
 
   const isTabActive = (tabPath: string) => {
-    if (tabPath === '/') return location.pathname === '/';
+    if (tabPath === '/' || tabPath === '/superadmin') return location.pathname === tabPath || (isSuperAdmin && location.pathname === '/');
     return location.pathname.startsWith(tabPath);
   };
 
@@ -98,7 +108,7 @@ const ProtectedLayout: React.FC = () => {
 
         <main className="flex-1 overflow-y-auto bg-white">
           <Routes>
-            <Route path="/" element={<DashboardPage />} />
+            <Route path="/" element={isSuperAdmin ? <SuperAdminPage /> : <DashboardPage />} />
             <Route path="/superadmin" element={<SuperAdminPage />} />
             <Route path="/projects" element={<ProjectsPage onOpenNewProject={() => setIsNewProjectModalOpen(true)} />} />
             <Route path="/projects/:id" element={<ProjectDetailPage />} />

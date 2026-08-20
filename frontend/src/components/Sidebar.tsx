@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { projectsApi } from '../api/services';
-import { Project, ProjectStatus } from '../types';
+import { Project, ProjectStatus, UserRole } from '../types';
 
 interface SidebarProps {
   onOpenNewProject: () => void;
@@ -35,17 +35,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenNewProject }) => {
     }).catch(() => {});
   }, []);
 
-  const navItems = [
-    { to: '/', label: 'Boshqaruv paneli', icon: LayoutDashboard },
-    { to: '/superadmin', label: 'Adminlar & Kompaniyalar', icon: ShieldCheck },
-    { to: '/projects', label: 'Loyihalar', icon: Building2 },
-    { to: '/customers', label: 'Mijozlar', icon: Users },
-    { to: '/materials', label: 'Materiallar', icon: Package },
-    { to: '/workers', label: 'Ustalar & Ish haqi', icon: HardHat },
-    { to: '/finance', label: 'Moliya', icon: DollarSign },
-    { to: '/tasks', label: 'Vazifalar', icon: CheckSquare },
-    { to: '/reports', label: 'Hisobotlar (Excel)', icon: FileSpreadsheet },
-  ];
+  const isSuperAdmin = user?.role === UserRole.SuperAdmin;
+
+  const navItems = isSuperAdmin
+    ? [
+        { to: '/superadmin', label: 'Adminlar & Kompaniyalar', icon: ShieldCheck },
+        { to: '/projects', label: 'Loyihalar Monitoringi', icon: Building2 },
+        { to: '/finance', label: 'Moliya Monitoringi', icon: DollarSign },
+        { to: '/reports', label: 'Hisobotlar (Excel)', icon: FileSpreadsheet },
+      ]
+    : [
+        { to: '/', label: 'Boshqaruv paneli', icon: LayoutDashboard },
+        { to: '/projects', label: 'Loyihalar', icon: Building2 },
+        { to: '/customers', label: 'Mijozlar', icon: Users },
+        { to: '/materials', label: 'Materiallar', icon: Package },
+        { to: '/workers', label: 'Ustalar & Ish haqi', icon: HardHat },
+        { to: '/finance', label: 'Moliya', icon: DollarSign },
+        { to: '/tasks', label: 'Vazifalar', icon: CheckSquare },
+        { to: '/reports', label: 'Hisobotlar (Excel)', icon: FileSpreadsheet },
+      ];
 
   const getStatusDot = (status: ProjectStatus) => {
     switch (status) {

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using WorkDex.Api.Models;
 
 namespace WorkDex.Api.Helpers;
 
@@ -20,6 +21,20 @@ public static class ClaimsPrincipalExtensions
         return user.FindFirstValue(ClaimTypes.Role)
             ?? user.FindFirstValue("role")
             ?? string.Empty;
+    }
+
+    public static UserRole GetUserRole(this ClaimsPrincipal user)
+    {
+        var roleStr = user.GetRole();
+        if (Enum.TryParse<UserRole>(roleStr, true, out var role))
+            return role;
+
+        return UserRole.FieldWorker;
+    }
+
+    public static bool IsSuperAdmin(this ClaimsPrincipal user)
+    {
+        return user.IsInRole("SuperAdmin");
     }
 
     public static bool IsAdmin(this ClaimsPrincipal user)

@@ -14,9 +14,40 @@ public class DashboardService : IDashboardService
         _context = context;
     }
 
-    public async Task<DashboardStatsDto> GetStatsAsync()
+    private async Task<List<Guid>> GetAccessibleProjectIdsAsync(Guid requestingUserId, UserRole requestingUserRole)
     {
+        if (requestingUserRole == UserRole.SuperAdmin)
+        {
+            return await _context.Projects.Select(p => p.Id).ToListAsync();
+        }
+
+        if (requestingUserRole == UserRole.Admin)
+        {
+            return await _context.Projects
+                .Where(p => p.CreatedByUserId == requestingUserId ||
+                            p.CompanyAdminId == requestingUserId ||
+                            (p.CreatedByUser != null && p.CreatedByUser.CompanyAdminId == requestingUserId))
+                .Select(p => p.Id)
+                .ToListAsync();
+        }
+
+        var user = await _context.Users.FindAsync(requestingUserId);
+        var targetCompanyAdminId = user?.CompanyAdminId ?? requestingUserId;
+
+        return await _context.Projects
+            .Where(p => p.CreatedByUserId == requestingUserId ||
+                        p.CompanyAdminId == targetCompanyAdminId ||
+                        p.Members.Any(m => m.UserId == requestingUserId))
+            .Select(p => p.Id)
+            .ToListAsync();
+    }
+
+    public async Task<DashboardStatsDto> GetStatsAsync(Guid requestingUserId, UserRole requestingUserRole)
+    {
+        var accessibleIds = await GetAccessibleProjectIdsAsync(requestingUserId, requestingUserRole);
+
         var projects = await _context.Projects
+            .Where(p => accessibleIds.Contains(p.Id))
             .Include(p => p.ExtraWorks)
             .Include(p => p.MaterialPurchases)
             .Include(p => p.WorkerPayments)
@@ -30,27 +61,37 @@ public class DashboardService : IDashboardService
         // Shartnomalar + tasdiqlangan qo'shimcha ishlar
         var baseContractValue = projects.Sum(p => p.ContractAmount);
         var approvedExtraWorksValue = await _context.ExtraWorks
-            .Where(ew => ew.IsApprovedByCustomer)
+            .Where(ew => accessibleIds.Contains(ew.ProjectId) && ew.IsApprovedByCustomer)
             .SumAsync(ew => (decimal?)ew.CustomerAmount) ?? 0;
         var totalContractValue = baseContractValue + approvedExtraWorksValue;
 
         // Olingan tushumlar
-        var totalRevenue = await _context.Payments.SumAsync(p => (decimal?)p.Amount) ?? 0;
+        var totalRevenue = await _context.Payments
+            .Where(p => accessibleIds.Contains(p.ProjectId))
+            .SumAsync(p => (decimal?)p.Amount) ?? 0;
         var totalPendingReceivables = totalContractValue - totalRevenue;
 
         // Jami xarajatlar
-        var totalMaterialExpenses = (await _context.MaterialPurchases.SumAsync(mp => (decimal?)mp.TotalCost) ?? 0)
-            + (await _context.Expenses.Where(e => e.Category == ExpenseCategory.Material).SumAsync(e => (decimal?)e.Amount) ?? 0);
+        var totalMaterialExpenses = (await _context.MaterialPurchases
+            .Where(mp => accessibleIds.Contains(mp.ProjectId))
+            .SumAsync(mp => (decimal?)mp.TotalCost) ?? 0)
+            + (await _context.Expenses
+            .Where(e => accessibleIds.Contains(e.ProjectId) && e.Category == ExpenseCategory.Material)
+            .SumAsync(e => (decimal?)e.Amount) ?? 0);
 
-        var totalLaborExpenses = (await _context.WorkerPayments.SumAsync(wp => (decimal?)wp.PaidAmount) ?? 0)
-            + (await _context.Expenses.Where(e => e.Category == ExpenseCategory.Labor).SumAsync(e => (decimal?)e.Amount) ?? 0);
+        var totalLaborExpenses = (await _context.WorkerPayments
+            .Where(wp => accessibleIds.Contains(wp.ProjectId))
+            .SumAsync(wp => (decimal?)wp.PaidAmount) ?? 0)
+            + (await _context.Expenses
+            .Where(e => accessibleIds.Contains(e.ProjectId) && e.Category == ExpenseCategory.Labor)
+            .SumAsync(e => (decimal?)e.Amount) ?? 0);
 
         var totalOtherExpenses = await _context.Expenses
-            .Where(e => e.Category != ExpenseCategory.Material && e.Category != ExpenseCategory.Labor)
+            .Where(e => accessibleIds.Contains(e.ProjectId) && e.Category != ExpenseCategory.Material && e.Category != ExpenseCategory.Labor)
             .SumAsync(e => (decimal?)e.Amount) ?? 0;
 
         var totalExtraWorkCost = await _context.ExtraWorks
-            .Where(ew => ew.IsApprovedByCustomer)
+            .Where(ew => accessibleIds.Contains(ew.ProjectId) && ew.IsApprovedByCustomer)
             .SumAsync(ew => (decimal?)ew.ActualCost) ?? 0;
 
         var totalExpenses = totalMaterialExpenses + totalLaborExpenses + totalOtherExpenses + totalExtraWorkCost;
@@ -101,9 +142,12 @@ public class DashboardService : IDashboardService
         };
     }
 
-    public async Task<List<ProjectStatusDistributionDto>> GetStatusDistributionAsync()
+    public async Task<List<ProjectStatusDistributionDto>> GetStatusDistributionAsync(Guid requestingUserId, UserRole requestingUserRole)
     {
+        var accessibleIds = await GetAccessibleProjectIdsAsync(requestingUserId, requestingUserRole);
+
         var groups = await _context.Projects
+            .Where(p => accessibleIds.Contains(p.Id))
             .GroupBy(p => p.Status)
             .Select(g => new ProjectStatusDistributionDto
             {
@@ -117,12 +161,14 @@ public class DashboardService : IDashboardService
         return groups;
     }
 
-    public async Task<List<DashboardRecentActivityDto>> GetRecentActivitiesAsync(int limit = 10)
+    public async Task<List<DashboardRecentActivityDto>> GetRecentActivitiesAsync(Guid requestingUserId, UserRole requestingUserRole, int limit = 10)
     {
+        var accessibleIds = await GetAccessibleProjectIdsAsync(requestingUserId, requestingUserRole);
         var activities = new List<DashboardRecentActivityDto>();
 
         // Payments
         var payments = await _context.Payments
+            .Where(p => accessibleIds.Contains(p.ProjectId))
             .Include(p => p.Project)
             .Include(p => p.ReceivedByUser)
             .OrderByDescending(p => p.CreatedAt)
@@ -140,6 +186,7 @@ public class DashboardService : IDashboardService
 
         // Expenses
         var expenses = await _context.Expenses
+            .Where(e => accessibleIds.Contains(e.ProjectId))
             .Include(e => e.Project)
             .Include(e => e.CreatedByUser)
             .OrderByDescending(e => e.CreatedAt)
@@ -157,6 +204,7 @@ public class DashboardService : IDashboardService
 
         // Material Purchases
         var materials = await _context.MaterialPurchases
+            .Where(mp => accessibleIds.Contains(mp.ProjectId))
             .Include(mp => mp.Project)
             .Include(mp => mp.Material)
             .Include(mp => mp.CreatedByUser)

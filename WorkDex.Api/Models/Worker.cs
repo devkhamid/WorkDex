@@ -8,6 +8,7 @@ public class Worker
     public string PhoneNumber { get; set; } = string.Empty;
     public string? Specialty { get; set; } // Kafelchi, Suvoqchi, Elektrik, Santexnik, Malyar...
     public string? Notes { get; set; }
+    public Guid? CompanyAdminId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<WorkerPayment> Payments { get; set; } = new List<WorkerPayment>();
