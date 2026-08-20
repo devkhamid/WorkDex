@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkDex.Api.DTOs.Customers;
+using WorkDex.Api.Helpers;
+using WorkDex.Api.Models;
 using WorkDex.Api.Services;
 
 namespace WorkDex.Api.Controllers;
@@ -17,18 +19,18 @@ public class CustomersController : ControllerBase
         _customerService = customerService;
     }
 
-    // Admin, ProjectManager va Finance barcha mijozlarni ko'ra oladi
+    // SuperAdmin, Admin, ProjectManager va Finance mijozlarni ko'ra oladi
     [HttpGet]
-    [Authorize(Roles = "Admin,ProjectManager,Finance")]
+    [Authorize(Roles = "SuperAdmin,Admin,ProjectManager,Finance")]
     public async Task<IActionResult> GetAll()
     {
-        var customers = await _customerService.GetAllAsync();
+        var customers = await _customerService.GetAllAsync(User.GetUserId(), User.GetUserRole());
         return Ok(customers);
     }
 
-    // Admin, ProjectManager va Finance bitta mijozni ko'ra oladi
+    // SuperAdmin, Admin, ProjectManager va Finance bitta mijozni ko'ra oladi
     [HttpGet("{id:guid}")]
-    [Authorize(Roles = "Admin,ProjectManager,Finance")]
+    [Authorize(Roles = "SuperAdmin,Admin,ProjectManager,Finance")]
     public async Task<IActionResult> GetById(Guid id)
     {
         try
@@ -44,10 +46,10 @@ public class CustomersController : ControllerBase
 
     // Admin va ProjectManager yangi mijoz yarata oladi
     [HttpPost]
-    [Authorize(Roles = "Admin,ProjectManager")]
+    [Authorize(Roles = "SuperAdmin,Admin,ProjectManager")]
     public async Task<IActionResult> Create([FromBody] CreateCustomerDto dto)
     {
-        var customer = await _customerService.CreateAsync(dto);
+        var customer = await _customerService.CreateAsync(dto, User.GetUserId());
 
         // 201 Created — yangi yaratilgan resursning URL i bilan
         return CreatedAtAction(nameof(GetById), new { id = customer.Id }, customer);

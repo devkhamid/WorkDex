@@ -14,10 +14,28 @@ public class CustomerService : ICustomerService
         _context = context;
     }
 
-    public async Task<List<CustomerDto>> GetAllAsync()
+    public async Task<List<CustomerDto>> GetAllAsync(Guid requestingUserId, UserRole requestingUserRole)
     {
-        var customers = await _context.Customers
+        var query = _context.Customers
             .Include(c => c.Projects)
+            .AsQueryable();
+
+        if (requestingUserRole == UserRole.SuperAdmin)
+        {
+            // SuperAdmin barcha mijozlarni ko'radi
+        }
+        else if (requestingUserRole == UserRole.Admin)
+        {
+            query = query.Where(c => c.CompanyAdminId == requestingUserId);
+        }
+        else
+        {
+            var user = await _context.Users.FindAsync(requestingUserId);
+            var targetCompanyAdminId = user?.CompanyAdminId ?? requestingUserId;
+            query = query.Where(c => c.CompanyAdminId == targetCompanyAdminId);
+        }
+
+        var customers = await query
             .OrderBy(c => c.FullName)
             .ToListAsync();
 
@@ -36,8 +54,13 @@ public class CustomerService : ICustomerService
         return MapToDto(customer);
     }
 
-    public async Task<CustomerDto> CreateAsync(CreateCustomerDto dto)
+    public async Task<CustomerDto> CreateAsync(CreateCustomerDto dto, Guid createdByUserId)
     {
+        var requestingUser = await _context.Users.FindAsync(createdByUserId);
+        var companyAdminId = requestingUser?.Role == UserRole.Admin
+            ? createdByUserId
+            : (requestingUser?.CompanyAdminId ?? createdByUserId);
+
         var customer = new Customer
         {
             FullName = dto.FullName.Trim(),
@@ -45,6 +68,7 @@ public class CustomerService : ICustomerService
             Email = dto.Email?.Trim(),
             Address = dto.Address?.Trim(),
             Notes = dto.Notes?.Trim(),
+            CompanyAdminId = companyAdminId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };

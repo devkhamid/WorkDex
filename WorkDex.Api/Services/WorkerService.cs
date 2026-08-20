@@ -14,9 +14,26 @@ public class WorkerService : IWorkerService
         _context = context;
     }
 
-    public async Task<List<WorkerDto>> GetAllWorkersAsync()
+    public async Task<List<WorkerDto>> GetAllWorkersAsync(Guid requestingUserId, UserRole requestingUserRole)
     {
-        var workers = await _context.Workers
+        var query = _context.Workers.AsQueryable();
+
+        if (requestingUserRole == UserRole.SuperAdmin)
+        {
+            // SuperAdmin barcha ustalarni ko'radi
+        }
+        else if (requestingUserRole == UserRole.Admin)
+        {
+            query = query.Where(w => w.CompanyAdminId == requestingUserId);
+        }
+        else
+        {
+            var user = await _context.Users.FindAsync(requestingUserId);
+            var targetCompanyAdminId = user?.CompanyAdminId ?? requestingUserId;
+            query = query.Where(w => w.CompanyAdminId == targetCompanyAdminId);
+        }
+
+        var workers = await query
             .OrderBy(w => w.FullName)
             .ToListAsync();
 
@@ -48,14 +65,20 @@ public class WorkerService : IWorkerService
         };
     }
 
-    public async Task<WorkerDto> CreateWorkerAsync(CreateWorkerDto dto)
+    public async Task<WorkerDto> CreateWorkerAsync(CreateWorkerDto dto, Guid createdByUserId)
     {
+        var requestingUser = await _context.Users.FindAsync(createdByUserId);
+        var companyAdminId = requestingUser?.Role == UserRole.Admin
+            ? createdByUserId
+            : (requestingUser?.CompanyAdminId ?? createdByUserId);
+
         var worker = new Worker
         {
             FullName = dto.FullName.Trim(),
             PhoneNumber = dto.PhoneNumber.Trim(),
             Specialty = dto.Specialty?.Trim(),
             Notes = dto.Notes?.Trim(),
+            CompanyAdminId = companyAdminId,
             CreatedAt = DateTime.UtcNow
         };
 

@@ -15,6 +15,11 @@ public static class DbInitializer
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Workers\" ADD COLUMN IF NOT EXISTS \"CompanyAdminId\" UUID;");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Projects\" ADD COLUMN IF NOT EXISTS \"CompanyAdminId\" UUID;");
 
+        // Mavjud namuna ma'lumotlarni 1-admin (Grand Stroy) ga bog'lash
+        await context.Database.ExecuteSqlRawAsync("UPDATE \"Customers\" SET \"CompanyAdminId\" = (SELECT \"Id\" FROM \"Users\" WHERE \"Email\" = 'admin@wordex.uz' LIMIT 1) WHERE \"CompanyAdminId\" IS NULL;");
+        await context.Database.ExecuteSqlRawAsync("UPDATE \"Workers\" SET \"CompanyAdminId\" = (SELECT \"Id\" FROM \"Users\" WHERE \"Email\" = 'admin@wordex.uz' LIMIT 1) WHERE \"CompanyAdminId\" IS NULL;");
+        await context.Database.ExecuteSqlRawAsync("UPDATE \"Projects\" SET \"CompanyAdminId\" = (SELECT \"Id\" FROM \"Users\" WHERE \"Email\" = 'admin@wordex.uz' LIMIT 1) WHERE \"CompanyAdminId\" IS NULL;");
+
         // Agar bazada foydalanuvchilar bo'lsa, hech narsaga tegilmaydi va o'chirilmaydi!
         if (await context.Users.AnyAsync())
         {

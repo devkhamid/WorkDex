@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkDex.Api.DTOs.Workers;
+using WorkDex.Api.Helpers;
+using WorkDex.Api.Models;
 using WorkDex.Api.Services;
 
 namespace WorkDex.Api.Controllers;
@@ -18,15 +20,15 @@ public class WorkersController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin,Finance,ProjectManager,FieldWorker")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager,FieldWorker")]
     public async Task<IActionResult> GetAll()
     {
-        var workers = await _workerService.GetAllWorkersAsync();
+        var workers = await _workerService.GetAllWorkersAsync(User.GetUserId(), User.GetUserRole());
         return Ok(workers);
     }
 
     [HttpGet("{id:guid}")]
-    [Authorize(Roles = "Admin,Finance,ProjectManager,FieldWorker")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager,FieldWorker")]
     public async Task<IActionResult> GetById(Guid id)
     {
         try
@@ -41,10 +43,10 @@ public class WorkersController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,ProjectManager,Finance")]
+    [Authorize(Roles = "SuperAdmin,Admin,ProjectManager,Finance")]
     public async Task<IActionResult> Create([FromBody] CreateWorkerDto dto)
     {
-        var worker = await _workerService.CreateWorkerAsync(dto);
+        var worker = await _workerService.CreateWorkerAsync(dto, User.GetUserId());
         return CreatedAtAction(nameof(GetById), new { id = worker.Id }, worker);
     }
 

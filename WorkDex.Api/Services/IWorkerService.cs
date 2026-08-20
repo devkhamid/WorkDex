@@ -1,13 +1,14 @@
 using WorkDex.Api.DTOs.Workers;
+using WorkDex.Api.Models;
 
 namespace WorkDex.Api.Services;
 
 public interface IWorkerService
 {
     // Katalog operatsiyalari
-    Task<List<WorkerDto>> GetAllWorkersAsync();
+    Task<List<WorkerDto>> GetAllWorkersAsync(Guid requestingUserId, UserRole requestingUserRole);
     Task<WorkerDto> GetWorkerByIdAsync(Guid id);
-    Task<WorkerDto> CreateWorkerAsync(CreateWorkerDto dto);
+    Task<WorkerDto> CreateWorkerAsync(CreateWorkerDto dto, Guid createdByUserId);
     Task<WorkerDto> UpdateWorkerAsync(Guid id, CreateWorkerDto dto);
     Task DeleteWorkerAsync(Guid id);
 
