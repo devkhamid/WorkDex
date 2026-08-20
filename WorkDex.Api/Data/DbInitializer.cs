@@ -10,31 +10,13 @@ public static class DbInitializer
         await context.Database.EnsureCreatedAsync();
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Users\" ADD COLUMN IF NOT EXISTS \"CompanyName\" VARCHAR(200);");
 
-        // Agar bazada allaqachon loyihalar va foydalanuvchilar bo'lsa, ularga tegilmaydi (o'chirilmaydi!)
-        if (await context.Users.AnyAsync() && await context.Projects.AnyAsync())
+        // Agar bazada foydalanuvchilar bo'lsa, hech narsaga tegilmaydi va o'chirilmaydi!
+        if (await context.Users.AnyAsync())
         {
             return;
         }
 
-        // Agar loyihalar bo'lmasa, eskilarni tozalab to'liq namunaviy bazani tiklaymiz
-        context.ProjectUpdates.RemoveRange(context.ProjectUpdates);
-        context.Photos.RemoveRange(context.Photos);
-        context.Documents.RemoveRange(context.Documents);
-        context.Tasks.RemoveRange(context.Tasks);
-        context.ExtraWorks.RemoveRange(context.ExtraWorks);
-        context.WorkerPayments.RemoveRange(context.WorkerPayments);
-        context.MaterialPurchases.RemoveRange(context.MaterialPurchases);
-        context.Expenses.RemoveRange(context.Expenses);
-        context.Payments.RemoveRange(context.Payments);
-        context.ProjectStages.RemoveRange(context.ProjectStages);
-        context.ProjectMembers.RemoveRange(context.ProjectMembers);
-        context.Projects.RemoveRange(context.Projects);
-        context.Workers.RemoveRange(context.Workers);
-        context.Materials.RemoveRange(context.Materials);
-        context.Customers.RemoveRange(context.Customers);
-        context.Users.RemoveRange(context.Users);
-        await context.SaveChangesAsync();
-
+        // Faqat baza bo'sh bo'lsa, birinchi marta boshlang'ich ma'lumotlar yuklanadi
         await SeedFullDataAsync(context);
     }
 
