@@ -23,17 +23,41 @@ public static class DbInitializer
         await context.Database.ExecuteSqlRawAsync("UPDATE \"Projects\" SET \"CompanyAdminId\" = (SELECT \"Id\" FROM \"Users\" WHERE \"Email\" = 'admin@wordex.uz' LIMIT 1) WHERE \"CompanyAdminId\" IS NULL;");
         await context.Database.ExecuteSqlRawAsync("UPDATE \"Materials\" SET \"CompanyAdminId\" = (SELECT \"Id\" FROM \"Users\" WHERE \"Email\" = 'admin@wordex.uz' LIMIT 1) WHERE \"CompanyAdminId\" IS NULL;");
 
-        // SuperAdmin parolini 'superadmin' ga yangilash
-        var superAdminHash = BCrypt.Net.BCrypt.HashPassword("superadmin");
-        await context.Database.ExecuteSqlRawAsync($"UPDATE \"Users\" SET \"PasswordHash\" = '{superAdminHash}' WHERE \"Role\" = 0;");
+        // SuperAdmin foydalanuvchisi mavjudligini kafolatlash
+        var superAdmin = await context.Users.FirstOrDefaultAsync(u => u.Role == UserRole.SuperAdmin);
+        if (superAdmin == null)
+        {
+            superAdmin = new User
+            {
+                Id = Guid.NewGuid(),
+                FirstName = "Super",
+                LastName = "Admin",
+                Email = "superadmin@workdex.uz",
+                CompanyName = "WorkDex Bosh Boshqaruvi",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("superadmin"),
+                PhoneNumber = "+998900000001",
+                Role = UserRole.SuperAdmin,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            context.Users.Add(superAdmin);
+            await context.SaveChangesAsync();
+        }
+        else
+        {
+            superAdmin.PasswordHash = BCrypt.Net.BCrypt.HashPassword("superadmin");
+            superAdmin.IsActive = true;
+            await context.SaveChangesAsync();
+        }
 
-        // Agar bazada foydalanuvchilar bo'lsa, hech narsaga tegilmaydi va o'chirilmaydi!
-        if (await context.Users.AnyAsync())
+        // Agar bazada allaqachon boshqa foydalanuvchilar bo'lsa, qolgan ma'lumotlarga tegilmaydi
+        if (await context.Users.AnyAsync(u => u.Role != UserRole.SuperAdmin))
         {
             return;
         }
 
-        // Faqat baza bo'sh bo'lsa, birinchi marta boshlang'ich ma'lumotlar yuklanadi
+        // Faqat baza bo'sh bo'lsa, birinchi marta boshlang'ich namuna ma'lumotlar yuklanadi
         await SeedFullDataAsync(context);
     }
 
@@ -67,6 +91,7 @@ public static class DbInitializer
     private static async Task SeedFullDataAsync(AppDbContext context)
     {
         var passwordHash = BCrypt.Net.BCrypt.HashPassword("admin123");
+        var superAdminHash = BCrypt.Net.BCrypt.HashPassword("superadmin");
 
         // 1. Super Admin (WorkDex Platform Egasi / Barcha adminlarni boshqaradi)
         var superAdmin = new User
@@ -76,10 +101,12 @@ public static class DbInitializer
             LastName = "Admin",
             Email = "superadmin@workdex.uz",
             CompanyName = "WorkDex Bosh Boshqaruvi",
-            PasswordHash = passwordHash,
+            PasswordHash = superAdminHash,
             PhoneNumber = "+998900000001",
             Role = UserRole.SuperAdmin,
-            CreatedAt = DateTime.UtcNow
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
 
         // 2. Company Admin (Kompaniya rahbari)
