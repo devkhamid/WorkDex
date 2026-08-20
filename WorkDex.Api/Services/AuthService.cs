@@ -51,8 +51,11 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
     {
+        var searchInput = dto.Email.Trim().ToLower();
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == dto.Email.Trim().ToLower());
+            .FirstOrDefaultAsync(u => u.Email.ToLower() == searchInput ||
+                                     (searchInput == "superadmin" && u.Role == UserRole.SuperAdmin) ||
+                                     (searchInput == "super admin" && u.Role == UserRole.SuperAdmin));
 
         if (user is null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
             throw new UnauthorizedAccessException("Email yoki parol noto'g'ri.");

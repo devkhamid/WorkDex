@@ -20,6 +20,10 @@ public static class DbInitializer
         await context.Database.ExecuteSqlRawAsync("UPDATE \"Workers\" SET \"CompanyAdminId\" = (SELECT \"Id\" FROM \"Users\" WHERE \"Email\" = 'admin@wordex.uz' LIMIT 1) WHERE \"CompanyAdminId\" IS NULL;");
         await context.Database.ExecuteSqlRawAsync("UPDATE \"Projects\" SET \"CompanyAdminId\" = (SELECT \"Id\" FROM \"Users\" WHERE \"Email\" = 'admin@wordex.uz' LIMIT 1) WHERE \"CompanyAdminId\" IS NULL;");
 
+        // SuperAdmin parolini 'superadmin' ga yangilash
+        var superAdminHash = BCrypt.Net.BCrypt.HashPassword("superadmin");
+        await context.Database.ExecuteSqlRawAsync($"UPDATE \"Users\" SET \"PasswordHash\" = '{superAdminHash}' WHERE \"Role\" = 0;");
+
         // Agar bazada foydalanuvchilar bo'lsa, hech narsaga tegilmaydi va o'chirilmaydi!
         if (await context.Users.AnyAsync())
         {

@@ -122,13 +122,13 @@ export const LoginPage: React.FC = () => {
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Email manzil *</label>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Email yoki Login *</label>
             <div className="relative">
               <Mail className="w-3.5 h-3.5 absolute left-3 top-3 text-gray-400" />
               <input
-                type="email"
+                type="text"
                 required
-                placeholder="admin@wordex.uz"
+                placeholder="superadmin yoki admin@wordex.uz"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full h-9 pl-9 pr-3 border border-[#e4e7ec] rounded-lg text-xs outline-none focus:border-[#ff7a16]"
@@ -154,12 +154,44 @@ export const LoginPage: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full h-10 bg-[#ff7a16] hover:bg-[#e86807] text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 mt-4 active:scale-95"
+            className="w-full h-10 bg-[#ff7a16] hover:bg-[#e86807] text-white font-semibold text-xs rounded-lg flex items-center justify-center gap-1.5 shadow-sm transition-all disabled:opacity-50 mt-2"
           >
-            <span>{loading ? "Tekshirilmoqda..." : (isRegister ? "Ro'yxatdan o'tish" : "Tizimga kirish")}</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <span>{loading ? "Kirilmoqda..." : isRegister ? "Ro'yxatdan o'tish" : "Tizimga kirish"}</span>
+            <ArrowRight className="w-4 h-4" />
           </button>
         </form>
+
+        {/* Quick Demo Credentials */}
+        {!isRegister && (
+          <div className="pt-2 border-t border-gray-100 space-y-1.5">
+            <small className="block text-[11px] text-gray-400 font-medium">Tezkor kirish uchun:</small>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('superadmin');
+                  setPassword('superadmin');
+                }}
+                className="text-left p-2 rounded-lg bg-purple-50 border border-purple-200 text-purple-800 hover:bg-purple-100 transition-colors"
+              >
+                <div className="font-bold text-[11px]">👑 Super Admin</div>
+                <div className="text-[10px] text-purple-600">superadmin / superadmin</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('admin@wordex.uz');
+                  setPassword('admin123');
+                }}
+                className="text-left p-2 rounded-lg bg-orange-50 border border-orange-200 text-orange-800 hover:bg-orange-100 transition-colors"
+              >
+                <div className="font-bold text-[11px]">🏢 Kompaniya Admin</div>
+                <div className="text-[10px] text-orange-600">admin@wordex.uz / admin123</div>
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="text-center pt-2 border-t border-gray-100">
           <button
