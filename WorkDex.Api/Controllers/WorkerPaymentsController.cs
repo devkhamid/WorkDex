@@ -77,6 +77,10 @@ public class WorkerPaymentsController : ControllerBase
         {
             return NotFound(new { message = ex.Message });
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     // Ustaga haq / avans to'lash
@@ -92,6 +96,10 @@ public class WorkerPaymentsController : ControllerBase
         catch (KeyNotFoundException ex)
         {
             return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
     }
 

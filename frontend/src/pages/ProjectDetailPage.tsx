@@ -10,7 +10,8 @@ import {
   FileText,
   UserPlus,
   PackagePlus,
-  Clock
+  Clock,
+  HardHat
 } from 'lucide-react';
 import { projectsApi, reportsApi, materialsApi, workersApi } from '../api/services';
 import {
@@ -108,6 +109,19 @@ export const ProjectDetailPage: React.FC = () => {
   const [newWorkId, setNewWorkId] = useState('');
   const [newWorkDesc, setNewWorkDesc] = useState('');
   const [newWorkAgreed, setNewWorkAgreed] = useState<number | ''>('');
+
+  // Pay Worker Modal State
+  const [isPayWorkerModalOpen, setIsPayWorkerModalOpen] = useState(false);
+  const [selectedWorkerForPay, setSelectedWorkerForPay] = useState<WorkerPayment | null>(null);
+  const [payWorkerAmount, setPayWorkerAmount] = useState<number | ''>('');
+  const [payWorkerDate, setPayWorkerDate] = useState(new Date().toISOString().split('T')[0]);
+  const [payWorkerNotes, setPayWorkerNotes] = useState('');
+
+  // Update Work Amount (Hakediş) Modal State
+  const [isWorkAmountModalOpen, setIsWorkAmountModalOpen] = useState(false);
+  const [selectedWorkerForWorkAmount, setSelectedWorkerForWorkAmount] = useState<WorkerPayment | null>(null);
+  const [workAmountInput, setWorkAmountInput] = useState<number | ''>('');
+  const [workAmountNotes, setWorkAmountNotes] = useState('');
 
   // Extra Work Form State
   const [newExtraTitle, setNewExtraTitle] = useState('');
@@ -316,33 +330,72 @@ export const ProjectDetailPage: React.FC = () => {
     }
   };
 
-  const handlePayWorker = async (paymentId: string) => {
-    if (!id) return;
-    const amountStr = prompt("Ustaga to'lanadigan summani kiriting ($):");
-    if (!amountStr) return;
-    const amount = Number(amountStr);
-    if (isNaN(amount) || amount <= 0) return alert("Noto'g'ri summa");
+  const openPayWorkerModal = (wp: WorkerPayment) => {
+    setSelectedWorkerForPay(wp);
+    const maxAllowed = Math.max(0, wp.agreedAmount - wp.paidAmount);
+    setPayWorkerAmount(maxAllowed > 0 ? maxAllowed : '');
+    setPayWorkerDate(new Date().toISOString().split('T')[0]);
+    setPayWorkerNotes('');
+    setIsPayWorkerModalOpen(true);
+  };
+
+  const submitPayWorker = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id || !selectedWorkerForPay) return;
+    const amount = Number(payWorkerAmount);
+    const maxAllowed = selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount;
+
+    if (!amount || amount <= 0) {
+      alert("Iltimos, to'g'ri to'lov summasini kiriting.");
+      return;
+    }
+
+    if (amount > maxAllowed) {
+      alert(`⚠️ Ustaga faqat $${maxAllowed.toLocaleString()} to'lash mumkin. Kiritilgan summa ($${amount.toLocaleString()}) kelishilgan umumiy summadan ($${selectedWorkerForPay.agreedAmount.toLocaleString()}) oshib ketmoqda.`);
+      return;
+    }
 
     try {
-      await projectsApi.payWorker(id, paymentId, amount, new Date().toISOString());
+      await projectsApi.payWorker(id, selectedWorkerForPay.id, amount, new Date(payWorkerDate).toISOString(), payWorkerNotes || undefined);
+      setIsPayWorkerModalOpen(false);
+      setSelectedWorkerForPay(null);
+      setPayWorkerAmount('');
       loadAllData(id);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Xatolik');
+      alert(err.response?.data?.message || 'Xatolik yuz berdi');
     }
   };
 
-  const handleUpdateWorkAmount = async (paymentId: string) => {
-    if (!id) return;
-    const amountStr = prompt("Bajarilgan ish hajmi summasini kiriting (Ish haqi $):");
-    if (!amountStr) return;
-    const workAmount = Number(amountStr);
-    if (isNaN(workAmount) || workAmount < 0) return alert("Noto'g'ri summa");
+  const openWorkAmountModal = (wp: WorkerPayment) => {
+    setSelectedWorkerForWorkAmount(wp);
+    setWorkAmountInput(wp.workAmount || '');
+    setWorkAmountNotes('');
+    setIsWorkAmountModalOpen(true);
+  };
+
+  const submitWorkAmount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id || !selectedWorkerForWorkAmount) return;
+    const workAmt = Number(workAmountInput);
+
+    if (workAmt < 0) {
+      alert("Ishlangan haq manfiy bo'lishi mumkin emas.");
+      return;
+    }
+
+    if (workAmt > selectedWorkerForWorkAmount.agreedAmount) {
+      alert(`⚠️ Ishlangan haq kelishilgan umumiy summadan ($${selectedWorkerForWorkAmount.agreedAmount.toLocaleString()}) ko'p bo'lishi mumkin emas.`);
+      return;
+    }
 
     try {
-      await projectsApi.updateWorkAmount(id, paymentId, workAmount);
+      await projectsApi.updateWorkAmount(id, selectedWorkerForWorkAmount.id, workAmt, workAmountNotes || undefined);
+      setIsWorkAmountModalOpen(false);
+      setSelectedWorkerForWorkAmount(null);
+      setWorkAmountInput('');
       loadAllData(id);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Xatolik');
+      alert(err.response?.data?.message || 'Xatolik yuz berdi');
     }
   };
 
@@ -824,79 +877,176 @@ export const ProjectDetailPage: React.FC = () => {
       {/* TAB 5: WORKERS & WORK PAYMENTS */}
       {activeTab === 'workers' && (
         <div className="space-y-4">
-          <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs">
-            <div className="flex justify-between items-center pb-3 border-b border-[#e4e7ec] mb-3">
+          {/* TOP BANNER: SUMMARY CARDS & RULES */}
+          <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-3 border-b border-[#e4e7ec] gap-3">
               <div>
                 <h3 className="font-bold text-xs text-[#171b25]">Ustalar Balansi (Qarzlar Nazorati)</h3>
                 <div className="text-[10px] text-[#9399a4]">Usta qancha ishladi, qancha to'landi, qancha qarzmiz</div>
               </div>
               <button
                 onClick={() => setIsWorkerModalOpen(true)}
-                className="bg-[#ff7a16] hover:bg-[#e86807] text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-xs"
+                className="bg-[#ff7a16] hover:bg-[#e86807] text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-xs transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Ustaga ish biriktirish</span>
+                <span>+ Ustaga ish biriktirish</span>
               </button>
             </div>
 
+            {/* WORKER CARDS GRID */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {workersSummary.map((w) => (
-                <div key={w.workerId} className="p-3 bg-white border border-purple-200 rounded-lg shadow-xs">
-                  <div className="font-bold text-xs text-purple-950">{w.workerName} ({w.specialty || 'Usta'})</div>
-                  <div className="mt-2 space-y-1 text-xs">
-                    <div className="flex justify-between text-gray-600"><span>Kelishilgan:</span> <b>${w.totalAgreedAmount.toLocaleString()}</b></div>
-                    <div className="flex justify-between text-gray-600"><span>Ishlangan haq:</span> <b>${w.totalWorkAmount.toLocaleString()}</b></div>
-                    <div className="flex justify-between text-emerald-700"><span>To'langan:</span> <b>${w.totalPaidAmount.toLocaleString()}</b></div>
-                    <div className="flex justify-between text-red-600 pt-1 border-t border-purple-200">
-                      <span>Qoldiq qarzimiz:</span> <b>${w.remainingAmount.toLocaleString()}</b>
+              {workersSummary.map((w) => {
+                const debt = w.totalAgreedAmount - w.totalPaidAmount;
+                const isFullyPaid = w.totalAgreedAmount > 0 && w.totalPaidAmount >= w.totalAgreedAmount;
+                const isOverpaid = debt < 0;
+
+                return (
+                  <div key={w.workerId} className="p-3.5 bg-white border border-gray-200 rounded-xl shadow-xs space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="font-bold text-xs text-gray-900">{w.workerName}</div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 font-medium">{w.specialty || 'Usta'}</span>
+                    </div>
+
+                    <div className="space-y-1 text-xs">
+                      <div className="flex justify-between text-gray-600">
+                        <span>Kelishilgan:</span>
+                        <b className="text-gray-900">${w.totalAgreedAmount.toLocaleString()}</b>
+                      </div>
+                      <div className="flex justify-between text-gray-600">
+                        <span>Ishlangan haq:</span>
+                        <b className="text-purple-700">${w.totalWorkAmount.toLocaleString()}</b>
+                      </div>
+                      <div className="flex justify-between text-emerald-700">
+                        <span>To'langan:</span>
+                        <b>${w.totalPaidAmount.toLocaleString()}</b>
+                      </div>
+                      <div className="flex justify-between items-center pt-1.5 border-t border-gray-100">
+                        <span className="text-gray-600 font-medium">Qoldiq qarzimiz:</span>
+                        <b className={isOverpaid ? 'text-red-600' : isFullyPaid ? 'text-emerald-700' : 'text-gray-900'}>
+                          {isOverpaid ? `-$${Math.abs(debt).toLocaleString()}` : `$${debt.toLocaleString()}`}
+                        </b>
+                      </div>
+                    </div>
+
+                    <div className="pt-1">
+                      {isFullyPaid ? (
+                        <span className="w-full inline-flex justify-center items-center gap-1 py-1 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          ✅ To'liq to'langan
+                        </span>
+                      ) : w.totalPaidAmount > 0 ? (
+                        <span className="w-full inline-flex justify-center items-center gap-1 py-1 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                          ⏳ Qisman to'langan (Qoldiq: ${debt.toLocaleString()})
+                        </span>
+                      ) : (
+                        <span className="w-full inline-flex justify-center items-center gap-1 py-1 rounded-md text-[10px] font-bold bg-gray-50 text-gray-600 border border-gray-200">
+                          To'lanmagan (Qoldiq: ${debt.toLocaleString()})
+                        </span>
+                      )}
                     </div>
                   </div>
+                );
+              })}
+              {workersSummary.length === 0 && (
+                <div className="col-span-3 py-6 text-center text-xs text-gray-400">
+                  Ushbu loyihaga hali usta biriktirilmagan
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
+          {/* TABLE OF WORKER JOBS */}
           <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs">
             <h3 className="font-bold text-xs text-[#171b25] mb-3">Bajarilayotgan Ishlar Ro'yxati</h3>
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-[#e4e7ec] bg-gray-50/50">
-                  <th className="py-2 px-3 font-bold text-gray-500 text-[10px]">USTA</th>
-                  <th className="py-2 px-3 font-bold text-gray-500 text-[10px]">ISH TAVSIFI</th>
-                  <th className="py-2 px-3 font-bold text-gray-500 text-[10px]">KELISHILGAN</th>
-                  <th className="py-2 px-3 font-bold text-gray-500 text-[10px]">ISHLANGAN HAQ</th>
-                  <th className="py-2 px-3 font-bold text-gray-500 text-[10px]">TO'LANGAN</th>
-                  <th className="py-2 px-3 font-bold text-gray-500 text-[10px]">QARZ</th>
-                  <th className="py-2 px-3 font-bold text-gray-500 text-[10px] text-right">AMALLAR</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {workerPayments.map((wp) => (
-                  <tr key={wp.id}>
-                    <td className="py-2.5 px-3 font-semibold">{wp.workerName}</td>
-                    <td className="py-2.5 px-3 text-gray-700">{wp.jobDescription}</td>
-                    <td className="py-2.5 px-3 font-semibold">${wp.agreedAmount.toLocaleString()}</td>
-                    <td className="py-2.5 px-3 font-semibold text-purple-700">${wp.workAmount.toLocaleString()}</td>
-                    <td className="py-2.5 px-3 font-semibold text-emerald-700">${wp.paidAmount.toLocaleString()}</td>
-                    <td className="py-2.5 px-3 font-bold text-red-600">${wp.remainingAmount.toLocaleString()}</td>
-                    <td className="py-2.5 px-3 text-right space-x-1.5">
-                      <button
-                        onClick={() => handleUpdateWorkAmount(wp.id)}
-                        className="px-2 py-1 bg-purple-50 text-purple-700 rounded border border-purple-200 text-[10px] font-semibold hover:bg-purple-100"
-                      >
-                        Ish haqini kiritish
-                      </button>
-                      <button
-                        onClick={() => handlePayWorker(wp.id)}
-                        className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded border border-emerald-200 text-[10px] font-semibold hover:bg-emerald-100"
-                      >
-                        Pul to'lash
-                      </button>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-[#e4e7ec] bg-gray-50/50">
+                    <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">USTA</th>
+                    <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">ISH TAVSIFI</th>
+                    <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">KELISHILGAN</th>
+                    <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">ISHLANGAN HAQ</th>
+                    <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">TO'LANGAN</th>
+                    <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">QARZ</th>
+                    <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">HOLATI</th>
+                    <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px] text-right">AMALLAR</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {workerPayments.map((wp) => {
+                    const debt = wp.agreedAmount - wp.paidAmount;
+                    const isFullyPaid = wp.agreedAmount > 0 && wp.paidAmount >= wp.agreedAmount;
+                    const isOverpaid = debt < 0;
+
+                    return (
+                      <tr key={wp.id} className="hover:bg-gray-50/50">
+                        <td className="py-2.5 px-3">
+                          <div className="font-semibold text-gray-900">{wp.workerName}</div>
+                          {wp.workerSpecialty && <div className="text-[10px] text-gray-400">{wp.workerSpecialty}</div>}
+                        </td>
+                        <td className="py-2.5 px-3 text-gray-700">{wp.jobDescription}</td>
+                        <td className="py-2.5 px-3 font-semibold text-gray-900">${wp.agreedAmount.toLocaleString()}</td>
+                        <td className="py-2.5 px-3 font-semibold text-purple-700">${wp.workAmount.toLocaleString()}</td>
+                        <td className="py-2.5 px-3 font-semibold text-emerald-700">${wp.paidAmount.toLocaleString()}</td>
+                        <td className="py-2.5 px-3 font-bold">
+                          <span className={isOverpaid ? 'text-red-600' : isFullyPaid ? 'text-emerald-700' : 'text-gray-900'}>
+                            {isOverpaid ? `-$${Math.abs(debt).toLocaleString()}` : `$${debt.toLocaleString()}`}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3">
+                          {isFullyPaid ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                              ✅ To'liq to'langan
+                            </span>
+                          ) : isOverpaid ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800">
+                              ❌ Ortiqcha to'langan
+                            </span>
+                          ) : wp.paidAmount > 0 ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                              ⏳ Qisman to'langan
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-700">
+                              To'lanmagan
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3 text-right space-x-1.5 whitespace-nowrap">
+                          <button
+                            onClick={() => openWorkAmountModal(wp)}
+                            className="px-2.5 py-1 bg-purple-50 text-purple-700 rounded-lg border border-purple-200 text-[10px] font-semibold hover:bg-purple-100 transition-colors"
+                          >
+                            Ish haqini kiritish
+                          </button>
+                          {isFullyPaid ? (
+                            <button
+                              disabled
+                              className="px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-200 text-[10px] font-bold opacity-75 cursor-not-allowed"
+                            >
+                              To'liq to'langan ✓
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => openPayWorkerModal(wp)}
+                              className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[10px] font-semibold hover:bg-emerald-700 transition-colors shadow-xs"
+                            >
+                              Pul to'lash
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {workerPayments.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="py-8 text-center text-xs text-gray-400">
+                        Ishlar ro'yxati mavjud emas. Yuqoridagi "+ Ustaga ish biriktirish" orqali yangi ish qo'shing.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -1481,6 +1631,178 @@ export const ProjectDetailPage: React.FC = () => {
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setIsPhotoModalOpen(false)} className="px-3 py-1.5 border rounded-lg text-xs">Bekor qilish</button>
                 <button type="submit" className="px-3 py-1.5 bg-[#ff7a16] text-white rounded-lg text-xs font-semibold">Yuklash</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 8: PAY WORKER */}
+      {isPayWorkerModalOpen && selectedWorkerForPay && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl border border-gray-200 space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="font-bold text-sm text-[#171b25] flex items-center gap-1.5">
+                <DollarSign className="w-4 h-4 text-emerald-600" />
+                <span>Ustaga Pul To'lash</span>
+              </h3>
+              <button onClick={() => setIsPayWorkerModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-sm">✕</button>
+            </div>
+
+            {/* Worker Info Card */}
+            <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-1 text-xs">
+              <div className="font-bold text-gray-900">{selectedWorkerForPay.workerName} ({selectedWorkerForPay.workerSpecialty || 'Usta'})</div>
+              <div className="text-gray-600">Ish tavsifi: <b className="text-gray-800">{selectedWorkerForPay.jobDescription}</b></div>
+              <div className="grid grid-cols-3 gap-1 pt-2 mt-1 border-t border-gray-200 text-[11px]">
+                <div>
+                  <span className="text-gray-500">Kelishilgan:</span>
+                  <div className="font-bold text-gray-900">${selectedWorkerForPay.agreedAmount.toLocaleString()}</div>
+                </div>
+                <div>
+                  <span className="text-gray-500">To'langan:</span>
+                  <div className="font-bold text-emerald-700">${selectedWorkerForPay.paidAmount.toLocaleString()}</div>
+                </div>
+                <div>
+                  <span className="text-gray-500">Qolgan limit:</span>
+                  <div className="font-bold text-blue-700">${(selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount).toLocaleString()}</div>
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={submitPayWorker} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">To'lov Summasi ($) *</label>
+                <input
+                  type="number"
+                  required
+                  min="0.01"
+                  step="any"
+                  max={selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount}
+                  placeholder={`Maksimal: $${selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount}`}
+                  value={payWorkerAmount}
+                  onChange={(e) => setPayWorkerAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none focus:border-emerald-600"
+                />
+                {Number(payWorkerAmount) > (selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount) && (
+                  <p className="text-[11px] text-red-600 mt-1 font-medium bg-red-50 p-2 rounded border border-red-200">
+                    ⚠️ Ustaga faqat ${(selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount).toLocaleString()} to'lash mumkin. Kiritilgan summa kelishilgan umumiy summadan oshib ketmoqda.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">To'lov Sanasi *</label>
+                <input
+                  type="date"
+                  required
+                  value={payWorkerDate}
+                  onChange={(e) => setPayWorkerDate(e.target.value)}
+                  className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Izoh (ixtiyoriy)</label>
+                <input
+                  type="text"
+                  placeholder="Kafel ishi uchun bo'nak / to'lov"
+                  value={payWorkerNotes}
+                  onChange={(e) => setPayWorkerNotes(e.target.value)}
+                  className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t">
+                <button
+                  type="button"
+                  onClick={() => setIsPayWorkerModalOpen(false)}
+                  className="px-3 py-1.5 border rounded-lg text-xs text-gray-600 hover:bg-gray-50"
+                >
+                  Bekor qilish
+                </button>
+                <button
+                  type="submit"
+                  disabled={
+                    !payWorkerAmount ||
+                    Number(payWorkerAmount) <= 0 ||
+                    Number(payWorkerAmount) > (selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount)
+                  }
+                  className="px-4 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+                >
+                  To'lovni Tasdiqlash
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 9: UPDATE WORK AMOUNT (HAKEDİŞ) */}
+      {isWorkAmountModalOpen && selectedWorkerForWorkAmount && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl border border-gray-200 space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="font-bold text-sm text-[#171b25] flex items-center gap-1.5">
+                <HardHat className="w-4 h-4 text-purple-600" />
+                <span>Ishlangan Haqni Kiritish (Hakediş)</span>
+              </h3>
+              <button onClick={() => setIsWorkAmountModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-sm">✕</button>
+            </div>
+
+            {/* Worker Info Card */}
+            <div className="p-3 bg-purple-50/50 border border-purple-200 rounded-lg space-y-1 text-xs">
+              <div className="font-bold text-purple-950">{selectedWorkerForWorkAmount.workerName}</div>
+              <div className="text-gray-600">Ish: <b className="text-gray-800">{selectedWorkerForWorkAmount.jobDescription}</b></div>
+              <div className="text-gray-600">Kelishilgan umumiy summa: <b className="text-gray-900">${selectedWorkerForWorkAmount.agreedAmount.toLocaleString()}</b></div>
+            </div>
+
+            <form onSubmit={submitWorkAmount} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Hozirgacha Bajarilgan Ish Haq Summasi ($) *</label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  step="any"
+                  max={selectedWorkerForWorkAmount.agreedAmount}
+                  placeholder={`Maksimal: $${selectedWorkerForWorkAmount.agreedAmount}`}
+                  value={workAmountInput}
+                  onChange={(e) => setWorkAmountInput(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none focus:border-purple-600"
+                />
+                {Number(workAmountInput) > selectedWorkerForWorkAmount.agreedAmount && (
+                  <p className="text-[11px] text-red-600 mt-1 font-medium bg-red-50 p-2 rounded border border-red-200">
+                    ⚠️ Ishlangan haq kelishilgan umumiy summadan (${selectedWorkerForWorkAmount.agreedAmount.toLocaleString()}) oshishi mumkin emas.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Izoh (ixtiyoriy)</label>
+                <input
+                  type="text"
+                  placeholder="50% kafel terildi, 2-qavat bitdi"
+                  value={workAmountNotes}
+                  onChange={(e) => setWorkAmountNotes(e.target.value)}
+                  className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t">
+                <button
+                  type="button"
+                  onClick={() => setIsWorkAmountModalOpen(false)}
+                  className="px-3 py-1.5 border rounded-lg text-xs text-gray-600 hover:bg-gray-50"
+                >
+                  Bekor qilish
+                </button>
+                <button
+                  type="submit"
+                  disabled={workAmountInput === '' || Number(workAmountInput) < 0 || Number(workAmountInput) > selectedWorkerForWorkAmount.agreedAmount}
+                  className="px-4 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-semibold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+                >
+                  Saqlash
+                </button>
               </div>
             </form>
           </div>

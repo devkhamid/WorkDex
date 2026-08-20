@@ -61,7 +61,9 @@ public class WorkerPaymentDto
     public decimal AgreedAmount { get; set; }
     public decimal WorkAmount { get; set; } // Bajarilgan ish haqi
     public decimal PaidAmount { get; set; }
-    public decimal RemainingAmount => WorkAmount > 0 ? (WorkAmount - PaidAmount) : (AgreedAmount - PaidAmount);
+    public decimal RemainingAmount => AgreedAmount - PaidAmount; // Qoldiq qarz
+    public decimal RemainingAllowedToPay => Math.Max(0, AgreedAmount - PaidAmount); // To'lanishi mumkin bo'lgan maksimal qoldiq
+    public bool IsFullyPaid => AgreedAmount > 0 && PaidAmount >= AgreedAmount;
     public DateTime? PaymentDate { get; set; }
     public string? Notes { get; set; }
     public Guid CreatedByUserId { get; set; }
@@ -77,6 +79,8 @@ public class ProjectWorkerSummaryDto
     public decimal TotalAgreedAmount { get; set; }
     public decimal TotalWorkAmount { get; set; } // Jami bajarilgan ish haqi
     public decimal TotalPaidAmount { get; set; }
-    public decimal RemainingAmount => TotalWorkAmount > 0 ? (TotalWorkAmount - TotalPaidAmount) : (TotalAgreedAmount - TotalPaidAmount);
+    public decimal RemainingAmount => TotalAgreedAmount - TotalPaidAmount;
+    public decimal RemainingAllowedToPay => Math.Max(0, TotalAgreedAmount - TotalPaidAmount);
+    public bool IsFullyPaid => TotalAgreedAmount > 0 && TotalPaidAmount >= TotalAgreedAmount;
     public int JobCount { get; set; }
 }

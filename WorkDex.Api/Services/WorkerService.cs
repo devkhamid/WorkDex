@@ -257,12 +257,17 @@ public class WorkerService : IWorkerService
         if (job is null)
             throw new KeyNotFoundException("Usta ishi / to'lovi topilmadi.");
 
+        if (dto.WorkAmount > job.AgreedAmount)
+        {
+            throw new InvalidOperationException($"Ishlangan haq (${dto.WorkAmount:N0}) kelishilgan umumiy summadan (${job.AgreedAmount:N0}) ko'p bo'lishi mumkin emas.");
+        }
+
         job.WorkAmount = dto.WorkAmount;
         if (!string.IsNullOrWhiteSpace(dto.Notes))
         {
             job.Notes = string.IsNullOrWhiteSpace(job.Notes)
                 ? dto.Notes.Trim()
-                : $"{job.Notes} | {dto.Notes.Trim()}";
+                : $"{job.Notes} | Ish haqi yangilandi: ${dto.WorkAmount:N0} ({dto.Notes.Trim()})";
         }
 
         await _context.SaveChangesAsync();
@@ -296,13 +301,24 @@ public class WorkerService : IWorkerService
         if (job is null)
             throw new KeyNotFoundException("Usta ishi / to'lovi topilmadi.");
 
+        var remainingAllowed = job.AgreedAmount - job.PaidAmount;
+        if (remainingAllowed <= 0)
+        {
+            throw new InvalidOperationException($"Ustaga kelishilgan summa (${job.AgreedAmount:N0}) allaqachon to'liq to'langan.");
+        }
+
+        if (dto.Amount > remainingAllowed)
+        {
+            throw new InvalidOperationException($"Ustaga faqat ${remainingAllowed:N0} to'lash mumkin. Kiritilgan summa (${dto.Amount:N0}) kelishilgan umumiy summadan (${job.AgreedAmount:N0}) oshib ketmoqda.");
+        }
+
         job.PaidAmount += dto.Amount;
         job.PaymentDate = dto.PaymentDate;
         if (!string.IsNullOrWhiteSpace(dto.Notes))
         {
             job.Notes = string.IsNullOrWhiteSpace(job.Notes)
                 ? dto.Notes.Trim()
-                : $"{job.Notes} | To'lov izohi: {dto.Notes.Trim()}";
+                : $"{job.Notes} | To'lov: ${dto.Amount:N0} ({dto.Notes.Trim()})";
         }
 
         await _context.SaveChangesAsync();
