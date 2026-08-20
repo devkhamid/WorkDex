@@ -7,6 +7,7 @@ using WorkDex.Api.Data;
 using WorkDex.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.UseUrls("http://0.0.0.0:5082");
 
 // =============================================
 // CONFIGURATION
@@ -142,7 +143,6 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();

@@ -1,6 +1,16 @@
 import axios from 'axios';
 
-export const API_BASE_URL = 'http://localhost:5082/api';
+export const getApiBaseUrl = (): string => {
+  if (typeof window !== 'undefined' && window.location) {
+    const hostname = window.location.hostname;
+    if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      return `http://${hostname}:5082/api`;
+    }
+  }
+  return 'http://localhost:5082/api';
+};
+
+export const API_BASE_URL = getApiBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
