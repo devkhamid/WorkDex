@@ -23,8 +23,15 @@ public static class DbInitializer
         await context.Database.ExecuteSqlRawAsync("UPDATE \"Projects\" SET \"CompanyAdminId\" = (SELECT \"Id\" FROM \"Users\" WHERE \"Email\" = 'admin@wordex.uz' LIMIT 1) WHERE \"CompanyAdminId\" IS NULL;");
         await context.Database.ExecuteSqlRawAsync("UPDATE \"Materials\" SET \"CompanyAdminId\" = (SELECT \"Id\" FROM \"Users\" WHERE \"Email\" = 'admin@wordex.uz' LIMIT 1) WHERE \"CompanyAdminId\" IS NULL;");
 
-        // SuperAdmin foydalanuvchisi mavjudligini kafolatlash
-        var superAdmin = await context.Users.FirstOrDefaultAsync(u => u.Role == UserRole.SuperAdmin);
+        // 1. Agar baza butunlay bo'sh bo'lsa, to'liq boshlang'ich ma'lumotlar yuklanadi
+        if (!await context.Users.AnyAsync())
+        {
+            await SeedFullDataAsync(context);
+            return;
+        }
+
+        // 2. Agar bazada foydalanuvchilar mavjud bo'lsa, SuperAdmin borligini va paroli 'superadmin' ekanligini ta'minlaymiz
+        var superAdmin = await context.Users.FirstOrDefaultAsync(u => u.Role == UserRole.SuperAdmin || u.Email.ToLower() == "superadmin@workdex.uz");
         if (superAdmin == null)
         {
             superAdmin = new User
@@ -46,19 +53,11 @@ public static class DbInitializer
         }
         else
         {
+            superAdmin.Role = UserRole.SuperAdmin;
             superAdmin.PasswordHash = BCrypt.Net.BCrypt.HashPassword("superadmin");
             superAdmin.IsActive = true;
             await context.SaveChangesAsync();
         }
-
-        // Agar bazada allaqachon boshqa foydalanuvchilar bo'lsa, qolgan ma'lumotlarga tegilmaydi
-        if (await context.Users.AnyAsync(u => u.Role != UserRole.SuperAdmin))
-        {
-            return;
-        }
-
-        // Faqat baza bo'sh bo'lsa, birinchi marta boshlang'ich namuna ma'lumotlar yuklanadi
-        await SeedFullDataAsync(context);
     }
 
     public static async Task ResetAndSeedAsync(AppDbContext context)
