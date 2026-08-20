@@ -157,6 +157,7 @@ export interface Expense {
 export interface Material {
   id: string;
   name: string;
+  brand?: string;
   unit: string;
   description?: string;
   createdAt: string;
@@ -167,6 +168,7 @@ export interface MaterialPurchase {
   projectId: string;
   materialId: string;
   materialName: string;
+  brand?: string;
   quantity: number;
   unit: string;
   unitPrice: number;
@@ -183,6 +185,7 @@ export interface MaterialPurchase {
 export interface MaterialSummary {
   materialId: string;
   materialName: string;
+  brand?: string;
   unit: string;
   totalQuantity: number;
   totalCost: number;
@@ -209,6 +212,8 @@ export interface WorkerPayment {
   workAmount: number;
   paidAmount: number;
   remainingAmount: number;
+  remainingAllowedToPay: number;
+  isFullyPaid: boolean;
   paymentDate?: string;
   notes?: string;
   createdByUserId: string;
@@ -224,6 +229,8 @@ export interface WorkerSummary {
   totalWorkAmount: number;
   totalPaidAmount: number;
   remainingAmount: number;
+  remainingAllowedToPay: number;
+  isFullyPaid: boolean;
   jobCount: number;
 }
 

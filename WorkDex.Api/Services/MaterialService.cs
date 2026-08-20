@@ -41,6 +41,7 @@ public class MaterialService : IMaterialService
         {
             Id = m.Id,
             Name = m.Name,
+            Brand = m.Brand,
             Unit = m.Unit,
             Description = m.Description,
             CreatedAt = m.CreatedAt
@@ -57,6 +58,7 @@ public class MaterialService : IMaterialService
         {
             Id = material.Id,
             Name = material.Name,
+            Brand = material.Brand,
             Unit = material.Unit,
             Description = material.Description,
             CreatedAt = material.CreatedAt
@@ -73,6 +75,7 @@ public class MaterialService : IMaterialService
         var material = new Material
         {
             Name = dto.Name.Trim(),
+            Brand = dto.Brand?.Trim(),
             Unit = dto.Unit.Trim(),
             Description = dto.Description?.Trim(),
             CompanyAdminId = companyAdminId,
@@ -86,6 +89,7 @@ public class MaterialService : IMaterialService
         {
             Id = material.Id,
             Name = material.Name,
+            Brand = material.Brand,
             Unit = material.Unit,
             Description = material.Description,
             CreatedAt = material.CreatedAt
@@ -99,6 +103,7 @@ public class MaterialService : IMaterialService
             throw new KeyNotFoundException("Material topilmadi.");
 
         material.Name = dto.Name.Trim();
+        material.Brand = dto.Brand?.Trim();
         material.Unit = dto.Unit.Trim();
         material.Description = dto.Description?.Trim();
 
@@ -108,6 +113,7 @@ public class MaterialService : IMaterialService
         {
             Id = material.Id,
             Name = material.Name,
+            Brand = material.Brand,
             Unit = material.Unit,
             Description = material.Description,
             CreatedAt = material.CreatedAt
@@ -145,6 +151,7 @@ public class MaterialService : IMaterialService
             throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
 
         var totalCost = Math.Round(dto.Quantity * dto.UnitPrice, 2);
+        var finalBrand = !string.IsNullOrWhiteSpace(dto.Brand) ? dto.Brand.Trim() : material.Brand;
 
         var purchase = new MaterialPurchase
         {
@@ -154,6 +161,7 @@ public class MaterialService : IMaterialService
             Unit = material.Unit,
             UnitPrice = dto.UnitPrice,
             TotalCost = totalCost,
+            Brand = finalBrand,
             Supplier = dto.Supplier?.Trim(),
             PurchaseDate = dto.PurchaseDate,
             ReceiptNumber = dto.ReceiptNumber?.Trim(),
@@ -171,6 +179,7 @@ public class MaterialService : IMaterialService
             ProjectId = purchase.ProjectId,
             MaterialId = purchase.MaterialId,
             MaterialName = material.Name,
+            Brand = purchase.Brand,
             Quantity = purchase.Quantity,
             Unit = purchase.Unit,
             UnitPrice = purchase.UnitPrice,
@@ -204,6 +213,7 @@ public class MaterialService : IMaterialService
             ProjectId = p.ProjectId,
             MaterialId = p.MaterialId,
             MaterialName = p.Material?.Name ?? "",
+            Brand = p.Brand ?? p.Material?.Brand,
             Quantity = p.Quantity,
             Unit = p.Unit,
             UnitPrice = p.UnitPrice,
@@ -234,6 +244,7 @@ public class MaterialService : IMaterialService
             ProjectId = purchase.ProjectId,
             MaterialId = purchase.MaterialId,
             MaterialName = purchase.Material?.Name ?? "",
+            Brand = purchase.Brand ?? purchase.Material?.Brand,
             Quantity = purchase.Quantity,
             Unit = purchase.Unit,
             UnitPrice = purchase.UnitPrice,
@@ -269,11 +280,12 @@ public class MaterialService : IMaterialService
         var summary = await _context.MaterialPurchases
             .Include(mp => mp.Material)
             .Where(mp => mp.ProjectId == projectId)
-            .GroupBy(mp => new { mp.MaterialId, mp.Material.Name, mp.Unit })
+            .GroupBy(mp => new { mp.MaterialId, mp.Material.Name, mp.Material.Brand, mp.Unit })
             .Select(g => new ProjectMaterialSummaryDto
             {
                 MaterialId = g.Key.MaterialId,
                 MaterialName = g.Key.Name,
+                Brand = g.Key.Brand,
                 Unit = g.Key.Unit,
                 TotalQuantity = g.Sum(x => x.Quantity),
                 TotalCost = g.Sum(x => x.TotalCost),

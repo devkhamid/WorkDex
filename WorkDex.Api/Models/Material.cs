@@ -5,6 +5,7 @@ public class Material
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
+    public string? Brand { get; set; } // Brend / ishlab chiqaruvchi (Knauf, Kerama Marazzi, Marshall...)
     public string Unit { get; set; } = string.Empty; // kg, dona, m², m³, metr, litr
     public string? Description { get; set; }
     public Guid? CompanyAdminId { get; set; }

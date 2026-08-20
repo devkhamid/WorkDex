@@ -12,7 +12,7 @@ public class CreateWorkerPaymentDto
     public string JobDescription { get; set; } = string.Empty;
 
     [Required]
-    [Range(0, double.MaxValue, ErrorMessage = "Kelishilgan summa manfiy bo'lishi mumkin emas.")]
+    [Range(0.01, double.MaxValue, ErrorMessage = "Kelishilgan summa 0 dan katta bo'lishi kerak.")]
     public decimal AgreedAmount { get; set; }
 
     [Range(0, double.MaxValue, ErrorMessage = "Bajarilgan ish haqi manfiy bo'lishi mumkin emas.")]

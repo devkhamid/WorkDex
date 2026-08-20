@@ -14,6 +14,8 @@ public static class DbInitializer
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Materials\" ADD COLUMN IF NOT EXISTS \"CompanyAdminId\" UUID;");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Workers\" ADD COLUMN IF NOT EXISTS \"CompanyAdminId\" UUID;");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Projects\" ADD COLUMN IF NOT EXISTS \"CompanyAdminId\" UUID;");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Materials\" ADD COLUMN IF NOT EXISTS \"Brand\" VARCHAR(200);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"MaterialPurchases\" ADD COLUMN IF NOT EXISTS \"Brand\" VARCHAR(200);");
 
         // Mavjud namuna ma'lumotlarni 1-admin (Grand Stroy) ga bog'lash
         await context.Database.ExecuteSqlRawAsync("UPDATE \"Customers\" SET \"CompanyAdminId\" = (SELECT \"Id\" FROM \"Users\" WHERE \"Email\" = 'admin@wordex.uz' LIMIT 1) WHERE \"CompanyAdminId\" IS NULL;");

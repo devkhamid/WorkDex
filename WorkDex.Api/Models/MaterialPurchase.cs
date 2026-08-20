@@ -12,6 +12,7 @@ public class MaterialPurchase
     public decimal UnitPrice { get; set; }
     public decimal TotalCost { get; set; } // Quantity * UnitPrice
 
+    public string? Brand { get; set; } // Brend / ishlab chiqaruvchi
     public string? Supplier { get; set; } // Yetkazib beruvchi / do'kon nomi
     public DateTime PurchaseDate { get; set; }
     public string? ReceiptNumber { get; set; } // Hisob-faktura yoki chek raqami

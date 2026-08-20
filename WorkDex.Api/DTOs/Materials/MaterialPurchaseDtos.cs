@@ -7,6 +7,9 @@ public class CreateMaterialPurchaseDto
     [Required]
     public Guid MaterialId { get; set; }
 
+    [MaxLength(200)]
+    public string? Brand { get; set; } // Brend
+
     [Required]
     [Range(0.01, double.MaxValue, ErrorMessage = "Miqdor 0 dan katta bo'lishi kerak.")]
     public decimal Quantity { get; set; }
@@ -34,6 +37,7 @@ public class MaterialPurchaseDto
     public Guid ProjectId { get; set; }
     public Guid MaterialId { get; set; }
     public string MaterialName { get; set; } = string.Empty;
+    public string? Brand { get; set; }
     public decimal Quantity { get; set; }
     public string Unit { get; set; } = string.Empty;
     public decimal UnitPrice { get; set; }
@@ -51,6 +55,7 @@ public class ProjectMaterialSummaryDto
 {
     public Guid MaterialId { get; set; }
     public string MaterialName { get; set; } = string.Empty;
+    public string? Brand { get; set; }
     public string Unit { get; set; } = string.Empty;
     public decimal TotalQuantity { get; set; }
     public decimal TotalCost { get; set; }

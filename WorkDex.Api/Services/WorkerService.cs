@@ -150,6 +150,16 @@ public class WorkerService : IWorkerService
         if (user is null)
             throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
 
+        if (dto.WorkAmount > dto.AgreedAmount)
+        {
+            throw new InvalidOperationException($"Ishlangan haq (${dto.WorkAmount:N0}) kelishilgan umumiy summadan (${dto.AgreedAmount:N0}) ko'p bo'lishi mumkin emas.");
+        }
+
+        if (dto.PaidAmount > dto.AgreedAmount)
+        {
+            throw new InvalidOperationException($"Ustaga faqat ${dto.AgreedAmount:N0} gacha to'lash mumkin. Boshlang'ich to'lov kelishilgan umumiy summadan oshib ketmoqda.");
+        }
+
         var workerPayment = new WorkerPayment
         {
             ProjectId = projectId,
@@ -260,6 +270,11 @@ public class WorkerService : IWorkerService
         if (dto.WorkAmount > job.AgreedAmount)
         {
             throw new InvalidOperationException($"Ishlangan haq (${dto.WorkAmount:N0}) kelishilgan umumiy summadan (${job.AgreedAmount:N0}) ko'p bo'lishi mumkin emas.");
+        }
+
+        if (dto.WorkAmount < job.PaidAmount)
+        {
+            throw new InvalidOperationException($"Ishlangan haqni (${job.PaidAmount:N0}) allaqachon to'langan summadan past qilib bo'lmaydi.");
         }
 
         job.WorkAmount = dto.WorkAmount;

@@ -61,6 +61,10 @@ public class WorkerPaymentsController : ControllerBase
         {
             return NotFound(new { message = ex.Message });
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     // Bajarilgan ish haqi summasini yangilash (ish hajmi tasdiqlanganda)

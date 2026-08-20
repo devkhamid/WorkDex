@@ -8,6 +8,9 @@ public class CreateMaterialDto
     [MaxLength(200)]
     public string Name { get; set; } = string.Empty;
 
+    [MaxLength(200)]
+    public string? Brand { get; set; } // Brend / ishlab chiqaruvchi
+
     [Required]
     [MaxLength(50)]
     public string Unit { get; set; } = string.Empty; // kg, dona, m², m³, metr, litr
@@ -20,6 +23,7 @@ public class MaterialDto
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string? Brand { get; set; }
     public string Unit { get; set; } = string.Empty;
     public string? Description { get; set; }
     public DateTime CreatedAt { get; set; }

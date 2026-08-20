@@ -95,6 +95,7 @@ export const ProjectDetailPage: React.FC = () => {
   // Purchase Form State
   const [isNewMaterial, setIsNewMaterial] = useState(false);
   const [newPurMatName, setNewPurMatName] = useState('');
+  const [newPurMatBrand, setNewPurMatBrand] = useState('');
   const [newPurMatUnit, setNewPurMatUnit] = useState('dona');
   const [newPurMatId, setNewPurMatId] = useState('');
   const [newPurQty, setNewPurQty] = useState<number | ''>('');
@@ -275,6 +276,7 @@ export const ProjectDetailPage: React.FC = () => {
       if (isNewMaterial) {
         const createdMat = await materialsApi.create({
           name: newPurMatName,
+          brand: newPurMatBrand || undefined,
           unit: newPurMatUnit
         });
         finalMaterialId = createdMat.id;
@@ -282,6 +284,7 @@ export const ProjectDetailPage: React.FC = () => {
 
       await projectsApi.createPurchase(id, {
         materialId: finalMaterialId,
+        brand: newPurMatBrand || undefined,
         quantity: Number(newPurQty) || 0,
         unitPrice: Number(newPurPrice) || 0,
         supplier: newPurSupplier || undefined,
@@ -290,8 +293,10 @@ export const ProjectDetailPage: React.FC = () => {
       setIsPurchaseModalOpen(false);
       setIsNewMaterial(false);
       setNewPurMatName('');
+      setNewPurMatBrand('');
       setNewPurQty('');
       setNewPurPrice('');
+      setNewPurSupplier('');
       loadAllData(id);
     } catch (err: any) {
       alert(err.response?.data?.message || 'Xatolik');
@@ -301,6 +306,13 @@ export const ProjectDetailPage: React.FC = () => {
   const handleCreateWorkerPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
+    const agreedAmount = Number(newWorkAgreed);
+
+    if (!Number.isFinite(agreedAmount) || agreedAmount <= 0) {
+      alert("Kelishilgan summa 0 dan katta bo'lishi kerak.");
+      return;
+    }
+
     try {
       let finalWorkerId = newWorkId;
 
@@ -316,7 +328,7 @@ export const ProjectDetailPage: React.FC = () => {
       await projectsApi.createWorkerPayment(id, {
         workerId: finalWorkerId,
         jobDescription: newWorkDesc,
-        agreedAmount: Number(newWorkAgreed) || 0,
+        agreedAmount,
       });
       setIsWorkerModalOpen(false);
       setIsNewWorker(false);
@@ -332,7 +344,7 @@ export const ProjectDetailPage: React.FC = () => {
 
   const openPayWorkerModal = (wp: WorkerPayment) => {
     setSelectedWorkerForPay(wp);
-    const maxAllowed = Math.max(0, wp.agreedAmount - wp.paidAmount);
+    const maxAllowed = Math.max(0, wp.remainingAllowedToPay ?? wp.agreedAmount - wp.paidAmount);
     setPayWorkerAmount(maxAllowed > 0 ? maxAllowed : '');
     setPayWorkerDate(new Date().toISOString().split('T')[0]);
     setPayWorkerNotes('');
@@ -806,47 +818,76 @@ export const ProjectDetailPage: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {materialsSummary.map((m) => (
-                <div key={m.materialId} className="p-3 bg-white border border-gray-200 rounded-lg shadow-xs">
-                  <div className="font-semibold text-xs text-gray-900 truncate">{m.materialName}</div>
-                  <div className="flex justify-between mt-2 text-xs">
+                <div key={m.materialId} className="p-3 bg-white border border-gray-200 rounded-xl shadow-xs space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <div className="font-bold text-xs text-gray-900 truncate">{m.materialName}</div>
+                    {m.brand && (
+                      <span className="px-1.5 py-0.5 bg-orange-50 text-[#ff7a16] border border-orange-100 rounded text-[9px] font-bold">
+                        {m.brand}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-600">
                     <span className="text-gray-500">Miqdor:</span>
                     <b className="text-gray-800">{m.totalQuantity} {m.unit}</b>
                   </div>
-                  <div className="flex justify-between mt-1 text-xs">
+                  <div className="flex justify-between text-xs text-gray-600 pt-1 border-t border-gray-50">
                     <span className="text-gray-500">Jami xarajat:</span>
-                    <b className="text-[#ff7a16]">${m.totalCost.toLocaleString()}</b>
+                    <b className="text-[#ff7a16] font-bold">${m.totalCost.toLocaleString()}</b>
                   </div>
                 </div>
               ))}
+              {materialsSummary.length === 0 && (
+                <div className="col-span-3 py-6 text-center text-xs text-gray-400">Material xaridlari mavjud emas</div>
+              )}
             </div>
           </div>
 
           <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs">
             <h3 className="font-bold text-xs text-[#171b25] mb-3">Barcha Xarid Cheklari</h3>
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-[#e4e7ec] bg-gray-50/50">
-                  <th className="py-2 px-3 font-bold text-gray-500 text-[10px]">SANA</th>
-                  <th className="py-2 px-3 font-bold text-gray-500 text-[10px]">MATERIAL</th>
-                  <th className="py-2 px-3 font-bold text-gray-500 text-[10px]">MIQDOR</th>
-                  <th className="py-2 px-3 font-bold text-gray-500 text-[10px]">NARX</th>
-                  <th className="py-2 px-3 font-bold text-gray-500 text-[10px]">JAMI</th>
-                  <th className="py-2 px-3 font-bold text-gray-500 text-[10px]">DO'KON</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {purchases.map((pur) => (
-                  <tr key={pur.id}>
-                    <td className="py-2.5 px-3">{formatDateUz(pur.purchaseDate)}</td>
-                    <td className="py-2.5 px-3 font-semibold">{pur.materialName}</td>
-                    <td className="py-2.5 px-3">{pur.quantity} {pur.unit}</td>
-                    <td className="py-2.5 px-3">${pur.unitPrice}</td>
-                    <td className="py-2.5 px-3 font-bold text-[#ff7a16]">${pur.totalCost.toLocaleString()}</td>
-                    <td className="py-2.5 px-3 text-gray-500">{pur.supplier || '-'}</td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-[#e4e7ec] bg-gray-50/50">
+                    <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">SANA</th>
+                    <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">MATERIAL</th>
+                    <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">BREND</th>
+                    <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">MIQDOR</th>
+                    <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">NARX</th>
+                    <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">JAMI</th>
+                    <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">DO'KON / YETKAZUVCHI</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {purchases.map((pur) => (
+                    <tr key={pur.id} className="hover:bg-gray-50/50">
+                      <td className="py-2.5 px-3">{formatDateUz(pur.purchaseDate)}</td>
+                      <td className="py-2.5 px-3 font-semibold text-gray-900">{pur.materialName}</td>
+                      <td className="py-2.5 px-3">
+                        {pur.brand ? (
+                          <span className="px-1.5 py-0.5 bg-orange-50 text-[#ff7a16] border border-orange-100 rounded text-[9px] font-bold">
+                            {pur.brand}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3">{pur.quantity} {pur.unit}</td>
+                      <td className="py-2.5 px-3 font-medium">${pur.unitPrice.toLocaleString()}</td>
+                      <td className="py-2.5 px-3 font-bold text-[#ff7a16]">${pur.totalCost.toLocaleString()}</td>
+                      <td className="py-2.5 px-3 text-gray-600">{pur.supplier || '-'}</td>
+                    </tr>
+                  ))}
+                  {purchases.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-xs text-gray-400">
+                        Xaridlar mavjud emas. Yuqoridagi "+ Material xaridi kiritish" orqali yangi xarid qo'shing.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -1328,39 +1369,69 @@ export const ProjectDetailPage: React.FC = () => {
                       className="w-full h-8 px-2.5 border border-gray-300 rounded text-xs bg-white outline-none focus:border-[#ff7a16]"
                     />
                   </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold mb-1">O'lchov Birligi *</label>
-                    <select
-                      value={newPurMatUnit}
-                      onChange={(e) => setNewPurMatUnit(e.target.value)}
-                      className="w-full h-8 px-2 border border-gray-300 rounded text-xs bg-white outline-none"
-                    >
-                      <option value="dona">dona</option>
-                      <option value="m²">m²</option>
-                      <option value="kg">kg</option>
-                      <option value="qop">qop</option>
-                      <option value="m³">m³</option>
-                      <option value="metr">metr</option>
-                      <option value="litr">litr</option>
-                    </select>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-semibold mb-1">Brend / Ishlab chiqaruvchi</label>
+                      <input
+                        type="text"
+                        placeholder="Knauf, Kerama Marazzi..."
+                        value={newPurMatBrand}
+                        onChange={(e) => setNewPurMatBrand(e.target.value)}
+                        className="w-full h-8 px-2.5 border border-gray-300 rounded text-xs bg-white outline-none focus:border-[#ff7a16]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold mb-1">O'lchov Birligi *</label>
+                      <select
+                        value={newPurMatUnit}
+                        onChange={(e) => setNewPurMatUnit(e.target.value)}
+                        className="w-full h-8 px-2 border border-gray-300 rounded text-xs bg-white outline-none"
+                      >
+                        <option value="dona">dona</option>
+                        <option value="m²">m²</option>
+                        <option value="kg">kg</option>
+                        <option value="qop">qop</option>
+                        <option value="m³">m³</option>
+                        <option value="metr">metr</option>
+                        <option value="litr">litr</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               ) : (
-                <div>
-                  <label className="block text-xs font-semibold mb-1">Material *</label>
-                  <select
-                    value={newPurMatId}
-                    onChange={(e) => setNewPurMatId(e.target.value)}
-                    required
-                    className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs bg-white outline-none"
-                  >
-                    {catalogMaterials.map((m) => (
-                      <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>
-                    ))}
-                    {catalogMaterials.length === 0 && (
-                      <option value="">Materiallar yo'q — tepadan yangi qo'shing</option>
-                    )}
-                  </select>
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-xs font-semibold mb-1">Material *</label>
+                    <select
+                      value={newPurMatId}
+                      onChange={(e) => {
+                        setNewPurMatId(e.target.value);
+                        const selMat = catalogMaterials.find(m => m.id === e.target.value);
+                        if (selMat?.brand) setNewPurMatBrand(selMat.brand);
+                      }}
+                      required
+                      className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs bg-white outline-none"
+                    >
+                      {catalogMaterials.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name} {m.brand ? `[${m.brand}]` : ''} ({m.unit})
+                        </option>
+                      ))}
+                      {catalogMaterials.length === 0 && (
+                        <option value="">Materiallar yo'q — tepadan yangi qo'shing</option>
+                      )}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold mb-1">Brend / Ishlab chiqaruvchi</label>
+                    <input
+                      type="text"
+                      placeholder="Knauf, Kerama Marazzi, Marshall..."
+                      value={newPurMatBrand}
+                      onChange={(e) => setNewPurMatBrand(e.target.value)}
+                      className="w-full h-8 px-2.5 border border-gray-300 rounded-lg text-xs bg-white outline-none focus:border-[#ff7a16]"
+                    />
+                  </div>
                 </div>
               )}
 
