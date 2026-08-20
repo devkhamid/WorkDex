@@ -307,29 +307,15 @@ export const SuperAdminPage: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Telefon</label>
-                  <input
-                    type="text"
-                    placeholder="+998901234567"
-                    value={newPhone}
-                    onChange={(e) => setNewPhone(e.target.value)}
-                    className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none focus:border-[#ff7a16]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Roli *</label>
-                  <select
-                    value={newRole}
-                    onChange={(e) => setNewRole(Number(e.target.value))}
-                    className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs bg-white outline-none"
-                  >
-                    <option value={UserRole.Admin}>Kompaniya Admini</option>
-                    <option value={UserRole.ProjectManager}>Loyiha Menejeri</option>
-                    <option value={UserRole.Finance}>Buxgalter</option>
-                  </select>
-                </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Telefon raqam</label>
+                <input
+                  type="text"
+                  placeholder="+998901234567"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                  className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none focus:border-[#ff7a16]"
+                />
               </div>
 
               <div>
@@ -357,7 +343,7 @@ export const SuperAdminPage: React.FC = () => {
                   type="submit"
                   className="px-4 py-1.5 bg-[#ff7a16] text-white rounded-lg text-xs font-semibold hover:bg-[#e86807]"
                 >
-                  Admin Yaratish
+                  Kompaniya & Admin Qo'shish
                 </button>
               </div>
             </form>

@@ -41,8 +41,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenNewProject }) => {
     ? [
         { to: '/superadmin', label: 'Adminlar & Kompaniyalar', icon: ShieldCheck },
         { to: '/projects', label: 'Loyihalar Monitoringi', icon: Building2 },
-        { to: '/finance', label: 'Moliya Monitoringi', icon: DollarSign },
-        { to: '/reports', label: 'Hisobotlar (Excel)', icon: FileSpreadsheet },
       ]
     : [
         { to: '/', label: 'Boshqaruv paneli', icon: LayoutDashboard },
@@ -71,71 +69,87 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenNewProject }) => {
   };
 
   return (
-    <aside className="w-56 bg-white border-r border-[#e4e7ec] flex flex-col flex-shrink-0 min-h-screen">
-      {/* Brand */}
-      <div className="h-[76px] flex items-center gap-2.5 px-4 font-bold text-sm text-[#171b25]">
-        <div className="w-7 h-7 rounded-lg bg-[#ff7a16] text-white flex items-center justify-center font-extrabold text-sm shadow-sm">
-          W
-        </div>
-        <span className="font-extrabold text-base tracking-tight">WorkDex</span>
-        <Grid className="w-4 h-4 ml-auto text-gray-400" />
-      </div>
-
-      {/* Search */}
-      <div className="mx-3.5 mb-4 flex items-center border border-[#e4e7ec] rounded-lg h-9 px-2.5 text-gray-400 gap-2 text-xs bg-gray-50/50">
-        <Search className="w-3.5 h-3.5" />
-        <span className="text-gray-400">Tezkor qidiruv...</span>
-        <span className="ml-auto text-[10px] bg-white px-1.5 py-0.5 rounded border border-gray-200 text-gray-400 font-mono">⌘K</span>
-      </div>
-
-      {/* Main Navigation */}
-      <nav className="px-2.5 space-y-0.5">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isItemActive = item.to === '/'
-            ? location.pathname === '/'
-            : location.pathname.startsWith(item.to);
-
-          return (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={() =>
-                `w-full text-left px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2.5 transition-colors ${
-                  isItemActive
-                    ? 'bg-[#eef5ff] text-[#2563c7] font-semibold'
-                    : 'text-[#626a78] hover:bg-gray-50 hover:text-[#171b25]'
-                }`
-              }
-            >
-              <Icon className="w-4 h-4" />
-              <span>{item.label}</span>
-            </NavLink>
-          );
-        })}
-
-        {/* Section Label: AKTIF PROJELER */}
-        <div className="pt-5 pb-2 px-3 text-[10px] font-bold text-[#a0a5af] tracking-wider uppercase">
-          FAOL LOYIHALAR
+    <aside className="w-[230px] border-r border-[#e4e7ec] bg-white flex flex-col justify-between flex-shrink-0 min-h-screen">
+      {/* Brand Header */}
+      <div>
+        <div className="h-[66px] flex items-center justify-between px-5 border-b border-[#e4e7ec]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#ff7a16] text-white flex items-center justify-center font-bold text-sm shadow-xs">
+              W
+            </div>
+            <span className="font-extrabold text-sm text-[#171b25] tracking-tight">WorkDex</span>
+          </div>
+          <button className="text-gray-400 hover:text-gray-600 transition-colors">
+            <Grid className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* Active Projects List */}
-        <div className="space-y-0.5">
-          {activeProjects.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => navigate(`/projects/${p.id}`)}
-              className="w-full text-left px-3 py-1.5 rounded-lg text-xs text-[#626a78] hover:bg-gray-100 hover:text-[#171b25] flex items-center gap-2 truncate transition-colors"
-            >
-              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getStatusDot(p.status)}`} />
-              <span className="truncate">{p.name}</span>
-            </button>
-          ))}
-          {activeProjects.length === 0 && (
-            <div className="px-3 py-1 text-[11px] text-gray-400 italic">Loyihalar mavjud emas</div>
+        {/* Quick Search Input */}
+        <div className="p-3">
+          <div className="flex items-center gap-2 bg-[#f4f5f7] rounded-lg px-3 h-8 text-[#7a8190]">
+            <Search className="w-3.5 h-3.5" />
+            <input
+              type="text"
+              placeholder="Tezkor qidiruv..."
+              className="bg-transparent text-xs w-full outline-none placeholder:text-gray-400"
+            />
+            <span className="text-[10px] text-gray-400 bg-white px-1.5 py-0.5 rounded border border-gray-200">⌘K</span>
+          </div>
+        </div>
+
+        {/* Navigation Items */}
+        <nav className="px-3 space-y-0.5">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isItemActive = item.to === '/'
+              ? location.pathname === '/'
+              : location.pathname.startsWith(item.to);
+
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={() =>
+                  `w-full text-left px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2.5 transition-colors ${
+                    isItemActive
+                      ? 'bg-[#eef5ff] text-[#2563c7] font-semibold'
+                      : 'text-[#626a78] hover:bg-gray-50 hover:text-[#171b25]'
+                  }`
+                }
+              >
+                <Icon className="w-4 h-4" />
+                <span>{item.label}</span>
+              </NavLink>
+            );
+          })}
+
+          {/* Section Label: FAOL LOYIHALAR (Only for regular Company Admins) */}
+          {!isSuperAdmin && (
+            <>
+              <div className="pt-5 pb-2 px-3 text-[10px] font-bold text-[#a0a5af] tracking-wider uppercase">
+                FAOL LOYIHALAR
+              </div>
+
+              {/* Active Projects List */}
+              <div className="space-y-0.5">
+                {activeProjects.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => navigate(`/projects/${p.id}`)}
+                    className="w-full text-left px-3 py-1.5 rounded-lg text-xs text-[#626a78] hover:bg-gray-100 hover:text-[#171b25] flex items-center gap-2 truncate transition-colors"
+                  >
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getStatusDot(p.status)}`} />
+                    <span className="truncate">{p.name}</span>
+                  </button>
+                ))}
+                {activeProjects.length === 0 && (
+                  <div className="px-3 py-1 text-[11px] text-gray-400 italic">Loyihalar mavjud emas</div>
+                )}
+              </div>
+            </>
           )}
-        </div>
-      </nav>
+        </nav>
+      </div>
 
       {/* User Footer */}
       <div className="mt-auto border-t border-[#e4e7ec] p-3 flex items-center gap-2.5">

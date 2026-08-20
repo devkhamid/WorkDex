@@ -57,8 +57,6 @@ const ProtectedLayout: React.FC = () => {
     ? [
         { label: 'Adminlar & Kompaniyalar', path: '/superadmin' },
         { label: 'Loyihalar Monitoringi', path: '/projects' },
-        { label: 'Moliya Monitoringi', path: '/finance' },
-        { label: 'Hisobotlar', path: '/reports' },
       ]
     : [
         { label: 'Umumiy ko‘rinish', path: '/' },
