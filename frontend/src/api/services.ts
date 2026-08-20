@@ -128,6 +128,10 @@ export const projectsApi = {
     const res = await apiClient.get<ProjectSummary>(`/projects/${id}/summary`);
     return res.data;
   },
+  delete: async (id: string): Promise<any> => {
+    const res = await apiClient.delete(`/projects/${id}`);
+    return res.data;
+  },
   // Stages
   getStages: async (projectId: string): Promise<ProjectStage[]> => {
     const res = await apiClient.get<ProjectStage[]>(`/projects/${projectId}/stages`);

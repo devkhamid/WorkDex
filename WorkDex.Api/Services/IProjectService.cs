@@ -18,4 +18,5 @@ public interface IProjectService
     Task<List<ProjectStageDto>> GetStagesAsync(Guid projectId);
     Task<ProjectStageDto> CompleteStageAsync(Guid projectId, Guid stageId);
     Task DeleteStageAsync(Guid projectId, Guid stageId);
+    Task DeleteAsync(Guid id);
 }

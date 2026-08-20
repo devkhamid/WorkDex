@@ -378,6 +378,49 @@ public class ProjectService : IProjectService
         await _context.SaveChangesAsync();
     }
 
+    public async Task DeleteAsync(Guid id)
+    {
+        var project = await _context.Projects.FindAsync(id);
+        if (project is null)
+            throw new KeyNotFoundException("Loyiha topilmadi.");
+
+        var updates = await _context.ProjectUpdates.Where(x => x.ProjectId == id).ToListAsync();
+        _context.ProjectUpdates.RemoveRange(updates);
+
+        var photos = await _context.Photos.Where(x => x.ProjectId == id).ToListAsync();
+        _context.Photos.RemoveRange(photos);
+
+        var docs = await _context.Documents.Where(x => x.ProjectId == id).ToListAsync();
+        _context.Documents.RemoveRange(docs);
+
+        var tasks = await _context.Tasks.Where(x => x.ProjectId == id).ToListAsync();
+        _context.Tasks.RemoveRange(tasks);
+
+        var extraWorks = await _context.ExtraWorks.Where(x => x.ProjectId == id).ToListAsync();
+        _context.ExtraWorks.RemoveRange(extraWorks);
+
+        var workerPayments = await _context.WorkerPayments.Where(x => x.ProjectId == id).ToListAsync();
+        _context.WorkerPayments.RemoveRange(workerPayments);
+
+        var materialPurchases = await _context.MaterialPurchases.Where(x => x.ProjectId == id).ToListAsync();
+        _context.MaterialPurchases.RemoveRange(materialPurchases);
+
+        var expenses = await _context.Expenses.Where(x => x.ProjectId == id).ToListAsync();
+        _context.Expenses.RemoveRange(expenses);
+
+        var payments = await _context.Payments.Where(x => x.ProjectId == id).ToListAsync();
+        _context.Payments.RemoveRange(payments);
+
+        var stages = await _context.ProjectStages.Where(x => x.ProjectId == id).ToListAsync();
+        _context.ProjectStages.RemoveRange(stages);
+
+        var members = await _context.ProjectMembers.Where(x => x.ProjectId == id).ToListAsync();
+        _context.ProjectMembers.RemoveRange(members);
+
+        _context.Projects.Remove(project);
+        await _context.SaveChangesAsync();
+    }
+
     private static ProjectDto MapToDto(Project p) => new()
     {
         Id = p.Id,

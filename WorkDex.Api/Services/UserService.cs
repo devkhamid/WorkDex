@@ -89,7 +89,88 @@ public class UserService : IUserService
         if (user.Role == UserRole.SuperAdmin)
             throw new InvalidOperationException("Asosiy SuperAdmin hisobini o'chirib bo'lmaydi.");
 
-        _context.Users.Remove(user);
+        if (user.Role == UserRole.Admin)
+        {
+            // Kompaniya admini va unga tegishli barcha loyihalar va xodimlarni to'liq tozalash
+            var companyUserIds = await _context.Users
+                .Where(u => u.CompanyAdminId == id || u.Id == id)
+                .Select(u => u.Id)
+                .ToListAsync();
+
+            var projectIds = await _context.Projects
+                .Where(p => p.CompanyAdminId == id || p.CreatedByUserId == id || companyUserIds.Contains(p.CreatedByUserId))
+                .Select(p => p.Id)
+                .ToListAsync();
+
+            if (projectIds.Any())
+            {
+                var updates = await _context.ProjectUpdates.Where(x => projectIds.Contains(x.ProjectId)).ToListAsync();
+                _context.ProjectUpdates.RemoveRange(updates);
+
+                var photos = await _context.Photos.Where(x => projectIds.Contains(x.ProjectId)).ToListAsync();
+                _context.Photos.RemoveRange(photos);
+
+                var docs = await _context.Documents.Where(x => projectIds.Contains(x.ProjectId)).ToListAsync();
+                _context.Documents.RemoveRange(docs);
+
+                var tasks = await _context.Tasks.Where(x => projectIds.Contains(x.ProjectId)).ToListAsync();
+                _context.Tasks.RemoveRange(tasks);
+
+                var extraWorks = await _context.ExtraWorks.Where(x => projectIds.Contains(x.ProjectId)).ToListAsync();
+                _context.ExtraWorks.RemoveRange(extraWorks);
+
+                var workerPayments = await _context.WorkerPayments.Where(x => projectIds.Contains(x.ProjectId)).ToListAsync();
+                _context.WorkerPayments.RemoveRange(workerPayments);
+
+                var materialPurchases = await _context.MaterialPurchases.Where(x => projectIds.Contains(x.ProjectId)).ToListAsync();
+                _context.MaterialPurchases.RemoveRange(materialPurchases);
+
+                var expenses = await _context.Expenses.Where(x => projectIds.Contains(x.ProjectId)).ToListAsync();
+                _context.Expenses.RemoveRange(expenses);
+
+                var payments = await _context.Payments.Where(x => projectIds.Contains(x.ProjectId)).ToListAsync();
+                _context.Payments.RemoveRange(payments);
+
+                var stages = await _context.ProjectStages.Where(x => projectIds.Contains(x.ProjectId)).ToListAsync();
+                _context.ProjectStages.RemoveRange(stages);
+
+                var members = await _context.ProjectMembers.Where(x => projectIds.Contains(x.ProjectId)).ToListAsync();
+                _context.ProjectMembers.RemoveRange(members);
+
+                var projects = await _context.Projects.Where(x => projectIds.Contains(x.Id)).ToListAsync();
+                _context.Projects.RemoveRange(projects);
+            }
+
+            var companyCustomers = await _context.Customers.Where(c => c.CompanyAdminId == id).ToListAsync();
+            _context.Customers.RemoveRange(companyCustomers);
+
+            var companyWorkers = await _context.Workers.Where(w => w.CompanyAdminId == id).ToListAsync();
+            _context.Workers.RemoveRange(companyWorkers);
+
+            var companyMaterials = await _context.Materials.Where(m => m.CompanyAdminId == id).ToListAsync();
+            _context.Materials.RemoveRange(companyMaterials);
+
+            var otherMembers = await _context.ProjectMembers.Where(m => companyUserIds.Contains(m.UserId)).ToListAsync();
+            _context.ProjectMembers.RemoveRange(otherMembers);
+
+            var companyUsers = await _context.Users.Where(u => companyUserIds.Contains(u.Id)).ToListAsync();
+            _context.Users.RemoveRange(companyUsers);
+        }
+        else
+        {
+            // Alohida xodimni o'chirish
+            var members = await _context.ProjectMembers.Where(m => m.UserId == id).ToListAsync();
+            _context.ProjectMembers.RemoveRange(members);
+
+            var assignedTasks = await _context.Tasks.Where(t => t.AssignedToUserId == id).ToListAsync();
+            foreach (var t in assignedTasks)
+            {
+                t.AssignedToUserId = null;
+            }
+
+            _context.Users.Remove(user);
+        }
+
         await _context.SaveChangesAsync();
     }
 

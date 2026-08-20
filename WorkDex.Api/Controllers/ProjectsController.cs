@@ -219,4 +219,19 @@ public class ProjectsController : ControllerBase
             return NotFound(new { message = ex.Message });
         }
     }
+
+    [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        try
+        {
+            await _projectService.DeleteAsync(id);
+            return Ok(new { message = "Loyiha muvaffaqiyatli o'chirildi." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
 }
