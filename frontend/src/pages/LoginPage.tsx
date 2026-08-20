@@ -8,8 +8,8 @@ export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [isRegister, setIsRegister] = useState(false);
-  const [email, setEmail] = useState('admin@wordex.uz');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
@@ -161,44 +161,12 @@ export const LoginPage: React.FC = () => {
           </button>
         </form>
 
-        {/* Quick Demo Credentials */}
-        {!isRegister && (
-          <div className="pt-2 border-t border-gray-100 space-y-1.5">
-            <small className="block text-[11px] text-gray-400 font-medium">Tezkor kirish uchun:</small>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('superadmin');
-                  setPassword('superadmin');
-                }}
-                className="text-left p-2 rounded-lg bg-purple-50 border border-purple-200 text-purple-800 hover:bg-purple-100 transition-colors"
-              >
-                <div className="font-bold text-[11px]">👑 Super Admin</div>
-                <div className="text-[10px] text-purple-600">superadmin / superadmin</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('admin@wordex.uz');
-                  setPassword('admin123');
-                }}
-                className="text-left p-2 rounded-lg bg-orange-50 border border-orange-200 text-orange-800 hover:bg-orange-100 transition-colors"
-              >
-                <div className="font-bold text-[11px]">🏢 Kompaniya Admin</div>
-                <div className="text-[10px] text-orange-600">admin@wordex.uz / admin123</div>
-              </button>
-            </div>
-          </div>
-        )}
-
         <div className="text-center pt-2 border-t border-gray-100">
           <button
             onClick={() => setIsRegister(!isRegister)}
             className="text-xs text-[#ff7a16] font-semibold hover:underline"
           >
-            {isRegister ? "Akkauntingiz bormi? Tizimga kiring" : "Yangi xodim qo'shish (Ro'yxatdan o'tish)"}
+            {isRegister ? "Hisobingiz bormi? Tizimga kiring" : "Yangi xodim hisobini ochish"}
           </button>
         </div>
       </div>
