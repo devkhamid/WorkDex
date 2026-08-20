@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkDex.Api.DTOs.Materials;
+using WorkDex.Api.Helpers;
+using WorkDex.Api.Models;
 using WorkDex.Api.Services;
 
 namespace WorkDex.Api.Controllers;
@@ -18,15 +20,15 @@ public class MaterialsController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin,Finance,ProjectManager,FieldWorker")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager,FieldWorker")]
     public async Task<IActionResult> GetAll()
     {
-        var materials = await _materialService.GetAllMaterialsAsync();
+        var materials = await _materialService.GetAllMaterialsAsync(User.GetUserId(), User.GetUserRole());
         return Ok(materials);
     }
 
     [HttpGet("{id:guid}")]
-    [Authorize(Roles = "Admin,Finance,ProjectManager,FieldWorker")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager,FieldWorker")]
     public async Task<IActionResult> GetById(Guid id)
     {
         try
@@ -41,10 +43,10 @@ public class MaterialsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,ProjectManager,Finance")]
+    [Authorize(Roles = "SuperAdmin,Admin,ProjectManager,Finance")]
     public async Task<IActionResult> Create([FromBody] CreateMaterialDto dto)
     {
-        var material = await _materialService.CreateMaterialAsync(dto);
+        var material = await _materialService.CreateMaterialAsync(dto, User.GetUserId());
         return CreatedAtAction(nameof(GetById), new { id = material.Id }, material);
     }
 

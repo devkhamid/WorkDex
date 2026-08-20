@@ -14,9 +14,26 @@ public class MaterialService : IMaterialService
         _context = context;
     }
 
-    public async Task<List<MaterialDto>> GetAllMaterialsAsync()
+    public async Task<List<MaterialDto>> GetAllMaterialsAsync(Guid requestingUserId, UserRole requestingUserRole)
     {
-        var materials = await _context.Materials
+        var query = _context.Materials.AsQueryable();
+
+        if (requestingUserRole == UserRole.SuperAdmin)
+        {
+            // SuperAdmin barcha materiallarni ko'radi
+        }
+        else if (requestingUserRole == UserRole.Admin)
+        {
+            query = query.Where(m => m.CompanyAdminId == requestingUserId);
+        }
+        else
+        {
+            var user = await _context.Users.FindAsync(requestingUserId);
+            var targetCompanyAdminId = user?.CompanyAdminId ?? requestingUserId;
+            query = query.Where(m => m.CompanyAdminId == targetCompanyAdminId);
+        }
+
+        var materials = await query
             .OrderBy(m => m.Name)
             .ToListAsync();
 
@@ -46,13 +63,19 @@ public class MaterialService : IMaterialService
         };
     }
 
-    public async Task<MaterialDto> CreateMaterialAsync(CreateMaterialDto dto)
+    public async Task<MaterialDto> CreateMaterialAsync(CreateMaterialDto dto, Guid createdByUserId)
     {
+        var requestingUser = await _context.Users.FindAsync(createdByUserId);
+        var companyAdminId = requestingUser?.Role == UserRole.Admin
+            ? createdByUserId
+            : (requestingUser?.CompanyAdminId ?? createdByUserId);
+
         var material = new Material
         {
             Name = dto.Name.Trim(),
             Unit = dto.Unit.Trim(),
             Description = dto.Description?.Trim(),
+            CompanyAdminId = companyAdminId,
             CreatedAt = DateTime.UtcNow
         };
 
