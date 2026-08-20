@@ -25,6 +25,10 @@ public class AuthService : IAuthService
         if (emailExists)
             throw new InvalidOperationException("Bu email allaqachon ro'yxatdan o'tgan.");
 
+        // SuperAdmin faqat tizimda 1 ta bo'ladi va uni tashqaridan yaratib bo'lmaydi!
+        if (dto.Role == UserRole.SuperAdmin)
+            throw new InvalidOperationException("SuperAdmin rolini yaratish taqiqlangan! Tizimda faqat yagona SuperAdmin mavjud bo'ladi.");
+
         var user = new User
         {
             FirstName = dto.FirstName.Trim(),

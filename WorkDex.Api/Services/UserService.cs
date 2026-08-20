@@ -68,6 +68,9 @@ public class UserService : IUserService
         if (user is null)
             throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
 
+        if (user.Role == UserRole.SuperAdmin)
+            throw new InvalidOperationException("Asosiy SuperAdmin hisobini o'chirib yoki bloklab bo'lmaydi.");
+
         user.IsActive = !user.IsActive;
         user.UpdatedAt = DateTime.UtcNow;
 
