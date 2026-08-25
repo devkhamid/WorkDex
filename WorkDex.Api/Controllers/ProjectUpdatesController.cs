@@ -12,11 +12,16 @@ namespace WorkDex.Api.Controllers;
 public class ProjectUpdatesController : ControllerBase
 {
     private readonly IProjectMediaService _mediaService;
+    private readonly IProjectAccessGuard _accessGuard;
 
-    public ProjectUpdatesController(IProjectMediaService mediaService)
+    public ProjectUpdatesController(IProjectMediaService mediaService, IProjectAccessGuard accessGuard)
     {
         _mediaService = mediaService;
+        _accessGuard = accessGuard;
     }
+
+    private Task EnsureAccessAsync(Guid projectId) =>
+        _accessGuard.EnsureCanAccessAsync(projectId, User.GetUserId(), User.GetUserRole());
 
     [HttpGet]
     [Authorize(Roles = "Admin,Finance,ProjectManager,FieldWorker,Customer")]
@@ -24,6 +29,7 @@ public class ProjectUpdatesController : ControllerBase
     {
         try
         {
+            await EnsureAccessAsync(projectId);
             var isCustomer = User.IsInRole("Customer");
             var updates = await _mediaService.GetUpdatesAsync(projectId, isCustomer || onlyCustomerVisible);
             return Ok(updates);
@@ -40,6 +46,7 @@ public class ProjectUpdatesController : ControllerBase
     {
         try
         {
+            await EnsureAccessAsync(projectId);
             var userId = User.GetUserId();
             var update = await _mediaService.AddUpdateAsync(projectId, dto, userId);
             return Ok(update);
@@ -56,6 +63,7 @@ public class ProjectUpdatesController : ControllerBase
     {
         try
         {
+            await EnsureAccessAsync(projectId);
             await _mediaService.DeleteUpdateAsync(projectId, updateId);
             return NoContent();
         }

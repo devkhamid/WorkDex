@@ -33,7 +33,7 @@ public class MaterialsController : ControllerBase
     {
         try
         {
-            var material = await _materialService.GetMaterialByIdAsync(id);
+            var material = await _materialService.GetMaterialByIdAsync(id, User.GetUserId(), User.GetUserRole());
             return Ok(material);
         }
         catch (KeyNotFoundException ex)
@@ -56,7 +56,7 @@ public class MaterialsController : ControllerBase
     {
         try
         {
-            var material = await _materialService.UpdateMaterialAsync(id, dto);
+            var material = await _materialService.UpdateMaterialAsync(id, dto, User.GetUserId(), User.GetUserRole());
             return Ok(material);
         }
         catch (KeyNotFoundException ex)
@@ -71,7 +71,7 @@ public class MaterialsController : ControllerBase
     {
         try
         {
-            await _materialService.DeleteMaterialAsync(id);
+            await _materialService.DeleteMaterialAsync(id, User.GetUserId(), User.GetUserRole());
             return NoContent();
         }
         catch (KeyNotFoundException ex)

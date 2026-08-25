@@ -14,7 +14,30 @@ public class ExcelExportService : IExcelExportService
         _context = context;
     }
 
-    public async Task<byte[]> ExportProjectToExcelAsync(Guid projectId)
+    private async Task<List<Guid>> GetAccessibleProjectIdsAsync(Guid requestingUserId, UserRole requestingUserRole)
+    {
+        if (requestingUserRole == UserRole.SuperAdmin)
+            return await _context.Projects.Select(p => p.Id).ToListAsync();
+
+        if (requestingUserRole == UserRole.Admin)
+            return await _context.Projects
+                .Where(p => p.CreatedByUserId == requestingUserId ||
+                            p.CompanyAdminId == requestingUserId ||
+                            (p.CreatedByUser != null && p.CreatedByUser.CompanyAdminId == requestingUserId))
+                .Select(p => p.Id)
+                .ToListAsync();
+
+        var user = await _context.Users.FindAsync(requestingUserId);
+        var targetCompanyAdminId = user?.CompanyAdminId ?? requestingUserId;
+        return await _context.Projects
+            .Where(p => p.CreatedByUserId == requestingUserId ||
+                        p.CompanyAdminId == targetCompanyAdminId ||
+                        p.Members.Any(m => m.UserId == requestingUserId))
+            .Select(p => p.Id)
+            .ToListAsync();
+    }
+
+    public async Task<byte[]> ExportProjectToExcelAsync(Guid projectId, Guid requestingUserId, UserRole requestingUserRole)
     {
         var project = await _context.Projects
             .Include(p => p.Customer)
@@ -70,8 +93,12 @@ public class ExcelExportService : IExcelExportService
         // 8. Moliyaviy xulosa
         BuildFinancialSummarySheet(workbook, project, payments, expenses);
 
-        // 9. Barcha loyihalar konsolidatsiyasi
-        var allProjects = await _context.Projects.Include(p => p.Customer).ToListAsync();
+        // 9. Barcha loyihalar konsolidatsiyasi (faqat kompaniya loyihalari)
+        var accessibleIds = await GetAccessibleProjectIdsAsync(requestingUserId, requestingUserRole);
+        var allProjects = await _context.Projects
+            .Include(p => p.Customer)
+            .Where(p => accessibleIds.Contains(p.Id))
+            .ToListAsync();
         BuildAllProjectsSheet(workbook, allProjects);
 
         using var stream = new MemoryStream();
@@ -79,19 +106,22 @@ public class ExcelExportService : IExcelExportService
         return stream.ToArray();
     }
 
-    public async Task<byte[]> ExportAllProjectsToExcelAsync()
+    public async Task<byte[]> ExportAllProjectsToExcelAsync(Guid requestingUserId, UserRole requestingUserRole)
     {
+        var accessibleIds = await GetAccessibleProjectIdsAsync(requestingUserId, requestingUserRole);
+
         var allProjects = await _context.Projects
             .Include(p => p.Customer)
             .Include(p => p.CreatedByUser)
+            .Where(p => accessibleIds.Contains(p.Id))
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync();
 
-        var allPayments = await _context.Payments.ToListAsync();
-        var allExpenses = await _context.Expenses.ToListAsync();
-        var allPurchases = await _context.MaterialPurchases.ToListAsync();
-        var allWorkerPayments = await _context.WorkerPayments.ToListAsync();
-        var allExtraWorks = await _context.ExtraWorks.ToListAsync();
+        var allPayments = await _context.Payments.Where(p => accessibleIds.Contains(p.ProjectId)).ToListAsync();
+        var allExpenses = await _context.Expenses.Where(e => accessibleIds.Contains(e.ProjectId)).ToListAsync();
+        var allPurchases = await _context.MaterialPurchases.Where(mp => accessibleIds.Contains(mp.ProjectId)).ToListAsync();
+        var allWorkerPayments = await _context.WorkerPayments.Where(wp => accessibleIds.Contains(wp.ProjectId)).ToListAsync();
+        var allExtraWorks = await _context.ExtraWorks.Where(ew => accessibleIds.Contains(ew.ProjectId)).ToListAsync();
 
         using var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add("Barcha Loyihalar");
@@ -425,7 +455,10 @@ public class ExcelExportService : IExcelExportService
         int idx = 1;
         foreach (var wp in workerPayments)
         {
-            var remaining = (wp.WorkAmount > 0 ? wp.WorkAmount : wp.AgreedAmount) - wp.PaidAmount;
+            // PDF §15: "Qolgan usta haqi = Kelishilgan summa − To'langan summa".
+            // API'dagi WorkerPaymentDto.RemainingAmount bilan bir xil formula —
+            // Excel va API bir xil raqamni ko'rsatishi shart.
+            var remaining = wp.AgreedAmount - wp.PaidAmount;
             ws.Row(row).Height = 20;
             ws.Cell(row, 1).Value = idx++;
             ws.Cell(row, 2).Value = wp.Worker?.FullName ?? "-";

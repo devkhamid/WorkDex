@@ -48,11 +48,13 @@ public class WorkerService : IWorkerService
         }).ToList();
     }
 
-    public async Task<WorkerDto> GetWorkerByIdAsync(Guid id)
+    public async Task<WorkerDto> GetWorkerByIdAsync(Guid id, Guid requestingUserId, UserRole requestingUserRole)
     {
         var worker = await _context.Workers.FindAsync(id);
         if (worker is null)
             throw new KeyNotFoundException("Usta topilmadi.");
+
+        await EnsureSameCompanyAsync(worker, requestingUserId, requestingUserRole);
 
         return new WorkerDto
         {
@@ -96,11 +98,13 @@ public class WorkerService : IWorkerService
         };
     }
 
-    public async Task<WorkerDto> UpdateWorkerAsync(Guid id, CreateWorkerDto dto)
+    public async Task<WorkerDto> UpdateWorkerAsync(Guid id, CreateWorkerDto dto, Guid requestingUserId, UserRole requestingUserRole)
     {
         var worker = await _context.Workers.FindAsync(id);
         if (worker is null)
             throw new KeyNotFoundException("Usta topilmadi.");
+
+        await EnsureSameCompanyAsync(worker, requestingUserId, requestingUserRole);
 
         worker.FullName = dto.FullName.Trim();
         worker.PhoneNumber = dto.PhoneNumber.Trim();
@@ -120,7 +124,7 @@ public class WorkerService : IWorkerService
         };
     }
 
-    public async Task DeleteWorkerAsync(Guid id)
+    public async Task DeleteWorkerAsync(Guid id, Guid requestingUserId, UserRole requestingUserRole)
     {
         var worker = await _context.Workers
             .Include(w => w.Payments)
@@ -129,11 +133,28 @@ public class WorkerService : IWorkerService
         if (worker is null)
             throw new KeyNotFoundException("Usta topilmadi.");
 
+        await EnsureSameCompanyAsync(worker, requestingUserId, requestingUserRole);
+
         if (worker.Payments.Any())
             throw new InvalidOperationException("Ushbu usta loyihalarda ishlagan, uni o'chirib bo'lmaydi.");
 
         _context.Workers.Remove(worker);
         await _context.SaveChangesAsync();
+    }
+
+    private async Task<Guid> ResolveCompanyAdminIdAsync(Guid requestingUserId, UserRole requestingUserRole)
+    {
+        if (requestingUserRole == UserRole.Admin) return requestingUserId;
+        var user = await _context.Users.FindAsync(requestingUserId);
+        return user?.CompanyAdminId ?? requestingUserId;
+    }
+
+    private async Task EnsureSameCompanyAsync(Worker worker, Guid requestingUserId, UserRole requestingUserRole)
+    {
+        if (requestingUserRole == UserRole.SuperAdmin) return;
+        var companyAdminId = await ResolveCompanyAdminIdAsync(requestingUserId, requestingUserRole);
+        if (worker.CompanyAdminId != companyAdminId)
+            throw new KeyNotFoundException("Usta topilmadi.");
     }
 
     public async Task<WorkerPaymentDto> AddWorkerJobAsync(Guid projectId, CreateWorkerPaymentDto dto, Guid createdByUserId)
@@ -145,6 +166,10 @@ public class WorkerService : IWorkerService
         var worker = await _context.Workers.FindAsync(dto.WorkerId);
         if (worker is null)
             throw new KeyNotFoundException("Usta topilmadi.");
+
+        // Usta o'z kompaniyasiga tegishli ekanini tekshirish
+        if (project.CompanyAdminId != null && worker.CompanyAdminId != null && worker.CompanyAdminId != project.CompanyAdminId)
+            throw new InvalidOperationException("Tanlangan usta boshqa kompaniyaga tegishli.");
 
         var user = await _context.Users.FindAsync(createdByUserId);
         if (user is null)

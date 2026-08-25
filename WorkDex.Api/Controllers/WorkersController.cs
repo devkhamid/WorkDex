@@ -33,7 +33,7 @@ public class WorkersController : ControllerBase
     {
         try
         {
-            var worker = await _workerService.GetWorkerByIdAsync(id);
+            var worker = await _workerService.GetWorkerByIdAsync(id, User.GetUserId(), User.GetUserRole());
             return Ok(worker);
         }
         catch (KeyNotFoundException ex)
@@ -56,7 +56,7 @@ public class WorkersController : ControllerBase
     {
         try
         {
-            var worker = await _workerService.UpdateWorkerAsync(id, dto);
+            var worker = await _workerService.UpdateWorkerAsync(id, dto, User.GetUserId(), User.GetUserRole());
             return Ok(worker);
         }
         catch (KeyNotFoundException ex)
@@ -71,7 +71,7 @@ public class WorkersController : ControllerBase
     {
         try
         {
-            await _workerService.DeleteWorkerAsync(id);
+            await _workerService.DeleteWorkerAsync(id, User.GetUserId(), User.GetUserRole());
             return NoContent();
         }
         catch (KeyNotFoundException ex)

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkDex.Api.DTOs.Users;
 using WorkDex.Api.Helpers;
+using WorkDex.Api.Models;
 using WorkDex.Api.Services;
 
 namespace WorkDex.Api.Controllers;
@@ -39,7 +40,7 @@ public class UsersController : ControllerBase
     [Authorize(Roles = "SuperAdmin,Admin")]
     public async Task<IActionResult> GetAll()
     {
-        var users = await _userService.GetAllUsersAsync();
+        var users = await _userService.GetAllUsersAsync(User.GetUserId(), User.GetUserRole());
         return Ok(users);
     }
 
@@ -50,7 +51,7 @@ public class UsersController : ControllerBase
     {
         try
         {
-            var user = await _userService.GetUserByIdAsync(id);
+            var user = await _userService.GetUserByIdAsync(id, User.GetUserId(), User.GetUserRole());
             return Ok(user);
         }
         catch (KeyNotFoundException ex)
@@ -66,7 +67,7 @@ public class UsersController : ControllerBase
     {
         try
         {
-            var result = await _userService.UpdateUserAsync(id, dto);
+            var result = await _userService.UpdateUserAsync(id, dto, User.GetUserId(), User.GetUserRole());
             return Ok(result);
         }
         catch (KeyNotFoundException ex)
@@ -82,7 +83,7 @@ public class UsersController : ControllerBase
     {
         try
         {
-            var result = await _userService.ToggleActiveAsync(id);
+            var result = await _userService.ToggleActiveAsync(id, User.GetUserId(), User.GetUserRole());
             var status = result.IsActive ? "faollashtirildi" : "to'xtatildi";
             return Ok(new { message = $"Hisob {status}.", user = result });
         }

@@ -12,11 +12,16 @@ namespace WorkDex.Api.Controllers;
 public class ProjectPhotosController : ControllerBase
 {
     private readonly IProjectMediaService _mediaService;
+    private readonly IProjectAccessGuard _accessGuard;
 
-    public ProjectPhotosController(IProjectMediaService mediaService)
+    public ProjectPhotosController(IProjectMediaService mediaService, IProjectAccessGuard accessGuard)
     {
         _mediaService = mediaService;
+        _accessGuard = accessGuard;
     }
+
+    private Task EnsureAccessAsync(Guid projectId) =>
+        _accessGuard.EnsureCanAccessAsync(projectId, User.GetUserId(), User.GetUserRole());
 
     [HttpGet]
     [Authorize(Roles = "Admin,Finance,ProjectManager,FieldWorker,Customer")]
@@ -24,6 +29,7 @@ public class ProjectPhotosController : ControllerBase
     {
         try
         {
+            await EnsureAccessAsync(projectId);
             var isCustomer = User.IsInRole("Customer");
             var photos = await _mediaService.GetPhotosAsync(projectId, isCustomer || onlyCustomerVisible);
             return Ok(photos);
@@ -40,6 +46,7 @@ public class ProjectPhotosController : ControllerBase
     {
         try
         {
+            await EnsureAccessAsync(projectId);
             var userId = User.GetUserId();
             var photo = await _mediaService.AddPhotoAsync(projectId, dto, userId);
             return Ok(photo);
@@ -56,6 +63,7 @@ public class ProjectPhotosController : ControllerBase
     {
         try
         {
+            await EnsureAccessAsync(projectId);
             await _mediaService.DeletePhotoAsync(projectId, photoId);
             return NoContent();
         }

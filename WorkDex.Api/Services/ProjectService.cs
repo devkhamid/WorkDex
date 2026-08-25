@@ -69,15 +69,18 @@ public class ProjectService : IProjectService
 
     public async Task<ProjectDto> CreateAsync(CreateProjectDto dto, Guid createdByUserId)
     {
-        // Mijoz mavjudligini tekshiramiz
-        var customerExists = await _context.Customers.AnyAsync(c => c.Id == dto.CustomerId);
-        if (!customerExists)
+        // Mijoz mavjudligini va kompaniyaga tegishli ekanini tekshiramiz
+        var customer = await _context.Customers.FindAsync(dto.CustomerId);
+        if (customer is null)
             throw new KeyNotFoundException("Tanlangan mijoz topilmadi.");
 
         var requestingUser = await _context.Users.FindAsync(createdByUserId);
         var companyAdminId = requestingUser?.Role == UserRole.Admin 
             ? createdByUserId 
             : (requestingUser?.CompanyAdminId ?? createdByUserId);
+
+        if (requestingUser?.Role != UserRole.SuperAdmin && customer.CompanyAdminId != null && customer.CompanyAdminId != companyAdminId)
+            throw new InvalidOperationException("Tanlangan mijoz boshqa kompaniyaga tegishli.");
 
         var project = new Project
         {
@@ -118,9 +121,13 @@ public class ProjectService : IProjectService
         if (project is null)
             throw new KeyNotFoundException("Loyiha topilmadi.");
 
-        var customerExists = await _context.Customers.AnyAsync(c => c.Id == dto.CustomerId);
-        if (!customerExists)
+        var newCustomer = await _context.Customers.FindAsync(dto.CustomerId);
+        if (newCustomer is null)
             throw new KeyNotFoundException("Tanlangan mijoz topilmadi.");
+
+        // Yangi mijoz ham kompaniyaga tegishli ekanini tekshirish
+        if (project.CompanyAdminId != null && newCustomer.CompanyAdminId != null && newCustomer.CompanyAdminId != project.CompanyAdminId)
+            throw new InvalidOperationException("Tanlangan mijoz boshqa kompaniyaga tegishli.");
 
         project.Name = dto.Name.Trim();
         project.Description = dto.Description?.Trim();
@@ -252,6 +259,10 @@ public class ProjectService : IProjectService
         var user = await _context.Users.FindAsync(dto.UserId);
         if (user is null)
             throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
+
+        // Foydalanuvchi kompaniyaga tegishli ekanini tekshirish
+        if (project.CompanyAdminId != null && user.CompanyAdminId != project.CompanyAdminId && user.Id != project.CompanyAdminId)
+            throw new InvalidOperationException("Tanlangan foydalanuvchi boshqa kompaniyaga tegishli.");
 
         var alreadyMember = await _context.ProjectMembers
             .AnyAsync(pm => pm.ProjectId == projectId && pm.UserId == dto.UserId);

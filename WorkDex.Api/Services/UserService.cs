@@ -24,31 +24,44 @@ public class UserService : IUserService
         return MapToDto(user);
     }
 
-    public async Task<List<UserDto>> GetAllUsersAsync()
+    public async Task<List<UserDto>> GetAllUsersAsync(Guid requestingUserId, UserRole requestingUserRole)
     {
-        var users = await _context.Users
-            .OrderBy(u => u.FirstName)
-            .ToListAsync();
+        var query = _context.Users.AsQueryable();
 
+        if (requestingUserRole == UserRole.SuperAdmin)
+        {
+            // SuperAdmin barcha foydalanuvchilarni ko'radi
+        }
+        else if (requestingUserRole == UserRole.Admin)
+        {
+            query = query.Where(u => u.CompanyAdminId == requestingUserId || u.Id == requestingUserId);
+        }
+        else
+        {
+            var user = await _context.Users.FindAsync(requestingUserId);
+            var targetCompanyAdminId = user?.CompanyAdminId ?? requestingUserId;
+            query = query.Where(u => u.CompanyAdminId == targetCompanyAdminId || u.Id == targetCompanyAdminId);
+        }
+
+        var users = await query.OrderBy(u => u.FirstName).ToListAsync();
         return users.Select(MapToDto).ToList();
     }
 
-    public async Task<UserDto> GetUserByIdAsync(Guid id)
+    public async Task<UserDto> GetUserByIdAsync(Guid id, Guid requestingUserId, UserRole requestingUserRole)
     {
         var user = await _context.Users.FindAsync(id);
-
         if (user is null)
             throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
-
+        await EnsureSameCompanyAsync(user, requestingUserId, requestingUserRole);
         return MapToDto(user);
     }
 
-    public async Task<UserDto> UpdateUserAsync(Guid id, UpdateUserDto dto)
+    public async Task<UserDto> UpdateUserAsync(Guid id, UpdateUserDto dto, Guid requestingUserId, UserRole requestingUserRole)
     {
         var user = await _context.Users.FindAsync(id);
-
         if (user is null)
             throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
+        await EnsureSameCompanyAsync(user, requestingUserId, requestingUserRole);
 
         user.FirstName = dto.FirstName.Trim();
         user.LastName = dto.LastName.Trim();
@@ -57,25 +70,22 @@ public class UserService : IUserService
         user.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
-
         return MapToDto(user);
     }
 
-    public async Task<UserDto> ToggleActiveAsync(Guid id)
+    public async Task<UserDto> ToggleActiveAsync(Guid id, Guid requestingUserId, UserRole requestingUserRole)
     {
         var user = await _context.Users.FindAsync(id);
-
         if (user is null)
             throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
+        await EnsureSameCompanyAsync(user, requestingUserId, requestingUserRole);
 
         if (user.Role == UserRole.SuperAdmin)
             throw new InvalidOperationException("Asosiy SuperAdmin hisobini o'chirib yoki bloklab bo'lmaydi.");
 
         user.IsActive = !user.IsActive;
         user.UpdatedAt = DateTime.UtcNow;
-
         await _context.SaveChangesAsync();
-
         return MapToDto(user);
     }
 
@@ -172,6 +182,21 @@ public class UserService : IUserService
         }
 
         await _context.SaveChangesAsync();
+    }
+
+    private async Task<Guid> ResolveCompanyAdminIdAsync(Guid requestingUserId, UserRole requestingUserRole)
+    {
+        if (requestingUserRole == UserRole.Admin) return requestingUserId;
+        var user = await _context.Users.FindAsync(requestingUserId);
+        return user?.CompanyAdminId ?? requestingUserId;
+    }
+
+    private async Task EnsureSameCompanyAsync(User targetUser, Guid requestingUserId, UserRole requestingUserRole)
+    {
+        if (requestingUserRole == UserRole.SuperAdmin) return;
+        var companyAdminId = await ResolveCompanyAdminIdAsync(requestingUserId, requestingUserRole);
+        if (targetUser.CompanyAdminId != companyAdminId && targetUser.Id != companyAdminId)
+            throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
     }
 
     // User entity ni UserDto ga aylantirish — PasswordHash hech qachon qaytarilmaydi

@@ -13,11 +13,20 @@ namespace WorkDex.Api.Controllers;
 public class ProjectsController : ControllerBase
 {
     private readonly IProjectService _projectService;
+    private readonly IProjectAccessGuard _accessGuard;
 
-    public ProjectsController(IProjectService projectService)
+    public ProjectsController(IProjectService projectService, IProjectAccessGuard accessGuard)
     {
         _projectService = projectService;
+        _accessGuard = accessGuard;
     }
+
+    /// <summary>
+    /// Joriy foydalanuvchi shu loyihaga kirish huquqiga egaligini tekshiradi.
+    /// Ruxsat bo'lmasa KeyNotFoundException tashlanadi va 404 qaytadi.
+    /// </summary>
+    private Task EnsureAccessAsync(Guid projectId) =>
+        _accessGuard.EnsureCanAccessAsync(projectId, User.GetUserId(), User.GetUserRole());
 
     [HttpGet]
     [Authorize(Roles = "SuperAdmin,Admin,ProjectManager,Finance,FieldWorker")]
@@ -35,6 +44,7 @@ public class ProjectsController : ControllerBase
     {
         try
         {
+            await EnsureAccessAsync(id);
             var project = await _projectService.GetByIdAsync(id);
             return Ok(project);
         }
@@ -66,6 +76,7 @@ public class ProjectsController : ControllerBase
     {
         try
         {
+            await EnsureAccessAsync(id);
             var project = await _projectService.UpdateAsync(id, dto);
             return Ok(project);
         }
@@ -81,6 +92,7 @@ public class ProjectsController : ControllerBase
     {
         try
         {
+            await EnsureAccessAsync(id);
             var project = await _projectService.UpdateStatusAsync(id, dto);
             return Ok(project);
         }
@@ -97,6 +109,7 @@ public class ProjectsController : ControllerBase
     {
         try
         {
+            await EnsureAccessAsync(id);
             var summary = await _projectService.GetSummaryAsync(id);
             return Ok(summary);
         }
@@ -113,6 +126,7 @@ public class ProjectsController : ControllerBase
     {
         try
         {
+            await EnsureAccessAsync(id);
             var members = await _projectService.GetMembersAsync(id);
             return Ok(members);
         }
@@ -128,6 +142,7 @@ public class ProjectsController : ControllerBase
     {
         try
         {
+            await EnsureAccessAsync(id);
             var member = await _projectService.AddMemberAsync(id, dto);
             return Ok(member);
         }
@@ -147,6 +162,7 @@ public class ProjectsController : ControllerBase
     {
         try
         {
+            await EnsureAccessAsync(id);
             await _projectService.RemoveMemberAsync(id, userId);
             return NoContent();
         }
@@ -158,10 +174,12 @@ public class ProjectsController : ControllerBase
 
     // Bosqichlarni boshqarish — PDF §8
     [HttpGet("{id:guid}/stages")]
+    [Authorize(Roles = "SuperAdmin,Admin,ProjectManager,Finance,FieldWorker,Customer")]
     public async Task<IActionResult> GetStages(Guid id)
     {
         try
         {
+            await EnsureAccessAsync(id);
             var stages = await _projectService.GetStagesAsync(id);
             return Ok(stages);
         }
@@ -177,6 +195,7 @@ public class ProjectsController : ControllerBase
     {
         try
         {
+            await EnsureAccessAsync(id);
             var stage = await _projectService.AddStageAsync(id, dto);
             return Ok(stage);
         }
@@ -196,6 +215,7 @@ public class ProjectsController : ControllerBase
     {
         try
         {
+            await EnsureAccessAsync(id);
             var stage = await _projectService.CompleteStageAsync(id, stageId);
             return Ok(stage);
         }
@@ -211,6 +231,7 @@ public class ProjectsController : ControllerBase
     {
         try
         {
+            await EnsureAccessAsync(id);
             await _projectService.DeleteStageAsync(id, stageId);
             return NoContent();
         }
@@ -226,6 +247,7 @@ public class ProjectsController : ControllerBase
     {
         try
         {
+            await EnsureAccessAsync(id);
             await _projectService.DeleteAsync(id);
             return Ok(new { message = "Loyiha muvaffaqiyatli o'chirildi." });
         }

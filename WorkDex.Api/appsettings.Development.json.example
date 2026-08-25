@@ -7,12 +7,15 @@
     }
   },
   "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=WorkDexDb;Username=postgres;Password=hamidulloh12"
+    "DefaultConnection": "Host=localhost;Port=5432;Database=WorkDexDb;Username=postgres;Password=<LOKAL_PAROLINGIZ>"
   },
   "JwtSettings": {
-    "SecretKey": "YourLocalDevelopmentSecretKeyMustBeAtLeast32Characters!",
+    "SecretKey": "<KAMIDA_32_BAYTLIK_TASODIFIY_KALIT>",
     "Issuer": "WorkDex",
     "Audience": "WorkDexUsers",
     "ExpirationHours": 24
+  },
+  "Seed": {
+    "SuperAdminPassword": "<BOSHLANGICH_SUPERADMIN_PAROLI>"
   }
 }

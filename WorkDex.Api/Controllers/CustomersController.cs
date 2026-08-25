@@ -35,7 +35,7 @@ public class CustomersController : ControllerBase
     {
         try
         {
-            var customer = await _customerService.GetByIdAsync(id);
+            var customer = await _customerService.GetByIdAsync(id, User.GetUserId(), User.GetUserRole());
             return Ok(customer);
         }
         catch (KeyNotFoundException ex)
@@ -62,7 +62,7 @@ public class CustomersController : ControllerBase
     {
         try
         {
-            var customer = await _customerService.UpdateAsync(id, dto);
+            var customer = await _customerService.UpdateAsync(id, dto, User.GetUserId(), User.GetUserRole());
             return Ok(customer);
         }
         catch (KeyNotFoundException ex)
@@ -78,7 +78,7 @@ public class CustomersController : ControllerBase
     {
         try
         {
-            await _customerService.DeleteAsync(id);
+            await _customerService.DeleteAsync(id, User.GetUserId(), User.GetUserRole());
             return NoContent(); // 204 — muvaffaqiyatli o'chirildi
         }
         catch (KeyNotFoundException ex)

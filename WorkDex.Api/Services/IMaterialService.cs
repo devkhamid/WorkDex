@@ -7,10 +7,10 @@ public interface IMaterialService
 {
     // Katalog operatsiyalari
     Task<List<MaterialDto>> GetAllMaterialsAsync(Guid requestingUserId, UserRole requestingUserRole);
-    Task<MaterialDto> GetMaterialByIdAsync(Guid id);
+    Task<MaterialDto> GetMaterialByIdAsync(Guid id, Guid requestingUserId, UserRole requestingUserRole);
     Task<MaterialDto> CreateMaterialAsync(CreateMaterialDto dto, Guid createdByUserId);
-    Task<MaterialDto> UpdateMaterialAsync(Guid id, CreateMaterialDto dto);
-    Task DeleteMaterialAsync(Guid id);
+    Task<MaterialDto> UpdateMaterialAsync(Guid id, CreateMaterialDto dto, Guid requestingUserId, UserRole requestingUserRole);
+    Task DeleteMaterialAsync(Guid id, Guid requestingUserId, UserRole requestingUserRole);
 
     // Loyiha xaridlari
     Task<MaterialPurchaseDto> AddPurchaseAsync(Guid projectId, CreateMaterialPurchaseDto dto, Guid createdByUserId);

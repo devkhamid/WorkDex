@@ -42,7 +42,7 @@ public class CustomerService : ICustomerService
         return customers.Select(MapToDto).ToList();
     }
 
-    public async Task<CustomerDto> GetByIdAsync(Guid id)
+    public async Task<CustomerDto> GetByIdAsync(Guid id, Guid requestingUserId, UserRole requestingUserRole)
     {
         var customer = await _context.Customers
             .Include(c => c.Projects)
@@ -51,6 +51,7 @@ public class CustomerService : ICustomerService
         if (customer is null)
             throw new KeyNotFoundException("Mijoz topilmadi.");
 
+        await EnsureSameCompanyAsync(customer, requestingUserId, requestingUserRole);
         return MapToDto(customer);
     }
 
@@ -79,7 +80,7 @@ public class CustomerService : ICustomerService
         return MapToDto(customer);
     }
 
-    public async Task<CustomerDto> UpdateAsync(Guid id, UpdateCustomerDto dto)
+    public async Task<CustomerDto> UpdateAsync(Guid id, UpdateCustomerDto dto, Guid requestingUserId, UserRole requestingUserRole)
     {
         var customer = await _context.Customers
             .Include(c => c.Projects)
@@ -87,6 +88,8 @@ public class CustomerService : ICustomerService
 
         if (customer is null)
             throw new KeyNotFoundException("Mijoz topilmadi.");
+
+        await EnsureSameCompanyAsync(customer, requestingUserId, requestingUserRole);
 
         customer.FullName = dto.FullName.Trim();
         customer.PhoneNumber = dto.PhoneNumber.Trim();
@@ -96,11 +99,10 @@ public class CustomerService : ICustomerService
         customer.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
-
         return MapToDto(customer);
     }
 
-    public async Task DeleteAsync(Guid id)
+    public async Task DeleteAsync(Guid id, Guid requestingUserId, UserRole requestingUserRole)
     {
         var customer = await _context.Customers
             .Include(c => c.Projects)
@@ -109,6 +111,8 @@ public class CustomerService : ICustomerService
         if (customer is null)
             throw new KeyNotFoundException("Mijoz topilmadi.");
 
+        await EnsureSameCompanyAsync(customer, requestingUserId, requestingUserRole);
+
         // Loyihalari bo'lsa o'chirib bo'lmaydi — ma'lumot yo'qolmasligi uchun
         if (customer.Projects.Any())
             throw new InvalidOperationException(
@@ -116,6 +120,21 @@ public class CustomerService : ICustomerService
 
         _context.Customers.Remove(customer);
         await _context.SaveChangesAsync();
+    }
+
+    private async Task<Guid> ResolveCompanyAdminIdAsync(Guid requestingUserId, UserRole requestingUserRole)
+    {
+        if (requestingUserRole == UserRole.Admin) return requestingUserId;
+        var user = await _context.Users.FindAsync(requestingUserId);
+        return user?.CompanyAdminId ?? requestingUserId;
+    }
+
+    private async Task EnsureSameCompanyAsync(Customer customer, Guid requestingUserId, UserRole requestingUserRole)
+    {
+        if (requestingUserRole == UserRole.SuperAdmin) return;
+        var companyAdminId = await ResolveCompanyAdminIdAsync(requestingUserId, requestingUserRole);
+        if (customer.CompanyAdminId != companyAdminId)
+            throw new KeyNotFoundException("Mijoz topilmadi.");
     }
 
     private static CustomerDto MapToDto(Customer customer) => new()

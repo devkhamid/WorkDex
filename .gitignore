@@ -6,6 +6,13 @@
 # dotenv files
 .env
 
+# Maxfiy sozlamalar — repozitoriyga tushmasin.
+# Namuna uchun: WorkDex.Api/appsettings.Development.json.example
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Local.json
+!appsettings.Development.json.example
+
 # User-specific files
 *.rsuser
 *.suo

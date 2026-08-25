@@ -48,11 +48,13 @@ public class MaterialService : IMaterialService
         }).ToList();
     }
 
-    public async Task<MaterialDto> GetMaterialByIdAsync(Guid id)
+    public async Task<MaterialDto> GetMaterialByIdAsync(Guid id, Guid requestingUserId, UserRole requestingUserRole)
     {
         var material = await _context.Materials.FindAsync(id);
         if (material is null)
             throw new KeyNotFoundException("Material topilmadi.");
+
+        await EnsureSameCompanyAsync(material, requestingUserId, requestingUserRole);
 
         return new MaterialDto
         {
@@ -96,11 +98,13 @@ public class MaterialService : IMaterialService
         };
     }
 
-    public async Task<MaterialDto> UpdateMaterialAsync(Guid id, CreateMaterialDto dto)
+    public async Task<MaterialDto> UpdateMaterialAsync(Guid id, CreateMaterialDto dto, Guid requestingUserId, UserRole requestingUserRole)
     {
         var material = await _context.Materials.FindAsync(id);
         if (material is null)
             throw new KeyNotFoundException("Material topilmadi.");
+
+        await EnsureSameCompanyAsync(material, requestingUserId, requestingUserRole);
 
         material.Name = dto.Name.Trim();
         material.Brand = dto.Brand?.Trim();
@@ -120,7 +124,7 @@ public class MaterialService : IMaterialService
         };
     }
 
-    public async Task DeleteMaterialAsync(Guid id)
+    public async Task DeleteMaterialAsync(Guid id, Guid requestingUserId, UserRole requestingUserRole)
     {
         var material = await _context.Materials
             .Include(m => m.Purchases)
@@ -129,11 +133,28 @@ public class MaterialService : IMaterialService
         if (material is null)
             throw new KeyNotFoundException("Material topilmadi.");
 
+        await EnsureSameCompanyAsync(material, requestingUserId, requestingUserRole);
+
         if (material.Purchases.Any())
             throw new InvalidOperationException("Ushbu material xaridlarda ishlatilgan, uni o'chirib bo'lmaydi.");
 
         _context.Materials.Remove(material);
         await _context.SaveChangesAsync();
+    }
+
+    private async Task<Guid> ResolveCompanyAdminIdAsync(Guid requestingUserId, UserRole requestingUserRole)
+    {
+        if (requestingUserRole == UserRole.Admin) return requestingUserId;
+        var user = await _context.Users.FindAsync(requestingUserId);
+        return user?.CompanyAdminId ?? requestingUserId;
+    }
+
+    private async Task EnsureSameCompanyAsync(Material material, Guid requestingUserId, UserRole requestingUserRole)
+    {
+        if (requestingUserRole == UserRole.SuperAdmin) return;
+        var companyAdminId = await ResolveCompanyAdminIdAsync(requestingUserId, requestingUserRole);
+        if (material.CompanyAdminId != companyAdminId)
+            throw new KeyNotFoundException("Material topilmadi.");
     }
 
     public async Task<MaterialPurchaseDto> AddPurchaseAsync(Guid projectId, CreateMaterialPurchaseDto dto, Guid createdByUserId)
@@ -145,6 +166,10 @@ public class MaterialService : IMaterialService
         var material = await _context.Materials.FindAsync(dto.MaterialId);
         if (material is null)
             throw new KeyNotFoundException("Material topilmadi.");
+
+        // Material o'z kompaniyasiga tegishli ekanini tekshirish
+        if (project.CompanyAdminId != null && material.CompanyAdminId != null && material.CompanyAdminId != project.CompanyAdminId)
+            throw new InvalidOperationException("Tanlangan material boshqa kompaniyaga tegishli.");
 
         var user = await _context.Users.FindAsync(createdByUserId);
         if (user is null)

@@ -16,18 +16,42 @@ public class AuthService : IAuthService
         _jwtService = jwtService;
     }
 
-    public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
+    public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto, UserRole callerRole, Guid callerId)
     {
+        // Kim kimni yaratishi mumkin:
+        //   SuperAdmin -> Admin (yangi kompaniya)
+        //   Admin      -> ProjectManager, FieldWorker, Finance, Customer (o'z kompaniyasida)
+        // SuperAdmin rolini hech kim yaratib bo'lmaydi.
+        if (dto.Role == UserRole.SuperAdmin)
+            throw new UnauthorizedAccessException("SuperAdmin rolini yaratish taqiqlangan! Tizimda faqat yagona SuperAdmin mavjud bo'ladi.");
+
+        Guid? companyAdminId;
+
+        switch (callerRole)
+        {
+            case UserRole.SuperAdmin:
+                if (dto.Role != UserRole.Admin)
+                    throw new UnauthorizedAccessException("SuperAdmin faqat kompaniya Admin hisobini yarata oladi.");
+                // Admin — kompaniyaning ildizi, u hech kimga bo'ysunmaydi.
+                companyAdminId = null;
+                break;
+
+            case UserRole.Admin:
+                if (dto.Role == UserRole.Admin)
+                    throw new UnauthorizedAccessException("Admin boshqa Admin yarata olmaydi. Buni SuperAdmin bajaradi.");
+                companyAdminId = callerId;
+                break;
+
+            default:
+                throw new UnauthorizedAccessException("Yangi foydalanuvchi yaratish uchun ruxsatingiz yo'q.");
+        }
+
         // Email allaqachon mavjudligini tekshiramiz
         var emailExists = await _context.Users
             .AnyAsync(u => u.Email.ToLower() == dto.Email.ToLower());
 
         if (emailExists)
             throw new InvalidOperationException("Bu email allaqachon ro'yxatdan o'tgan.");
-
-        // SuperAdmin faqat tizimda 1 ta bo'ladi va uni tashqaridan yaratib bo'lmaydi!
-        if (dto.Role == UserRole.SuperAdmin)
-            throw new InvalidOperationException("SuperAdmin rolini yaratish taqiqlangan! Tizimda faqat yagona SuperAdmin mavjud bo'ladi.");
 
         var user = new User
         {
@@ -37,6 +61,7 @@ public class AuthService : IAuthService
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
             PhoneNumber = dto.PhoneNumber?.Trim(),
             CompanyName = dto.CompanyName?.Trim(),
+            CompanyAdminId = companyAdminId,
             Role = dto.Role,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
@@ -52,47 +77,19 @@ public class AuthService : IAuthService
     public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
     {
         var searchInput = dto.Email.Trim().ToLower();
+
+        // "superadmin" qisqa taxallusi bilan kirishga ruxsat beramiz, lekin parol
+        // har doim odatdagidek tekshiriladi — hech qanday zaxira parol yo'q.
+        var isSuperAdminAlias = searchInput is "superadmin" or "super admin";
+
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Email.ToLower() == searchInput ||
-                                     (searchInput == "superadmin" && u.Role == UserRole.SuperAdmin) ||
-                                     (searchInput == "super admin" && u.Role == UserRole.SuperAdmin) ||
-                                     (searchInput == "superadmin@workdex.uz" && u.Role == UserRole.SuperAdmin));
-
-        // Agar superadmin kiritilib, bazada yo'q bo'lsa avtomatik yaratamiz
-        if (user is null && (searchInput == "superadmin" || searchInput == "super admin" || searchInput == "superadmin@workdex.uz") && (dto.Password == "superadmin" || dto.Password == "admin123"))
-        {
-            user = new User
-            {
-                FirstName = "Super",
-                LastName = "Admin",
-                Email = "superadmin@workdex.uz",
-                CompanyName = "WorkDex Bosh Boshqaruvi",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("superadmin"),
-                PhoneNumber = "+998900000001",
-                Role = UserRole.SuperAdmin,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-        }
+                                     (isSuperAdminAlias && u.Role == UserRole.SuperAdmin));
 
         if (user is null)
             throw new UnauthorizedAccessException("Email yoki parol noto'g'ri.");
 
-        bool isPasswordValid = BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash);
-
-        // Superadmin parolini sinxronizatsiya qilish
-        if (!isPasswordValid && user.Role == UserRole.SuperAdmin && (dto.Password == "superadmin" || dto.Password == "admin123"))
-        {
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword("superadmin");
-            user.IsActive = true;
-            await _context.SaveChangesAsync();
-            isPasswordValid = true;
-        }
-
-        if (!isPasswordValid)
+        if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
             throw new UnauthorizedAccessException("Email yoki parol noto'g'ri.");
 
         if (!user.IsActive)
