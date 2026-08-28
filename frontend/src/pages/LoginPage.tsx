@@ -1,19 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Lock, Mail, User, Phone, ArrowRight } from 'lucide-react';
+import { Lock, Mail, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { authApi } from '../api/services';
 
 export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [role, setRole] = useState(1);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -23,19 +17,7 @@ export const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      if (isRegister) {
-        await authApi.register({
-          firstName,
-          lastName,
-          email,
-          phoneNumber: phone,
-          password,
-          role
-        });
-        await login(email, password);
-      } else {
-        await login(email, password);
-      }
+      await login(email, password);
       navigate('/');
     } catch (err: any) {
       setError(err.response?.data?.message || "Kirishda xatolik yuz berdi. Email yoki parolni tekshiring.");
@@ -53,9 +35,7 @@ export const LoginPage: React.FC = () => {
             W
           </div>
           <h1 className="text-xl font-extrabold text-[#171b25]">WorkDex</h1>
-          <p className="text-xs text-[#7b8190]">
-            {isRegister ? "Yangi xodimni ro'yxatdan o'tkazish" : "Loyiha boshqaruvi tizimiga kirish"}
-          </p>
+          <p className="text-xs text-[#7b8190]">Loyiha boshqaruvi tizimiga kirish</p>
         </div>
 
         {error && (
@@ -65,62 +45,6 @@ export const LoginPage: React.FC = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
-          {isRegister && (
-            <>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Ism *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ali"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full h-9 px-3 border border-[#e4e7ec] rounded-lg text-xs outline-none focus:border-[#ff7a16]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Familiya *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Valiyev"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className="w-full h-9 px-3 border border-[#e4e7ec] rounded-lg text-xs outline-none focus:border-[#ff7a16]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Telefon raqam *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="+998901234567"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full h-9 px-3 border border-[#e4e7ec] rounded-lg text-xs outline-none focus:border-[#ff7a16]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Rol</label>
-                <select
-                  value={role}
-                  onChange={(e) => setRole(Number(e.target.value))}
-                  className="w-full h-9 px-3 border border-[#e4e7ec] rounded-lg text-xs bg-white outline-none focus:border-[#ff7a16]"
-                >
-                  <option value={1}>Admin (Boshqaruvchi)</option>
-                  <option value={2}>ProjectManager (Prorab / Menejer)</option>
-                  <option value={3}>FieldWorker (Saha xodimi)</option>
-                  <option value={4}>Finance (Moliyachi / Buxgalter)</option>
-                  <option value={5}>Customer (Mijoz)</option>
-                </select>
-              </div>
-            </>
-          )}
-
           <div>
             <label className="block text-xs font-semibold text-gray-700 mb-1">Email yoki Login *</label>
             <div className="relative">
@@ -128,7 +52,7 @@ export const LoginPage: React.FC = () => {
               <input
                 type="text"
                 required
-                placeholder="superadmin yoki admin@wordex.uz"
+                placeholder="superadmin yoki admin@kompaniya.uz"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full h-9 pl-9 pr-3 border border-[#e4e7ec] rounded-lg text-xs outline-none focus:border-[#ff7a16]"
@@ -156,19 +80,10 @@ export const LoginPage: React.FC = () => {
             disabled={loading}
             className="w-full h-10 bg-[#ff7a16] hover:bg-[#e86807] text-white font-semibold text-xs rounded-lg flex items-center justify-center gap-1.5 shadow-sm transition-all disabled:opacity-50 mt-2"
           >
-            <span>{loading ? "Kirilmoqda..." : isRegister ? "Ro'yxatdan o'tish" : "Tizimga kirish"}</span>
+            <span>{loading ? "Kirilmoqda..." : "Tizimga kirish"}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
-
-        <div className="text-center pt-2 border-t border-gray-100">
-          <button
-            onClick={() => setIsRegister(!isRegister)}
-            className="text-xs text-[#ff7a16] font-semibold hover:underline"
-          >
-            {isRegister ? "Hisobingiz bormi? Tizimga kiring" : "Yangi xodim hisobini ochish"}
-          </button>
-        </div>
       </div>
     </div>
   );

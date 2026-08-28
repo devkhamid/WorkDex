@@ -60,7 +60,7 @@ export const usersApi = {
     lastName: string;
     email: string;
     phoneNumber?: string;
-    companyName: string;
+    companyName?: string;
     password: string;
     role: number;
   }): Promise<AuthResponse> => {

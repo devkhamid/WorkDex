@@ -5,16 +5,179 @@ import {
   TrendingDown,
   Download,
   Filter,
-  ArrowRight
+  ArrowRight,
+  UserPlus,
+  X,
+  Lock,
+  Mail,
+  Phone,
+  User
 } from 'lucide-react';
-import { dashboardApi, projectsApi, reportsApi } from '../api/services';
+import { dashboardApi, projectsApi, reportsApi, usersApi } from '../api/services';
 import { DashboardStats, Project, ProjectStatus } from '../types';
+import { useAuth } from '../context/AuthContext';
+import { UserRole } from '../types';
 
+// ---- Add User Modal ----
+const AddUserModal: React.FC<{ onClose: () => void; onSuccess: () => void }> = ({ onClose, onSuccess }) => {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState(2); // default: ProjectManager
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      await usersApi.createAdmin({
+        firstName,
+        lastName,
+        email,
+        phoneNumber: phone || undefined,
+        password,
+        role
+      });
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Xatolik yuz berdi');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-[#fff3e8] rounded-lg flex items-center justify-center">
+              <UserPlus className="w-4 h-4 text-[#ff7a16]" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-[#171b25]">Yangi Xodim Qo'shish</h2>
+              <p className="text-[10px] text-gray-400">Kompaniyangizga yangi a'zo qo'shing</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Ism *</label>
+              <div className="relative">
+                <User className="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-400" />
+                <input
+                  type="text" required placeholder="Ali"
+                  value={firstName} onChange={(e) => setFirstName(e.target.value)}
+                  className="w-full h-9 pl-9 pr-3 border border-[#e4e7ec] rounded-lg text-xs outline-none focus:border-[#ff7a16]"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Familiya *</label>
+              <input
+                type="text" required placeholder="Valiyev"
+                value={lastName} onChange={(e) => setLastName(e.target.value)}
+                className="w-full h-9 px-3 border border-[#e4e7ec] rounded-lg text-xs outline-none focus:border-[#ff7a16]"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Email *</label>
+            <div className="relative">
+              <Mail className="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-400" />
+              <input
+                type="email" required placeholder="ali@kompaniya.uz"
+                value={email} onChange={(e) => setEmail(e.target.value)}
+                className="w-full h-9 pl-9 pr-3 border border-[#e4e7ec] rounded-lg text-xs outline-none focus:border-[#ff7a16]"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Telefon raqam</label>
+            <div className="relative">
+              <Phone className="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-400" />
+              <input
+                type="text" placeholder="+998901234567"
+                value={phone} onChange={(e) => setPhone(e.target.value)}
+                className="w-full h-9 pl-9 pr-3 border border-[#e4e7ec] rounded-lg text-xs outline-none focus:border-[#ff7a16]"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Parol *</label>
+            <div className="relative">
+              <Lock className="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-400" />
+              <input
+                type="password" required placeholder="Kamida 6 ta belgi"
+                value={password} onChange={(e) => setPassword(e.target.value)}
+                className="w-full h-9 pl-9 pr-3 border border-[#e4e7ec] rounded-lg text-xs outline-none focus:border-[#ff7a16]"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Lavozim (Rol) *</label>
+            <select
+              value={role} onChange={(e) => setRole(Number(e.target.value))}
+              className="w-full h-9 px-3 border border-[#e4e7ec] rounded-lg text-xs bg-white outline-none focus:border-[#ff7a16]"
+            >
+              <option value={2}>ProjectManager — Prorab / Menejer</option>
+              <option value={3}>FieldWorker — Saha xodimi</option>
+              <option value={4}>Finance — Moliyachi / Buxgalter</option>
+            </select>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button" onClick={onClose}
+              className="flex-1 h-9 border border-[#e4e7ec] bg-white hover:bg-gray-50 text-gray-700 font-semibold text-xs rounded-lg transition-colors"
+            >
+              Bekor qilish
+            </button>
+            <button
+              type="submit" disabled={loading}
+              className="flex-1 h-9 bg-[#ff7a16] hover:bg-[#e86807] text-white font-semibold text-xs rounded-lg flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>{loading ? "Qo'shilmoqda..." : "Xodim Qo'shish"}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ---- Main Dashboard ----
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+
+  const canAddUser = user?.role === UserRole.Admin || user?.role === UserRole.SuperAdmin;
 
   useEffect(() => {
     fetchData();
@@ -66,6 +229,31 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="p-6 space-y-5">
+      {/* Add User Modal */}
+      {isAddUserModalOpen && (
+        <AddUserModal
+          onClose={() => setIsAddUserModalOpen(false)}
+          onSuccess={() => {}}
+        />
+      )}
+
+      {/* Top Action Bar — Admin uchun "Xodim qo'shish" tugmasi */}
+      {canAddUser && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-bold text-[#171b25]">Boshqaruv paneli</h2>
+            <p className="text-[11px] text-gray-400">Kompaniyangiz loyihalari va ko'rsatkichlari</p>
+          </div>
+          <button
+            onClick={() => setIsAddUserModalOpen(true)}
+            className="h-9 px-4 bg-[#ff7a16] hover:bg-[#e86807] text-white text-xs font-semibold rounded-lg flex items-center gap-2 shadow-sm transition-colors"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Xodim qo'shish</span>
+          </button>
+        </div>
+      )}
+
       {/* 4 KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* KPI 1: Faol Loyihalar */}
@@ -218,7 +406,7 @@ export const DashboardPage: React.FC = () => {
             onClick={() => navigate('/projects')}
             className="w-full py-2 bg-gray-50 hover:bg-gray-100 border border-[#e4e7ec] rounded-lg text-xs font-semibold text-gray-700 flex items-center justify-center gap-1 transition-colors mt-2"
           >
-            <span>Barcha loyihalarni ko‘rish</span>
+            <span>Barcha loyihalarni ko'rish</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
