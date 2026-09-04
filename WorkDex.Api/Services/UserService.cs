@@ -135,7 +135,7 @@ public class UserService : IUserService
                 var materialPurchases = await _context.MaterialPurchases.Where(x => projectIds.Contains(x.ProjectId)).ToListAsync();
                 _context.MaterialPurchases.RemoveRange(materialPurchases);
 
-                var expenses = await _context.Expenses.Where(x => projectIds.Contains(x.ProjectId)).ToListAsync();
+                var expenses = await _context.Expenses.Where(x => x.ProjectId != null && projectIds.Contains(x.ProjectId.Value)).ToListAsync();
                 _context.Expenses.RemoveRange(expenses);
 
                 var payments = await _context.Payments.Where(x => projectIds.Contains(x.ProjectId)).ToListAsync();

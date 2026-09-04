@@ -63,7 +63,6 @@ namespace WorkDex.Api.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
-
                     b.HasIndex("UserId")
                         .IsUnique();
 

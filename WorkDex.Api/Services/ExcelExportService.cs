@@ -118,7 +118,7 @@ public class ExcelExportService : IExcelExportService
             .ToListAsync();
 
         var allPayments = await _context.Payments.Where(p => accessibleIds.Contains(p.ProjectId)).ToListAsync();
-        var allExpenses = await _context.Expenses.Where(e => accessibleIds.Contains(e.ProjectId)).ToListAsync();
+        var allExpenses = await _context.Expenses.Where(e => e.ProjectId != null && accessibleIds.Contains(e.ProjectId.Value)).ToListAsync();
         var allPurchases = await _context.MaterialPurchases.Where(mp => accessibleIds.Contains(mp.ProjectId)).ToListAsync();
         var allWorkerPayments = await _context.WorkerPayments.Where(wp => accessibleIds.Contains(wp.ProjectId)).ToListAsync();
         var allExtraWorks = await _context.ExtraWorks.Where(ew => accessibleIds.Contains(ew.ProjectId)).ToListAsync();

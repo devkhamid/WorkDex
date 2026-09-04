@@ -9,4 +9,8 @@ public interface IExpenseService
     Task<List<ExpenseDto>> GetExpensesByProjectAsync(Guid projectId, ExpenseCategory? category = null);
     Task<ExpenseDto> GetExpenseByIdAsync(Guid projectId, Guid expenseId);
     Task DeleteExpenseAsync(Guid projectId, Guid expenseId);
+
+    Task<List<ExpenseDto>> GetOfficeExpensesAsync(Guid requestingUserId, UserRole requestingUserRole);
+    Task<ExpenseDto> CreateOfficeExpenseAsync(CreateExpenseDto dto, Guid createdByUserId);
+    Task DeleteOfficeExpenseAsync(Guid expenseId);
 }

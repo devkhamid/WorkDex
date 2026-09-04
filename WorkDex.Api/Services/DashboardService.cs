@@ -76,18 +76,18 @@ public class DashboardService : IDashboardService
             .Where(mp => accessibleIds.Contains(mp.ProjectId))
             .SumAsync(mp => (decimal?)mp.TotalCost) ?? 0)
             + (await _context.Expenses
-            .Where(e => accessibleIds.Contains(e.ProjectId) && e.Category == ExpenseCategory.Material)
+            .Where(e => e.ProjectId != null && accessibleIds.Contains(e.ProjectId.Value) && e.Category == ExpenseCategory.Material)
             .SumAsync(e => (decimal?)e.Amount) ?? 0);
 
         var totalLaborExpenses = (await _context.WorkerPayments
             .Where(wp => accessibleIds.Contains(wp.ProjectId))
             .SumAsync(wp => (decimal?)wp.PaidAmount) ?? 0)
             + (await _context.Expenses
-            .Where(e => accessibleIds.Contains(e.ProjectId) && e.Category == ExpenseCategory.Labor)
+            .Where(e => e.ProjectId != null && accessibleIds.Contains(e.ProjectId.Value) && e.Category == ExpenseCategory.Labor)
             .SumAsync(e => (decimal?)e.Amount) ?? 0);
 
         var totalOtherExpenses = await _context.Expenses
-            .Where(e => accessibleIds.Contains(e.ProjectId) && e.Category != ExpenseCategory.Material && e.Category != ExpenseCategory.Labor)
+            .Where(e => e.ProjectId != null && accessibleIds.Contains(e.ProjectId.Value) && e.Category != ExpenseCategory.Material && e.Category != ExpenseCategory.Labor)
             .SumAsync(e => (decimal?)e.Amount) ?? 0;
 
         var totalExtraWorkCost = await _context.ExtraWorks
@@ -186,7 +186,7 @@ public class DashboardService : IDashboardService
 
         // Expenses
         var expenses = await _context.Expenses
-            .Where(e => accessibleIds.Contains(e.ProjectId))
+            .Where(e => e.ProjectId != null && accessibleIds.Contains(e.ProjectId.Value))
             .Include(e => e.Project)
             .Include(e => e.CreatedByUser)
             .OrderByDescending(e => e.CreatedAt)
@@ -195,7 +195,7 @@ public class DashboardService : IDashboardService
             {
                 ActivityType = "Expense",
                 Title = $"{e.Category} xarajati: {e.Description}",
-                ProjectName = e.Project.Name,
+                ProjectName = e.Project != null ? e.Project.Name : "Ofis",
                 Amount = e.Amount,
                 CreatedByName = e.CreatedByUser.FullName,
                 CreatedAt = e.CreatedAt

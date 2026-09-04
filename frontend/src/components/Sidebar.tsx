@@ -13,7 +13,8 @@ import {
   LogOut,
   Search,
   Grid,
-  ShieldCheck
+  ShieldCheck,
+  Briefcase
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { projectsApi } from '../api/services';
@@ -40,7 +41,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenNewProject }) => {
   const navItems = isSuperAdmin
     ? [
         { to: '/superadmin', label: 'Adminlar & Kompaniyalar', icon: ShieldCheck },
-        { to: '/projects', label: 'Loyihalar Monitoringi', icon: Building2 },
       ]
     : [
         { to: '/', label: 'Boshqaruv paneli', icon: LayoutDashboard },
@@ -51,6 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenNewProject }) => {
         { to: '/finance', label: 'Moliya', icon: DollarSign },
         { to: '/tasks', label: 'Vazifalar', icon: CheckSquare },
         { to: '/reports', label: 'Hisobotlar (Excel)', icon: FileSpreadsheet },
+        { to: '/office', label: 'Mening Ofisim', icon: Briefcase },
       ];
 
   const getStatusDot = (status: ProjectStatus) => {

@@ -28,10 +28,12 @@ public class ExpenseService : IExpenseService
         {
             ProjectId = projectId,
             Category = dto.Category,
+            Frequency = dto.Frequency,
             Amount = dto.Amount,
             Description = dto.Description.Trim(),
-            ExpenseDate = dto.ExpenseDate,
+            ExpenseDate = dto.ExpenseDate.ToUniversalTime(),
             Notes = dto.Notes?.Trim(),
+            CompanyAdminId = project.CompanyAdminId,
             CreatedByUserId = createdByUserId,
             CreatedAt = DateTime.UtcNow
         };
@@ -39,20 +41,10 @@ public class ExpenseService : IExpenseService
         _context.Expenses.Add(expense);
         await _context.SaveChangesAsync();
 
-        return new ExpenseDto
-        {
-            Id = expense.Id,
-            ProjectId = expense.ProjectId,
-            Category = expense.Category,
-            CategoryName = expense.Category.ToString(),
-            Amount = expense.Amount,
-            Description = expense.Description,
-            ExpenseDate = expense.ExpenseDate,
-            Notes = expense.Notes,
-            CreatedByUserId = expense.CreatedByUserId,
-            CreatedByName = user.FullName,
-            CreatedAt = expense.CreatedAt
-        };
+        // Load CreatedByUser before mapping
+        await _context.Entry(expense).Reference(e => e.CreatedByUser).LoadAsync();
+
+        return MapToDto(expense);
     }
 
     public async Task<List<ExpenseDto>> GetExpensesByProjectAsync(Guid projectId, ExpenseCategory? category = null)
@@ -74,20 +66,7 @@ public class ExpenseService : IExpenseService
             .OrderByDescending(e => e.ExpenseDate)
             .ToListAsync();
 
-        return expenses.Select(e => new ExpenseDto
-        {
-            Id = e.Id,
-            ProjectId = e.ProjectId,
-            Category = e.Category,
-            CategoryName = e.Category.ToString(),
-            Amount = e.Amount,
-            Description = e.Description,
-            ExpenseDate = e.ExpenseDate,
-            Notes = e.Notes,
-            CreatedByUserId = e.CreatedByUserId,
-            CreatedByName = e.CreatedByUser?.FullName ?? "",
-            CreatedAt = e.CreatedAt
-        }).ToList();
+        return expenses.Select(MapToDto).ToList();
     }
 
     public async Task<ExpenseDto> GetExpenseByIdAsync(Guid projectId, Guid expenseId)
@@ -99,20 +78,7 @@ public class ExpenseService : IExpenseService
         if (expense is null)
             throw new KeyNotFoundException("Xarajat topilmadi.");
 
-        return new ExpenseDto
-        {
-            Id = expense.Id,
-            ProjectId = expense.ProjectId,
-            Category = expense.Category,
-            CategoryName = expense.Category.ToString(),
-            Amount = expense.Amount,
-            Description = expense.Description,
-            ExpenseDate = expense.ExpenseDate,
-            Notes = expense.Notes,
-            CreatedByUserId = expense.CreatedByUserId,
-            CreatedByName = expense.CreatedByUser?.FullName ?? "",
-            CreatedAt = expense.CreatedAt
-        };
+        return MapToDto(expense);
     }
 
     public async Task DeleteExpenseAsync(Guid projectId, Guid expenseId)
@@ -125,5 +91,92 @@ public class ExpenseService : IExpenseService
 
         _context.Expenses.Remove(expense);
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<List<ExpenseDto>> GetOfficeExpensesAsync(Guid requestingUserId, UserRole requestingUserRole)
+    {
+        Guid? companyAdminId = null;
+        if (requestingUserRole == UserRole.SuperAdmin)
+        {
+            // SuperAdmin sees all office expenses
+        }
+        else if (requestingUserRole == UserRole.Admin)
+        {
+            companyAdminId = requestingUserId;
+        }
+        else
+        {
+            var user = await _context.Users.FindAsync(requestingUserId);
+            companyAdminId = user?.CompanyAdminId ?? requestingUserId;
+        }
+
+        var query = _context.Expenses
+            .Include(e => e.CreatedByUser)
+            .Where(e => e.ProjectId == null);
+
+        if (companyAdminId != null)
+            query = query.Where(e => e.CompanyAdminId == companyAdminId);
+
+        var expenses = await query.OrderByDescending(e => e.ExpenseDate).ToListAsync();
+        return expenses.Select(MapToDto).ToList();
+    }
+
+    public async Task<ExpenseDto> CreateOfficeExpenseAsync(CreateExpenseDto dto, Guid createdByUserId)
+    {
+        var requestingUser = await _context.Users.FindAsync(createdByUserId);
+        var companyAdminId = requestingUser?.Role == UserRole.Admin
+            ? createdByUserId
+            : (requestingUser?.CompanyAdminId ?? createdByUserId);
+
+        var expense = new Expense
+        {
+            ProjectId = null,
+            Category = dto.Category,
+            Frequency = dto.Frequency,
+            Amount = dto.Amount,
+            Description = dto.Description.Trim(),
+            ExpenseDate = dto.ExpenseDate.ToUniversalTime(),
+            Notes = dto.Notes?.Trim(),
+            CreatedByUserId = createdByUserId,
+            CompanyAdminId = companyAdminId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.Expenses.Add(expense);
+        await _context.SaveChangesAsync();
+
+        return MapToDto(expense);
+    }
+
+    public async Task DeleteOfficeExpenseAsync(Guid expenseId)
+    {
+        var expense = await _context.Expenses
+            .FirstOrDefaultAsync(e => e.Id == expenseId && e.ProjectId == null);
+
+        if (expense is null)
+            throw new KeyNotFoundException("Xarajat topilmadi.");
+
+        _context.Expenses.Remove(expense);
+        await _context.SaveChangesAsync();
+    }
+
+    private static ExpenseDto MapToDto(Expense e)
+    {
+        return new ExpenseDto
+        {
+            Id = e.Id,
+            ProjectId = e.ProjectId,
+            Category = e.Category,
+            CategoryName = e.Category.ToString(),
+            Frequency = e.Frequency,
+            FrequencyName = e.Frequency.ToString(),
+            Amount = e.Amount,
+            Description = e.Description,
+            ExpenseDate = e.ExpenseDate,
+            Notes = e.Notes,
+            CreatedByUserId = e.CreatedByUserId,
+            CreatedByName = e.CreatedByUser?.FullName ?? "",
+            CreatedAt = e.CreatedAt
+        };
     }
 }

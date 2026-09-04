@@ -396,3 +396,24 @@ export const reportsApi = {
     }
   }
 };
+
+export const officeExpensesApi = {
+  getAll: async (): Promise<Expense[]> => {
+    const res = await apiClient.get<Expense[]>('/office-expenses');
+    return res.data;
+  },
+  create: async (data: {
+    category: number;
+    frequency: number;
+    amount: number;
+    description: string;
+    expenseDate: string;
+    notes?: string;
+  }): Promise<Expense> => {
+    const res = await apiClient.post<Expense>('/office-expenses', data);
+    return res.data;
+  },
+  delete: async (id: string): Promise<void> => {
+    await apiClient.delete(`/office-expenses/${id}`);
+  }
+};

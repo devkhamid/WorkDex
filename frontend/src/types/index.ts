@@ -28,7 +28,23 @@ export enum ExpenseCategory {
   Fuel = 4,
   Subcontractor = 5,
   Extra = 6,
-  Other = 7
+  Other = 7,
+  Cleaning = 8,
+  Carrying = 9,
+  AdditionalWork = 10,
+  Electricity = 11,
+  Internet = 12,
+  Rent = 13,
+  OfficeSupplies = 14,
+  Water = 15,
+  Gas = 16,
+  Communal = 17
+}
+
+export enum ExpenseFrequency {
+  OneTime = 1,
+  Daily = 2,
+  Monthly = 3
 }
 
 export interface User {
@@ -142,9 +158,11 @@ export interface Payment {
 
 export interface Expense {
   id: string;
-  projectId: string;
+  projectId?: string;
   category: ExpenseCategory;
   categoryName: string;
+  frequency?: ExpenseFrequency;
+  frequencyName?: string;
   amount: number;
   description: string;
   expenseDate: string;

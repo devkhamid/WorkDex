@@ -8,6 +8,8 @@ public class CreateExpenseDto
     [Required]
     public ExpenseCategory Category { get; set; }
 
+    public ExpenseFrequency Frequency { get; set; } = ExpenseFrequency.OneTime;
+
     [Required]
     [Range(0.01, double.MaxValue, ErrorMessage = "Xarajat summasi 0 dan katta bo'lishi kerak.")]
     public decimal Amount { get; set; }

@@ -17,6 +17,7 @@ import { FinancePage } from './pages/FinancePage';
 import { TasksPage } from './pages/TasksPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { SuperAdminPage } from './pages/SuperAdminPage';
+import { OfficeExpensesPage } from './pages/OfficeExpensesPage';
 import { UserRole } from './types';
 
 const ProtectedLayout: React.FC = () => {
@@ -48,6 +49,7 @@ const ProtectedLayout: React.FC = () => {
     if (pathname === '/finance') return 'Moliya';
     if (pathname === '/tasks') return 'Vazifalar';
     if (pathname === '/reports') return 'Hisobotlar (Excel)';
+    if (pathname === '/office') return 'Mening Ofisim';
     return 'Boshqaruv paneli';
   };
 
@@ -56,7 +58,6 @@ const ProtectedLayout: React.FC = () => {
   const navTabs = isSuperAdmin
     ? [
         { label: 'Adminlar & Kompaniyalar', path: '/superadmin' },
-        { label: 'Loyihalar Monitoringi', path: '/projects' },
       ]
     : [
         { label: 'Umumiy ko‘rinish', path: '/' },
@@ -65,6 +66,7 @@ const ProtectedLayout: React.FC = () => {
         { label: 'Moliya', path: '/finance' },
         { label: 'Vazifalar', path: '/tasks' },
         { label: 'Hisobotlar', path: '/reports' },
+        { label: 'Mening Ofisim', path: '/office' },
       ];
 
   const isTabActive = (tabPath: string) => {
@@ -116,6 +118,7 @@ const ProtectedLayout: React.FC = () => {
             <Route path="/finance" element={<FinancePage />} />
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/office" element={<OfficeExpensesPage />} />
           </Routes>
         </main>
       </div>

@@ -42,6 +42,26 @@ export const formatDateUz = (dateStr?: string | Date | null) => {
   return `${day}.${month}.${year}`;
 };
 
+export const expenseCategoryLabels: Record<number, string> = {
+  1: 'Mehnat va Usta (Labor)',
+  2: 'Material (Material)',
+  3: 'Transport (Transport)',
+  4: 'Yoqilg\'i (Fuel)',
+  5: 'Subpudrat (Subcontractor)',
+  6: 'Qo\'shimcha (Extra)',
+  7: 'Boshqa (Other)',
+  8: 'Tozalash ishlari',
+  9: 'Yuklarni tashish / Ko\'tarish (Gipskarton va b.)',
+  10: 'Qo\'shimcha mayda ishlar',
+  11: 'Elektr (svet to\'lovi)',
+  12: 'Internet',
+  13: 'Ijara',
+  14: 'Ofis jihozlari',
+  15: 'Suv to\'lovi',
+  16: 'Gaz to\'lovi',
+  17: 'Umumiy kommunal xarajatlar'
+};
+
 export const ProjectDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -88,9 +108,10 @@ export const ProjectDetailPage: React.FC = () => {
   const [newPayNotes, setNewPayNotes] = useState('');
 
   // Expense Form State
-  const [newExpCategory, setNewExpCategory] = useState(2);
+  const [newExpCategory, setNewExpCategory] = useState(9); // Default: Yuklarni tashish / Ko'tarish
   const [newExpAmount, setNewExpAmount] = useState<number | ''>('');
   const [newExpDesc, setNewExpDesc] = useState('');
+  const [newExpDate, setNewExpDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Purchase Form State
   const [isNewMaterial, setIsNewMaterial] = useState(false);
@@ -255,12 +276,13 @@ export const ProjectDetailPage: React.FC = () => {
       await projectsApi.createExpense(id, {
         category: newExpCategory,
         amount: Number(newExpAmount) || 0,
-        description: newExpDesc,
-        expenseDate: new Date().toISOString(),
+        description: newExpDesc.trim(),
+        expenseDate: new Date(newExpDate).toISOString(),
       });
       setIsExpenseModalOpen(false);
       setNewExpAmount('');
       setNewExpDesc('');
+      setNewExpDate(new Date().toISOString().split('T')[0]);
       loadAllData(id);
     } catch (err: any) {
       alert(err.response?.data?.message || 'Xatolik');
@@ -747,6 +769,55 @@ export const ProjectDetailPage: React.FC = () => {
               )}
             </div>
           </div>
+
+          {/* Loyiha Qo'shimcha Xarajatlari (Yuk tashish, Tozalash, Gipskarton va b.) */}
+          <div className="bg-white border border-[#e4e7ec] rounded-xl shadow-xs overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-[#e4e7ec] bg-red-50/30">
+              <div>
+                <div className="font-bold text-xs text-red-900 flex items-center gap-1.5">
+                  <DollarSign className="w-4 h-4 text-red-600" />
+                  <span>Qo'shimcha Xarajatlar (Yuk tashish, Tozalash, Gipskarton ko'tarish va b.)</span>
+                </div>
+                <div className="text-[10px] text-gray-500 mt-0.5">
+                  Loyiha xarajatlari: yuk ko'tarish, kvartirani tozalash, transport va boshqalar (qo'lda kiritiladi)
+                </div>
+              </div>
+              <button
+                onClick={() => setIsExpenseModalOpen(true)}
+                className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg flex items-center gap-1 shadow-xs transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Qo'shimcha xarajat kiritish</span>
+              </button>
+            </div>
+
+            <div className="divide-y divide-gray-100 max-h-[450px] overflow-y-auto custom-scrollbar">
+              {expenses.map((exp) => (
+                <div key={exp.id} className="p-4 flex justify-between items-center text-xs hover:bg-gray-50/50 transition-colors">
+                  <div className="space-y-0.5">
+                    <div className="font-bold text-sm text-gray-900 flex items-center gap-2">
+                      <span>${exp.amount.toLocaleString()}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-800 font-medium">
+                        {expenseCategoryLabels[exp.category] || exp.categoryName}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-gray-700 font-medium">
+                      {exp.description}
+                    </div>
+                    <div className="text-[11px] text-gray-400">
+                      Sana: {formatDateUz(exp.expenseDate)} · Kiritdi: <b className="text-gray-700">{exp.createdByName}</b>
+                    </div>
+                  </div>
+                  <span className="text-red-600 font-extrabold text-base">-${exp.amount.toLocaleString()}</span>
+                </div>
+              ))}
+              {expenses.length === 0 && (
+                <div className="py-12 text-center text-xs text-gray-400">
+                  Qo'shimcha xarajatlar hali kiritilmagan. Yuqoridagi "+ Qo'shimcha xarajat kiritish" orqali gipskarton ko'tarish, tozalash va boshqa xarajatlarni kiritishingiz mumkin.
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -856,6 +927,7 @@ export const ProjectDetailPage: React.FC = () => {
                     <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">NARX</th>
                     <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">JAMI</th>
                     <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">DO'KON / YETKAZUVCHI</th>
+                    <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">KIM OLDI</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -876,11 +948,12 @@ export const ProjectDetailPage: React.FC = () => {
                       <td className="py-2.5 px-3 font-medium">${pur.unitPrice.toLocaleString()}</td>
                       <td className="py-2.5 px-3 font-bold text-[#ff7a16]">${pur.totalCost.toLocaleString()}</td>
                       <td className="py-2.5 px-3 text-gray-600">{pur.supplier || '-'}</td>
+                      <td className="py-2.5 px-3 text-gray-600 font-medium">{pur.createdByName || '-'}</td>
                     </tr>
                   ))}
                   {purchases.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-xs text-gray-400">
+                      <td colSpan={8} className="py-8 text-center text-xs text-gray-400">
                         Xaridlar mavjud emas. Yuqoridagi "+ Material xaridi kiritish" orqali yangi xarid qo'shing.
                       </td>
                     </tr>
@@ -1163,36 +1236,132 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 8: DOCUMENTS */}
+      {/* TAB 8: DOCUMENTS & SHARTNOMALAR */}
       {activeTab === 'documents' && (
-        <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs space-y-3">
+        <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs space-y-4">
           <div className="flex justify-between items-center pb-3 border-b border-[#e4e7ec]">
-            <h3 className="font-bold text-xs text-[#171b25]">Hujjatlar & Shartnomalar</h3>
+            <div>
+              <h3 className="font-bold text-xs text-[#171b25]">Hujjatlar & Shartnomalar</h3>
+              <div className="text-[10px] text-[#9399a4]">Shartnomalar, cheklar, hisob-fakturalar va boshqa hujjatlar</div>
+            </div>
+            <button
+              onClick={() => {
+                const titleEl = document.getElementById('doc-title') as HTMLInputElement;
+                if (titleEl) titleEl.focus();
+              }}
+              className="bg-[#ff7a16] hover:bg-[#e86807] text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Hujjat qo'shish</span>
+            </button>
           </div>
 
-          <div className="divide-y divide-gray-100">
-            {documents.map((d) => (
-              <div key={d.id} className="py-2.5 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-[#ff7a16]" />
-                  <div>
-                    <div className="font-semibold text-gray-800">{d.title}</div>
-                    <div className="text-[10px] text-gray-400">{d.filePath} · Yukladi: {d.uploadedByName}</div>
-                  </div>
-                </div>
-                <a
-                  href={d.filePath}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-2.5 py-1 bg-gray-100 text-gray-700 rounded text-xs hover:bg-gray-200"
-                >
-                  Ochish
-                </a>
-              </div>
-            ))}
-            {documents.length === 0 && (
-              <div className="py-8 text-center text-xs text-gray-400">Hujjatlar mavjud emas</div>
-            )}
+          {/* Add Document Form */}
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const form = e.target as HTMLFormElement;
+              const title = (form.elements.namedItem('docTitle') as HTMLInputElement).value.trim();
+              const url = (form.elements.namedItem('docUrl') as HTMLInputElement).value.trim();
+              const fileType = (form.elements.namedItem('docType') as HTMLSelectElement).value;
+              if (!title || !url) return;
+              try {
+                await projectsApi.createDocument(id!, { title, filePath: url, fileType, fileSizeBytes: 0 });
+                form.reset();
+                loadAllData(id!);
+              } catch (err: any) {
+                alert(err.response?.data?.message || 'Xatolik');
+              }
+            }}
+            className="p-3 bg-gray-50 border border-gray-200 rounded-lg"
+          >
+            <div className="text-xs font-bold text-gray-700 mb-2">📄 Yangi Hujjat / Shartnoma Qo'shish</div>
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+              <input
+                id="doc-title"
+                name="docTitle"
+                type="text"
+                required
+                placeholder="Hujjat nomi (masalan: Asosiy shartnoma)"
+                className="sm:col-span-1 h-8 px-2 border border-gray-300 rounded text-xs outline-none focus:border-[#ff7a16]"
+              />
+              <input
+                name="docUrl"
+                type="text"
+                required
+                placeholder="URL yoki fayl yo'li (https://...)"
+                className="sm:col-span-1 h-8 px-2 border border-gray-300 rounded text-xs outline-none focus:border-[#ff7a16]"
+              />
+              <select
+                name="docType"
+                className="h-8 px-2 border border-gray-300 rounded text-xs bg-white outline-none focus:border-[#ff7a16]"
+              >
+                <option value="shartnoma">📋 Shartnoma</option>
+                <option value="chek">🧾 Chek / Kvitansiya</option>
+                <option value="hisob-faktura">📊 Hisob-faktura</option>
+                <option value="chizma">📐 Chizma / Loyiha</option>
+                <option value="rasm">🖼️ Rasm</option>
+                <option value="boshqa">📎 Boshqa</option>
+              </select>
+              <button
+                type="submit"
+                className="h-8 bg-[#ff7a16] hover:bg-[#e86807] text-white text-xs font-semibold rounded flex items-center justify-center gap-1 transition-colors"
+              >
+                <Plus className="w-3 h-3" />
+                <span>Qo'shish</span>
+              </button>
+            </div>
+          </form>
+
+          {/* Documents Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-[#e4e7ec] bg-gray-50/50">
+                  <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">HUJJAT NOMI</th>
+                  <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">TURI</th>
+                  <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">KIM YUKLAGAN</th>
+                  <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">SANA</th>
+                  <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px] text-right">AMAL</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {documents.map((d) => (
+                  <tr key={d.id} className="hover:bg-gray-50/50">
+                    <td className="py-2.5 px-3">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-[#ff7a16] flex-shrink-0" />
+                        <span className="font-semibold text-gray-800">{d.title}</span>
+                      </div>
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700">
+                        {d.fileType || 'hujjat'}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 text-gray-600">{d.uploadedByName}</td>
+                    <td className="py-2.5 px-3 text-gray-500">{formatDateUz(d.createdAt)}</td>
+                    <td className="py-2.5 px-3 text-right">
+                      <a
+                        href={d.filePath}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-2.5 py-1 bg-[#ff7a16] text-white rounded text-[11px] font-semibold hover:bg-[#e86807] transition-colors"
+                      >
+                        Ochish →
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+                {documents.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-xs text-gray-400">
+                      Hujjatlar mavjud emas. Yuqoridagi formadan shartnoma yoki hujjat qo'shing.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -1289,7 +1458,7 @@ export const ProjectDetailPage: React.FC = () => {
       {isExpenseModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl border border-gray-200 space-y-4">
-            <h3 className="font-bold text-sm text-[#171b25]">Xarajat Kiritish (7 Kategoriya)</h3>
+            <h3 className="font-bold text-sm text-[#171b25]">Xarajat Kiritish</h3>
             <form onSubmit={handleCreateExpense} className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold mb-1">Kategoriya *</label>
@@ -1298,13 +1467,20 @@ export const ProjectDetailPage: React.FC = () => {
                   onChange={(e) => setNewExpCategory(Number(e.target.value))}
                   className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs bg-white outline-none"
                 >
-                  <option value={1}>1. Mehnat va Usta (Labor)</option>
-                  <option value={2}>2. Material (Material)</option>
-                  <option value={3}>3. Transport (Transport)</option>
-                  <option value={4}>4. Yoqilg'i (Fuel)</option>
-                  <option value={5}>5. Subpudrat (Subcontractor)</option>
-                  <option value={6}>6. Qo'shimcha (Extra)</option>
-                  <option value={7}>7. Boshqa (Other)</option>
+                  <option value={9}>📦 Yuklarni tashish / Ko'tarish (Gipskarton va b.)</option>
+                  <option value={8}>🧹 Tozalash ishlari</option>
+                  <option value={10}>🔧 Qo'shimcha mayda ishlar</option>
+                  <option value={11}>⚡ Elektr (svet to'lovi)</option>
+                  <option value={15}>💧 Suv to'lovi</option>
+                  <option value={16}>🔥 Gaz to'lovi</option>
+                  <option value={17}>🏢 Umumiy kommunal xarajatlar</option>
+                  <option value={3}>🚛 Transport (Transport)</option>
+                  <option value={4}>⛽ Yoqilg'i (Fuel)</option>
+                  <option value={1}>👷 Mehnat va Usta (Labor)</option>
+                  <option value={2}>🧱 Material (Material)</option>
+                  <option value={5}>🤝 Subpudrat (Subcontractor)</option>
+                  <option value={6}>➕ Qo'shimcha (Extra)</option>
+                  <option value={7}>📋 Boshqa (Other)</option>
                 </select>
               </div>
               <div>
@@ -1320,13 +1496,23 @@ export const ProjectDetailPage: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold mb-1">Tavsif *</label>
+                <label className="block text-xs font-semibold mb-1">Tavsif (Izoh) *</label>
                 <input
                   type="text"
                   required
-                  placeholder="Material yetkazish uchun yuk mashinasi"
+                  placeholder="Masalan: Gipskartonni 4-qavatga ko'tarish, kvartirani tozalash"
                   value={newExpDesc}
                   onChange={(e) => setNewExpDesc(e.target.value)}
+                  className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1">Xarajat Sanasi *</label>
+                <input
+                  type="date"
+                  required
+                  value={newExpDate}
+                  onChange={(e) => setNewExpDate(e.target.value)}
                   className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none"
                 />
               </div>
