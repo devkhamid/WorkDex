@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, FileText, Printer, Trash2, ChevronRight } from 'lucide-react';
+import { Plus, FileText, Printer, Trash2, ChevronRight, Building2, Phone, Calendar, DollarSign, Search } from 'lucide-react';
 import { agreementsApi } from '../api/services';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
@@ -9,6 +9,7 @@ export const AgreementsPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [agreements, setAgreements] = useState<any[]>([]);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
   const isAdmin = user?.role === UserRole.Admin || user?.role === UserRole.SuperAdmin;
@@ -63,6 +64,16 @@ export const AgreementsPage: React.FC = () => {
     );
   };
 
+  const filteredAgreements = agreements.filter(a => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      a.projectName?.toLowerCase().includes(q) ||
+      a.customerFullName?.toLowerCase().includes(q) ||
+      String(a.contractNumber).includes(q)
+    );
+  });
+
   return (
     <div className="flex-1 overflow-auto bg-[#f8f9fb] p-6">
       {/* Header */}
@@ -80,32 +91,50 @@ export const AgreementsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-6 border-b border-gray-200">
-        <button className="px-4 py-2 text-sm font-semibold text-[#7c3aed] border-b-2 border-[#7c3aed]">
-          Kutilayotgan shartnomalar
-        </button>
+      {/* Tabs & Search */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
+        <div className="flex gap-1 border-b border-gray-200">
+          <button className="px-4 py-2 text-sm font-semibold text-[#7c3aed] border-b-2 border-[#7c3aed]">
+            Kutilayotgan shartnomalar
+          </button>
+        </div>
+        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 w-full sm:w-64">
+          <Search className="w-3.5 h-3.5 text-gray-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Qidirish..."
+            className="text-xs bg-transparent outline-none w-full text-gray-700"
+          />
+        </div>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center h-40">
           <div className="w-8 h-8 border-4 border-[#7c3aed] border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : agreements.length === 0 ? (
+      ) : filteredAgreements.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
           <FileText className="w-12 h-12 mx-auto mb-3 opacity-40" />
-          <p className="font-medium">Hali shartnoma yo'q</p>
-          <p className="text-sm mt-1">Birinchi shartnomani yarating</p>
-          <button
-            onClick={() => navigate('/agreements/new')}
-            className="mt-4 bg-[#7c3aed] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#6d28d9]"
-          >
-            + Yangi shartnoma
-          </button>
+          <p className="font-medium">
+            {search ? "Qidiruv bo'yicha shartnoma topilmadi" : "Hali shartnoma yo'q"}
+          </p>
+          <p className="text-sm mt-1">
+            {search ? "Boshqa so'z bilan qidiring" : "Birinchi shartnomani yarating"}
+          </p>
+          {!search && (
+            <button
+              onClick={() => navigate('/agreements/new')}
+              className="mt-4 bg-[#7c3aed] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#6d28d9]"
+            >
+              + Yangi shartnoma
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {agreements.map(agreement => (
+          {filteredAgreements.map(agreement => (
             <div key={agreement.id} className="bg-[#1a1d27] rounded-xl p-5 flex flex-col gap-3">
               {/* Card Header */}
               <div className="flex items-start justify-between">
