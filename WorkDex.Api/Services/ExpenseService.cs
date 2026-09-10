@@ -95,20 +95,7 @@ public class ExpenseService : IExpenseService
 
     public async Task<List<ExpenseDto>> GetOfficeExpensesAsync(Guid requestingUserId, UserRole requestingUserRole)
     {
-        Guid? companyAdminId = null;
-        if (requestingUserRole == UserRole.SuperAdmin)
-        {
-            // SuperAdmin sees all office expenses
-        }
-        else if (requestingUserRole == UserRole.Admin)
-        {
-            companyAdminId = requestingUserId;
-        }
-        else
-        {
-            var user = await _context.Users.FindAsync(requestingUserId);
-            companyAdminId = user?.CompanyAdminId ?? requestingUserId;
-        }
+        var companyAdminId = await ResolveOfficeCompanyAdminIdAsync(requestingUserId, requestingUserRole);
 
         var query = _context.Expenses
             .Include(e => e.CreatedByUser)
@@ -119,6 +106,27 @@ public class ExpenseService : IExpenseService
 
         var expenses = await query.OrderByDescending(e => e.ExpenseDate).ToListAsync();
         return expenses.Select(MapToDto).ToList();
+    }
+
+    // Ofis xarajatlari uchun tenantlik qoidasi. `null` — cheklov yo'q (faqat SuperAdmin).
+    // GetOfficeExpensesAsync va DeleteOfficeExpenseAsync ayni shu metodni ishlatadi,
+    // shuning uchun ro'yxatda ko'rinadigan yozuvlar to'plami va o'chirish mumkin bo'lgan
+    // yozuvlar to'plami hech qachon bir-biridan ajralib ketmaydi.
+    private async Task<Guid?> ResolveOfficeCompanyAdminIdAsync(Guid requestingUserId, UserRole requestingUserRole)
+    {
+        if (requestingUserRole == UserRole.SuperAdmin)
+        {
+            // SuperAdmin sees all office expenses
+            return null;
+        }
+
+        if (requestingUserRole == UserRole.Admin)
+        {
+            return requestingUserId;
+        }
+
+        var user = await _context.Users.FindAsync(requestingUserId);
+        return user?.CompanyAdminId ?? requestingUserId;
     }
 
     public async Task<ExpenseDto> CreateOfficeExpenseAsync(CreateExpenseDto dto, Guid createdByUserId)
@@ -148,10 +156,19 @@ public class ExpenseService : IExpenseService
         return MapToDto(expense);
     }
 
-    public async Task DeleteOfficeExpenseAsync(Guid expenseId)
+    public async Task DeleteOfficeExpenseAsync(Guid expenseId, Guid requestingUserId, UserRole requestingUserRole)
     {
-        var expense = await _context.Expenses
-            .FirstOrDefaultAsync(e => e.Id == expenseId && e.ProjectId == null);
+        var companyAdminId = await ResolveOfficeCompanyAdminIdAsync(requestingUserId, requestingUserRole);
+
+        var query = _context.Expenses.Where(e => e.Id == expenseId && e.ProjectId == null);
+
+        // SuperAdmin uchun companyAdminId `null` — cheklov qo'shilmaydi, ya'ni
+        // mavjud xatti-harakat o'zgarmaydi. Qolgan rollar faqat o'z kompaniyasining
+        // yozuvini o'chiradi; begona yozuv "topilmadi" (404) beradi.
+        if (companyAdminId != null)
+            query = query.Where(e => e.CompanyAdminId == companyAdminId);
+
+        var expense = await query.FirstOrDefaultAsync();
 
         if (expense is null)
             throw new KeyNotFoundException("Xarajat topilmadi.");

@@ -25,11 +25,67 @@ public static class DbInitializer
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Expenses\" ADD COLUMN IF NOT EXISTS \"Frequency\" INTEGER DEFAULT 1;");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Expenses\" ADD COLUMN IF NOT EXISTS \"CompanyAdminId\" UUID;");
 
+        // Customers - PassportSeries
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Customers\" ADD COLUMN IF NOT EXISTS \"PassportSeries\" VARCHAR(20);");
+
+        // Projects - Shartnomadan kelgan maydonlar
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Projects\" ADD COLUMN IF NOT EXISTS \"Block\" VARCHAR(50);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Projects\" ADD COLUMN IF NOT EXISTS \"ApartmentNumber\" VARCHAR(50);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Projects\" ADD COLUMN IF NOT EXISTS \"AreaM2\" NUMERIC(10,2);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Projects\" ADD COLUMN IF NOT EXISTS \"PrepaymentPercent\" INTEGER DEFAULT 30;");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Projects\" ADD COLUMN IF NOT EXISTS \"IntermediatePercent\" INTEGER DEFAULT 50;");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Projects\" ADD COLUMN IF NOT EXISTS \"FinalPercent\" INTEGER DEFAULT 20;");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Projects\" ADD COLUMN IF NOT EXISTS \"ExchangeRate\" NUMERIC(18,2);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Projects\" ADD COLUMN IF NOT EXISTS \"AgreementId\" UUID;");
+
+        // Agreements jadvalini yaratish (IF NOT EXISTS orqali xavfsiz)
+        await context.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS ""Agreements"" (
+                ""Id"" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                ""ContractNumber"" INTEGER NOT NULL DEFAULT 1,
+                ""Day"" INTEGER NOT NULL DEFAULT 1,
+                ""Month"" INTEGER NOT NULL DEFAULT 1,
+                ""Year"" INTEGER NOT NULL DEFAULT 2026,
+                ""ProjectName"" VARCHAR(300) NOT NULL DEFAULT '',
+                ""CustomerId"" UUID REFERENCES ""Customers""(""Id"") ON DELETE SET NULL,
+                ""ObjectAddress"" VARCHAR(500),
+                ""Block"" VARCHAR(50),
+                ""ApartmentNumber"" VARCHAR(50),
+                ""AreaM2"" NUMERIC(10,2),
+                ""TotalAmountUZS"" NUMERIC(18,2) NOT NULL DEFAULT 0,
+                ""PrepaymentPercent"" INTEGER NOT NULL DEFAULT 30,
+                ""IntermediatePercent"" INTEGER NOT NULL DEFAULT 50,
+                ""FinalPercent"" INTEGER NOT NULL DEFAULT 20,
+                ""ExchangeRate"" NUMERIC(18,2),
+                ""ProjectId"" UUID REFERENCES ""Projects""(""Id"") ON DELETE SET NULL,
+                ""Status"" INTEGER NOT NULL DEFAULT 1,
+                ""CompanyAdminId"" UUID,
+                ""CreatedByUserId"" UUID NOT NULL REFERENCES ""Users""(""Id"") ON DELETE RESTRICT,
+                ""CreatedAt"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                ""UpdatedAt"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+            );
+        ");
+
         // Mavjud namuna ma'lumotlarni 1-admin (Grand Stroy) ga bog'lash
         await context.Database.ExecuteSqlRawAsync("UPDATE \"Customers\" SET \"CompanyAdminId\" = (SELECT \"Id\" FROM \"Users\" WHERE \"Email\" = 'admin@wordex.uz' LIMIT 1) WHERE \"CompanyAdminId\" IS NULL;");
         await context.Database.ExecuteSqlRawAsync("UPDATE \"Workers\" SET \"CompanyAdminId\" = (SELECT \"Id\" FROM \"Users\" WHERE \"Email\" = 'admin@wordex.uz' LIMIT 1) WHERE \"CompanyAdminId\" IS NULL;");
         await context.Database.ExecuteSqlRawAsync("UPDATE \"Projects\" SET \"CompanyAdminId\" = (SELECT \"Id\" FROM \"Users\" WHERE \"Email\" = 'admin@wordex.uz' LIMIT 1) WHERE \"CompanyAdminId\" IS NULL;");
         await context.Database.ExecuteSqlRawAsync("UPDATE \"Materials\" SET \"CompanyAdminId\" = (SELECT \"Id\" FROM \"Users\" WHERE \"Email\" = 'admin@wordex.uz' LIMIT 1) WHERE \"CompanyAdminId\" IS NULL;");
+
+        // Tenantlik filtri (CompanyAdminId) deyarli har bir so'rovda qo'lda
+        // qo'llanadi, lekin ustunda indeks yo'q edi — jadval o'sgani sari har bir
+        // so'rov to'liq skanerlashga tushadi. Modelga HasIndex qo'yish foyda
+        // bermaydi: mavjud bazada EnsureCreatedAsync hech narsa o'zgartirmaydi,
+        // shuning uchun indekslar ham yuqoridagi ALTER TABLE lar kabi shu yerda
+        // yaratiladi. IF NOT EXISTS — takroriy ishga tushirish xavfsiz.
+        await context.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS \"IX_Users_CompanyAdminId\" ON \"Users\" (\"CompanyAdminId\");");
+        await context.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS \"IX_Customers_CompanyAdminId\" ON \"Customers\" (\"CompanyAdminId\");");
+        await context.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS \"IX_Materials_CompanyAdminId\" ON \"Materials\" (\"CompanyAdminId\");");
+        await context.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS \"IX_Workers_CompanyAdminId\" ON \"Workers\" (\"CompanyAdminId\");");
+        await context.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS \"IX_Projects_CompanyAdminId\" ON \"Projects\" (\"CompanyAdminId\");");
+        await context.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS \"IX_Expenses_CompanyAdminId\" ON \"Expenses\" (\"CompanyAdminId\");");
+        // Ofis xarajatlari ro'yxati har doim ProjectId IS NULL bo'yicha filtrlanadi.
+        await context.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS \"IX_Expenses_ProjectId\" ON \"Expenses\" (\"ProjectId\");");
 
         var configuredPassword = configuration["Seed:SuperAdminPassword"];
         var seedPassword = string.IsNullOrWhiteSpace(configuredPassword)

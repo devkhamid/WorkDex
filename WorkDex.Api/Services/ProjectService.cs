@@ -457,7 +457,15 @@ public class ProjectService : IProjectService
         StageCount = p.Stages?.Count ?? 0,
         CompletedStageCount = p.Stages?.Count(s => s.IsCompleted) ?? 0,
         CreatedAt = p.CreatedAt,
-        UpdatedAt = p.UpdatedAt
+        UpdatedAt = p.UpdatedAt,
+        Block = p.Block,
+        ApartmentNumber = p.ApartmentNumber,
+        AreaM2 = p.AreaM2,
+        PrepaymentPercent = p.PrepaymentPercent,
+        IntermediatePercent = p.IntermediatePercent,
+        FinalPercent = p.FinalPercent,
+        ExchangeRate = p.ExchangeRate,
+        AgreementId = p.AgreementId
     };
 
     private static ProjectStageDto MapStageToDto(ProjectStage s) => new()

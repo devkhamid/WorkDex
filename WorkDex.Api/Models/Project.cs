@@ -22,6 +22,17 @@ public class Project
     public string? Notes { get; set; }
     public Guid CreatedByUserId { get; set; }
     public Guid? CompanyAdminId { get; set; }
+
+    // Shartnomadan kelgan maydonlar
+    public string? Block { get; set; }
+    public string? ApartmentNumber { get; set; }
+    public decimal? AreaM2 { get; set; }
+    public int PrepaymentPercent { get; set; } = 30;
+    public int IntermediatePercent { get; set; } = 50;
+    public int FinalPercent { get; set; } = 20;
+    public decimal? ExchangeRate { get; set; }
+    public Guid? AgreementId { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 

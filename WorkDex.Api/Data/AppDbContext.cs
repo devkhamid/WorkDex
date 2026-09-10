@@ -25,6 +25,7 @@ public class AppDbContext : DbContext
     public DbSet<ProjectDocument> Documents { get; set; }
     public DbSet<ProjectPhoto> Photos { get; set; }
     public DbSet<ProjectUpdate> ProjectUpdates { get; set; }
+    public DbSet<Agreement> Agreements { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -626,6 +627,54 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(pu => pu.CreatedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Agreement>(entity =>
+        {
+            entity.HasKey(a => a.Id);
+
+            entity.Property(a => a.ProjectName)
+                .IsRequired()
+                .HasMaxLength(300);
+
+            entity.Property(a => a.TotalAmountUZS)
+                .HasColumnType("numeric(18,2)");
+
+            entity.Property(a => a.AreaM2)
+                .HasColumnType("numeric(10,2)");
+
+            entity.Property(a => a.ExchangeRate)
+                .HasColumnType("numeric(18,2)");
+
+            entity.Property(a => a.ObjectAddress)
+                .HasMaxLength(500);
+
+            entity.Property(a => a.Block)
+                .HasMaxLength(50);
+
+            entity.Property(a => a.ApartmentNumber)
+                .HasMaxLength(50);
+
+            entity.Property(a => a.CreatedAt)
+                .IsRequired();
+
+            entity.HasOne(a => a.Customer)
+                .WithMany()
+                .HasForeignKey(a => a.CustomerId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(a => a.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(a => a.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(a => a.Project)
+                .WithMany()
+                .HasForeignKey(a => a.ProjectId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(a => a.CompanyAdminId)
+                .HasDatabaseName("IX_Agreements_CompanyAdminId");
         });
     }
 }

@@ -9,12 +9,12 @@ import {
   DollarSign,
   CheckSquare,
   FileSpreadsheet,
-  ExternalLink,
   LogOut,
   Search,
   Grid,
   ShieldCheck,
-  Briefcase
+  Briefcase,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { projectsApi } from '../api/services';
@@ -30,13 +30,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenNewProject }) => {
   const location = useLocation();
   const [activeProjects, setActiveProjects] = useState<Project[]>([]);
 
-  useEffect(() => {
-    projectsApi.getAll().then((data) => {
-      setActiveProjects(data.slice(0, 5));
-    }).catch(() => {});
-  }, []);
-
   const isSuperAdmin = user?.role === UserRole.SuperAdmin;
+
+  useEffect(() => {
+    // Bu ro'yxat SuperAdmin uchun ko'rsatilmaydi (pastdagi `!isSuperAdmin`
+    // sharti), shuning uchun keraksiz so'rovni ham yubormaymiz.
+    if (isSuperAdmin) {
+      setActiveProjects([]);
+      return;
+    }
+
+    projectsApi.getAll().then((data) => {
+      // Sarlavha "FAOL LOYIHALAR" bo'lgani uchun yakunlangan va bekor
+      // qilingan loyihalar bu ro'yxatga tushmaydi.
+      const active = data.filter(p =>
+        p.status === ProjectStatus.Planning ||
+        p.status === ProjectStatus.InProgress ||
+        p.status === ProjectStatus.OnHold
+      );
+      setActiveProjects(active.slice(0, 5));
+    }).catch(() => {});
+  }, [isSuperAdmin]);
 
   const navItems = isSuperAdmin
     ? [
@@ -51,6 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenNewProject }) => {
         { to: '/finance', label: 'Moliya', icon: DollarSign },
         { to: '/tasks', label: 'Vazifalar', icon: CheckSquare },
         { to: '/reports', label: 'Hisobotlar (Excel)', icon: FileSpreadsheet },
+        { to: '/agreements', label: 'Shartnomalar', icon: FileText },
         { to: '/office', label: 'Mening Ofisim', icon: Briefcase },
       ];
 
@@ -60,6 +75,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenNewProject }) => {
       case ProjectStatus.InProgress: return 'bg-[#21bd68]';
       case ProjectStatus.OnHold: return 'bg-[#ff7a16]';
       case ProjectStatus.Completed: return 'bg-[#3b82f6]';
+      case ProjectStatus.Cancelled: return 'bg-[#9aa1ad]';
       default: return 'bg-gray-400';
     }
   };

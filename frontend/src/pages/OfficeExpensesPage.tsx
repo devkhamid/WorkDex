@@ -64,7 +64,12 @@ export const OfficeExpensesPage: React.FC = () => {
         frequency,
         amount: Number(amount),
         description: description.trim(),
-        expenseDate,
+        // <input type="date"> "YYYY-MM-DD" beradi; uni to'g'ridan-to'g'ri yuborsak
+        // backendda DateTime.Kind=Unspecified bo'lib, ToUniversalTime() uni server
+        // mahalliy vaqti deb hisoblaydi — natijada saqlangan payt serverning
+        // timezone iga bog'lanib qoladi. ISO (UTC) ga o'girib yuboramiz, xuddi
+        // NewProjectModal va ProjectDetailPage dagi boshqa sana maydonlari kabi.
+        expenseDate: new Date(expenseDate).toISOString(),
         notes: notes.trim() || undefined
       });
       setIsModalOpen(false);

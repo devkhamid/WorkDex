@@ -7,11 +7,15 @@ export enum UserRole {
   Customer = 5
 }
 
+// DIQQAT: qiymatlar backenddagi WorkDex.Api/Models/ProjectStatus.cs bilan
+// aynan bir xil bo'lishi shart — bu enum yorliq rangi, matni va status
+// filtriga to'g'ridan-to'g'ri raqam sifatida uzatiladi.
 export enum ProjectStatus {
   Planning = 1,
   InProgress = 2,
-  Completed = 3,
-  OnHold = 4
+  OnHold = 3,
+  Completed = 4,
+  Cancelled = 5
 }
 
 export enum PaymentMethod {

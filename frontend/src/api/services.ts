@@ -417,3 +417,33 @@ export const officeExpensesApi = {
     await apiClient.delete(`/office-expenses/${id}`);
   }
 };
+
+export const agreementsApi = {
+  getAll: async (): Promise<any[]> => {
+    const res = await apiClient.get<any[]>('/agreements');
+    return res.data;
+  },
+  getById: async (id: string): Promise<any> => {
+    const res = await apiClient.get<any>(`/agreements/${id}`);
+    return res.data;
+  },
+  getNextNumber: async (): Promise<number> => {
+    const res = await apiClient.get<{ nextNumber: number }>('/agreements/next-number');
+    return res.data.nextNumber;
+  },
+  create: async (data: any): Promise<any> => {
+    const res = await apiClient.post<any>('/agreements', data);
+    return res.data;
+  },
+  update: async (id: string, data: any): Promise<any> => {
+    const res = await apiClient.put<any>(`/agreements/${id}`, data);
+    return res.data;
+  },
+  finalize: async (id: string, data: any): Promise<any> => {
+    const res = await apiClient.post<any>(`/agreements/${id}/finalize`, data);
+    return res.data;
+  },
+  delete: async (id: string): Promise<void> => {
+    await apiClient.delete(`/agreements/${id}`);
+  }
+};

@@ -44,7 +44,7 @@ public class OfficeExpensesController : ControllerBase
     {
         try
         {
-            await _expenseService.DeleteOfficeExpenseAsync(id);
+            await _expenseService.DeleteOfficeExpenseAsync(id, User.GetUserId(), User.GetUserRole());
             return NoContent();
         }
         catch (KeyNotFoundException ex)

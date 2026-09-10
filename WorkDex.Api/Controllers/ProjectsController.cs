@@ -104,7 +104,7 @@ public class ProjectsController : ControllerBase
 
     // Moliyaviy xulosa — PDF §4
     [HttpGet("{id:guid}/summary")]
-    [Authorize(Roles = "Admin,Finance,ProjectManager")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
     public async Task<IActionResult> GetSummary(Guid id)
     {
         try
@@ -112,6 +112,60 @@ public class ProjectsController : ControllerBase
             await EnsureAccessAsync(id);
             var summary = await _projectService.GetSummaryAsync(id);
             return Ok(summary);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    // Loyiha moliyasi kartochkalari (Shartnoma sahifasi uchun)
+    [HttpGet("{id:guid}/finance")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager,FieldWorker")]
+    public async Task<IActionResult> GetFinance(Guid id)
+    {
+        try
+        {
+            await EnsureAccessAsync(id);
+            var summary = await _projectService.GetSummaryAsync(id);
+            var project = await _projectService.GetByIdAsync(id);
+            var result = new
+            {
+                projectId = id,
+                projectName = summary.ProjectName,
+                customerName = summary.CustomerName,
+                // BALANS — umumiy byudjet
+                totalBudget = summary.ContractAmount,
+                totalBudgetUSD = summary.ContractAmount,
+                currency = summary.Currency,
+                // NAQD PUL qabul qilingan
+                cashReceived = summary.TotalPaid,
+                // QOLGAN DEBITORLIK QARZI
+                remainingDebt = summary.RemainingPayment,
+                // MAVJUD NAQD PUL = qabul qilingan - xarajatlar
+                availableCash = summary.TotalPaid - summary.TotalExpenses,
+                // Xarajatlar
+                totalExpenses = summary.TotalExpenses,
+                materialExpenses = summary.MaterialExpenses,
+                laborExpenses = summary.LaborExpenses,
+                otherExpenses = summary.OtherExpenses,
+                // Foizli holat
+                paidPercent = summary.ContractAmount > 0
+                    ? Math.Round((summary.TotalPaid / summary.ContractAmount) * 100, 1)
+                    : 0,
+                // Shartnomadan maydonlar
+                prepaymentPercent = project.PrepaymentPercent,
+                intermediatePercent = project.IntermediatePercent,
+                finalPercent = project.FinalPercent,
+                exchangeRate = project.ExchangeRate,
+                block = project.Block,
+                apartmentNumber = project.ApartmentNumber,
+                areaM2 = project.AreaM2,
+                agreementId = project.AgreementId,
+                progressPercent = summary.ProgressPercent,
+                status = summary.Status.ToString()
+            };
+            return Ok(result);
         }
         catch (KeyNotFoundException ex)
         {

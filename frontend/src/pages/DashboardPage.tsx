@@ -212,6 +212,8 @@ export const DashboardPage: React.FC = () => {
         return <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#f0eaff] text-[#7650d7]">Rejalashtirish</span>;
       case ProjectStatus.Completed:
         return <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#edf5ff] text-[#2563c7]">Yakunlangan</span>;
+      case ProjectStatus.Cancelled:
+        return <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#f4f5f7] text-[#697180]">Bekor qilingan</span>;
       default:
         return null;
     }

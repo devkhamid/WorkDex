@@ -40,6 +40,8 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenNewProject }) 
         return <span className="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#f0eaff] text-[#7650d7]">Rejalashtirish</span>;
       case ProjectStatus.Completed:
         return <span className="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#edf5ff] text-[#2563c7]">Yakunlangan</span>;
+      case ProjectStatus.Cancelled:
+        return <span className="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#f4f5f7] text-[#697180]">Bekor qilingan</span>;
       default:
         return null;
     }
@@ -82,6 +84,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenNewProject }) 
           <option value={ProjectStatus.Planning}>Rejalashtirish (Planning)</option>
           <option value={ProjectStatus.OnHold}>Kechikkan / Muzlatilgan (OnHold)</option>
           <option value={ProjectStatus.Completed}>Yakunlangan (Completed)</option>
+          <option value={ProjectStatus.Cancelled}>Bekor qilingan (Cancelled)</option>
         </select>
 
         <span className="text-xs text-[#969ca7] font-semibold ml-auto">
