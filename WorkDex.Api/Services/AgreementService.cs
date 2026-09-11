@@ -60,22 +60,42 @@ public class AgreementService : IAgreementService
         }
 
         Guid? customerId = dto.CustomerId;
-        if (customerId == null && !string.IsNullOrWhiteSpace(dto.CustomerFullName))
+        if (customerId == null)
         {
-            var newCustomer = new Customer
+            if (dto.ClientType == (int)ClientType.LegalEntity && !string.IsNullOrWhiteSpace(dto.CompanyName))
             {
-                Id = Guid.NewGuid(),
-                FullName = dto.CustomerFullName.Trim(),
-                PassportSeries = dto.CustomerPassportSeries?.Trim(),
-                Address = dto.CustomerAddress?.Trim() ?? dto.ObjectAddress?.Trim(),
-                PhoneNumber = !string.IsNullOrWhiteSpace(dto.CustomerPhone) ? dto.CustomerPhone.Trim() : "+998",
-                CompanyAdminId = companyAdminId,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            _context.Customers.Add(newCustomer);
-            await _context.SaveChangesAsync();
-            customerId = newCustomer.Id;
+                var newCustomer = new Customer
+                {
+                    Id = Guid.NewGuid(),
+                    FullName = dto.CompanyName.Trim(),
+                    Address = dto.LegalAddress?.Trim() ?? dto.ObjectAddress?.Trim(),
+                    PhoneNumber = !string.IsNullOrWhiteSpace(dto.CustomerPhone) ? dto.CustomerPhone.Trim() : "+998",
+                    Notes = $"Директор: {dto.DirectorName}, ИНН: {dto.Inn}",
+                    CompanyAdminId = companyAdminId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                _context.Customers.Add(newCustomer);
+                await _context.SaveChangesAsync();
+                customerId = newCustomer.Id;
+            }
+            else if (!string.IsNullOrWhiteSpace(dto.CustomerFullName))
+            {
+                var newCustomer = new Customer
+                {
+                    Id = Guid.NewGuid(),
+                    FullName = dto.CustomerFullName.Trim(),
+                    PassportSeries = dto.CustomerPassportSeries?.Trim(),
+                    Address = dto.CustomerAddress?.Trim() ?? dto.ObjectAddress?.Trim(),
+                    PhoneNumber = !string.IsNullOrWhiteSpace(dto.CustomerPhone) ? dto.CustomerPhone.Trim() : "+998",
+                    CompanyAdminId = companyAdminId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                _context.Customers.Add(newCustomer);
+                await _context.SaveChangesAsync();
+                customerId = newCustomer.Id;
+            }
         }
         else if (customerId.HasValue && !string.IsNullOrWhiteSpace(dto.CustomerPassportSeries))
         {
@@ -94,7 +114,31 @@ public class AgreementService : IAgreementService
             Month = dto.Month,
             Year = dto.Year,
             ProjectName = dto.ProjectName,
+            ClientType = (ClientType)dto.ClientType,
             CustomerId = customerId,
+            CompanyName = dto.CompanyName,
+            DirectorName = dto.DirectorName,
+            DirectorTitle = string.IsNullOrWhiteSpace(dto.DirectorTitle) ? "Ген. директора" : dto.DirectorTitle,
+            FoundationDoc = string.IsNullOrWhiteSpace(dto.FoundationDoc) ? "Устава" : dto.FoundationDoc,
+            LegalAddress = dto.LegalAddress,
+            Inn = dto.Inn,
+            BankAccount = dto.BankAccount,
+            BankName = dto.BankName,
+            Mfo = dto.Mfo,
+            SecondBankName = dto.SecondBankName,
+            SecondBankAccount = dto.SecondBankAccount,
+            SecondMfo = dto.SecondMfo,
+            Oked = dto.Oked,
+            Okpo = dto.Okpo,
+            NdsRegNumber = dto.NdsRegNumber,
+            ContractorCompanyName = dto.ContractorCompanyName,
+            ContractorDirectorName = dto.ContractorDirectorName,
+            ContractorAddress = dto.ContractorAddress,
+            ContractorBankAccount = dto.ContractorBankAccount,
+            ContractorBankName = dto.ContractorBankName,
+            ContractorMfo = dto.ContractorMfo,
+            ContractorInn = dto.ContractorInn,
+            ContractorPhone = dto.ContractorPhone,
             ObjectAddress = dto.ObjectAddress,
             Block = dto.Block,
             ApartmentNumber = dto.ApartmentNumber,
@@ -122,22 +166,42 @@ public class AgreementService : IAgreementService
             ?? throw new KeyNotFoundException("Shartnoma topilmadi");
 
         Guid? customerId = dto.CustomerId;
-        if (customerId == null && !string.IsNullOrWhiteSpace(dto.CustomerFullName))
+        if (customerId == null)
         {
-            var newCustomer = new Customer
+            if (dto.ClientType == (int)ClientType.LegalEntity && !string.IsNullOrWhiteSpace(dto.CompanyName))
             {
-                Id = Guid.NewGuid(),
-                FullName = dto.CustomerFullName.Trim(),
-                PassportSeries = dto.CustomerPassportSeries?.Trim(),
-                Address = dto.CustomerAddress?.Trim() ?? dto.ObjectAddress?.Trim(),
-                PhoneNumber = !string.IsNullOrWhiteSpace(dto.CustomerPhone) ? dto.CustomerPhone.Trim() : "+998",
-                CompanyAdminId = agreement.CompanyAdminId,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            _context.Customers.Add(newCustomer);
-            await _context.SaveChangesAsync();
-            customerId = newCustomer.Id;
+                var newCustomer = new Customer
+                {
+                    Id = Guid.NewGuid(),
+                    FullName = dto.CompanyName.Trim(),
+                    Address = dto.LegalAddress?.Trim() ?? dto.ObjectAddress?.Trim(),
+                    PhoneNumber = !string.IsNullOrWhiteSpace(dto.CustomerPhone) ? dto.CustomerPhone.Trim() : "+998",
+                    Notes = $"Директор: {dto.DirectorName}, ИНН: {dto.Inn}",
+                    CompanyAdminId = agreement.CompanyAdminId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                _context.Customers.Add(newCustomer);
+                await _context.SaveChangesAsync();
+                customerId = newCustomer.Id;
+            }
+            else if (!string.IsNullOrWhiteSpace(dto.CustomerFullName))
+            {
+                var newCustomer = new Customer
+                {
+                    Id = Guid.NewGuid(),
+                    FullName = dto.CustomerFullName.Trim(),
+                    PassportSeries = dto.CustomerPassportSeries?.Trim(),
+                    Address = dto.CustomerAddress?.Trim() ?? dto.ObjectAddress?.Trim(),
+                    PhoneNumber = !string.IsNullOrWhiteSpace(dto.CustomerPhone) ? dto.CustomerPhone.Trim() : "+998",
+                    CompanyAdminId = agreement.CompanyAdminId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                _context.Customers.Add(newCustomer);
+                await _context.SaveChangesAsync();
+                customerId = newCustomer.Id;
+            }
         }
         else if (customerId.HasValue && !string.IsNullOrWhiteSpace(dto.CustomerPassportSeries))
         {
@@ -154,7 +218,31 @@ public class AgreementService : IAgreementService
         agreement.Month = dto.Month;
         agreement.Year = dto.Year;
         agreement.ProjectName = dto.ProjectName;
+        agreement.ClientType = (ClientType)dto.ClientType;
         agreement.CustomerId = customerId;
+        agreement.CompanyName = dto.CompanyName;
+        agreement.DirectorName = dto.DirectorName;
+        agreement.DirectorTitle = string.IsNullOrWhiteSpace(dto.DirectorTitle) ? "Ген. директора" : dto.DirectorTitle;
+        agreement.FoundationDoc = string.IsNullOrWhiteSpace(dto.FoundationDoc) ? "Устава" : dto.FoundationDoc;
+        agreement.LegalAddress = dto.LegalAddress;
+        agreement.Inn = dto.Inn;
+        agreement.BankAccount = dto.BankAccount;
+        agreement.BankName = dto.BankName;
+        agreement.Mfo = dto.Mfo;
+        agreement.SecondBankName = dto.SecondBankName;
+        agreement.SecondBankAccount = dto.SecondBankAccount;
+        agreement.SecondMfo = dto.SecondMfo;
+        agreement.Oked = dto.Oked;
+        agreement.Okpo = dto.Okpo;
+        agreement.NdsRegNumber = dto.NdsRegNumber;
+        agreement.ContractorCompanyName = dto.ContractorCompanyName;
+        agreement.ContractorDirectorName = dto.ContractorDirectorName;
+        agreement.ContractorAddress = dto.ContractorAddress;
+        agreement.ContractorBankAccount = dto.ContractorBankAccount;
+        agreement.ContractorBankName = dto.ContractorBankName;
+        agreement.ContractorMfo = dto.ContractorMfo;
+        agreement.ContractorInn = dto.ContractorInn;
+        agreement.ContractorPhone = dto.ContractorPhone;
         agreement.ObjectAddress = dto.ObjectAddress;
         agreement.Block = dto.Block;
         agreement.ApartmentNumber = dto.ApartmentNumber;
@@ -270,11 +358,36 @@ public class AgreementService : IAgreementService
         Month = a.Month,
         Year = a.Year,
         ProjectName = a.ProjectName,
+        ClientType = (int)a.ClientType,
+        ClientTypeName = a.ClientType.ToString(),
         CustomerId = a.CustomerId,
-        CustomerFullName = a.Customer?.FullName,
+        CustomerFullName = a.Customer?.FullName ?? (a.ClientType == ClientType.LegalEntity ? a.CompanyName : null),
         CustomerPhone = a.Customer?.PhoneNumber,
         CustomerPassportSeries = a.Customer?.PassportSeries,
-        CustomerAddress = a.Customer?.Address,
+        CustomerAddress = a.Customer?.Address ?? (a.ClientType == ClientType.LegalEntity ? a.LegalAddress : null),
+        CompanyName = a.CompanyName,
+        DirectorName = a.DirectorName,
+        DirectorTitle = a.DirectorTitle,
+        FoundationDoc = a.FoundationDoc,
+        LegalAddress = a.LegalAddress,
+        Inn = a.Inn,
+        BankAccount = a.BankAccount,
+        BankName = a.BankName,
+        Mfo = a.Mfo,
+        SecondBankName = a.SecondBankName,
+        SecondBankAccount = a.SecondBankAccount,
+        SecondMfo = a.SecondMfo,
+        Oked = a.Oked,
+        Okpo = a.Okpo,
+        NdsRegNumber = a.NdsRegNumber,
+        ContractorCompanyName = a.ContractorCompanyName,
+        ContractorDirectorName = a.ContractorDirectorName,
+        ContractorAddress = a.ContractorAddress,
+        ContractorBankAccount = a.ContractorBankAccount,
+        ContractorBankName = a.ContractorBankName,
+        ContractorMfo = a.ContractorMfo,
+        ContractorInn = a.ContractorInn,
+        ContractorPhone = a.ContractorPhone,
         ObjectAddress = a.ObjectAddress,
         Block = a.Block,
         ApartmentNumber = a.ApartmentNumber,

@@ -70,6 +70,7 @@ export const AgreementsPage: React.FC = () => {
     return (
       a.projectName?.toLowerCase().includes(q) ||
       a.customerFullName?.toLowerCase().includes(q) ||
+      a.companyName?.toLowerCase().includes(q) ||
       String(a.contractNumber).includes(q)
     );
   });
@@ -142,12 +143,25 @@ export const AgreementsPage: React.FC = () => {
                   <div className="text-white font-semibold text-sm leading-tight">
                     {agreement.projectName}
                   </div>
-                  {agreement.customerFullName && (
-                    <div className="text-[#a0a5b5] text-xs mt-1">{agreement.customerFullName}</div>
+                  {agreement.clientType === 2 ? (
+                    <div className="text-[#a0a5b5] text-xs mt-1">
+                      {agreement.companyName || agreement.customerFullName}
+                      {agreement.directorName && agreement.companyName ? ` (${agreement.directorName})` : ''}
+                    </div>
+                  ) : (
+                    agreement.customerFullName && (
+                      <div className="text-[#a0a5b5] text-xs mt-1">{agreement.customerFullName}</div>
+                    )
                   )}
                 </div>
-                <span className="text-xs text-[#a0a5b5] bg-[#ffffff15] px-2 py-0.5 rounded">
-                  personal
+                <span
+                  className={`text-[11px] px-2 py-0.5 rounded font-medium ${
+                    agreement.clientType === 2
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                      : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                  }`}
+                >
+                  {agreement.clientType === 2 ? '🏢 Yuridik shaxs' : '👤 Jismoniy shaxs'}
                 </span>
               </div>
 

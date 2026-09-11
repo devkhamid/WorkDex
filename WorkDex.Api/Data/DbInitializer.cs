@@ -66,6 +66,32 @@ public static class DbInitializer
             );
         ");
 
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"ClientType\" INTEGER DEFAULT 1;");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"CompanyName\" VARCHAR(300);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"DirectorName\" VARCHAR(200);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"DirectorTitle\" VARCHAR(100);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"FoundationDoc\" VARCHAR(100);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"LegalAddress\" VARCHAR(500);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"Inn\" VARCHAR(50);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"BankAccount\" VARCHAR(50);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"BankName\" VARCHAR(200);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"Mfo\" VARCHAR(20);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"SecondBankName\" VARCHAR(200);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"SecondBankAccount\" VARCHAR(50);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"SecondMfo\" VARCHAR(20);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"Oked\" VARCHAR(50);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"Okpo\" VARCHAR(50);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"NdsRegNumber\" VARCHAR(50);");
+
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"ContractorCompanyName\" VARCHAR(300);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"ContractorDirectorName\" VARCHAR(200);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"ContractorAddress\" VARCHAR(500);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"ContractorBankAccount\" VARCHAR(50);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"ContractorBankName\" VARCHAR(200);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"ContractorMfo\" VARCHAR(20);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"ContractorInn\" VARCHAR(50);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"ContractorPhone\" VARCHAR(50);");
+
         // Mavjud namuna ma'lumotlarni 1-admin (Grand Stroy) ga bog'lash
         await context.Database.ExecuteSqlRawAsync("UPDATE \"Customers\" SET \"CompanyAdminId\" = (SELECT \"Id\" FROM \"Users\" WHERE \"Email\" = 'admin@wordex.uz' LIMIT 1) WHERE \"CompanyAdminId\" IS NULL;");
         await context.Database.ExecuteSqlRawAsync("UPDATE \"Workers\" SET \"CompanyAdminId\" = (SELECT \"Id\" FROM \"Users\" WHERE \"Email\" = 'admin@wordex.uz' LIMIT 1) WHERE \"CompanyAdminId\" IS NULL;");
