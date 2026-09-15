@@ -12,7 +12,7 @@ public class Agreement
     public Guid? CustomerId { get; set; }
     public Customer? Customer { get; set; }
 
-    public string? ObjectAddress { get; set; }
+    public string? ObjectAddress { get; set; } = "г. Ташкент";
     public string? Block { get; set; }
     public string? ApartmentNumber { get; set; }
     public decimal? AreaM2 { get; set; }

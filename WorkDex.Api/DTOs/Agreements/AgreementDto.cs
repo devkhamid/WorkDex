@@ -108,7 +108,7 @@ public class CreateAgreementDto
     public string? ContractorInn { get; set; }
     public string? ContractorPhone { get; set; }
 
-    public string? ObjectAddress { get; set; }
+    public string? ObjectAddress { get; set; } = "г. Ташкент";
     public string? Block { get; set; }
     public string? ApartmentNumber { get; set; }
     public decimal? AreaM2 { get; set; }
@@ -163,7 +163,7 @@ public class UpdateAgreementDto
     public string? ContractorInn { get; set; }
     public string? ContractorPhone { get; set; }
 
-    public string? ObjectAddress { get; set; }
+    public string? ObjectAddress { get; set; } = "г. Ташкент";
     public string? Block { get; set; }
     public string? ApartmentNumber { get; set; }
     public decimal? AreaM2 { get; set; }

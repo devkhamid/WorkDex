@@ -54,7 +54,7 @@ export const AgreementFormPage: React.FC = () => {
   const [ndsRegNumber, setNdsRegNumber] = useState('');
 
   // Obyekt
-  const [objectAddress, setObjectAddress] = useState('');
+  const [objectAddress, setObjectAddress] = useState('г. Ташкент');
   const [block, setBlock] = useState('');
   const [apartmentNumber, setApartmentNumber] = useState('');
   const [areaM2, setAreaM2] = useState('');
@@ -142,7 +142,7 @@ export const AgreementFormPage: React.FC = () => {
       if (a.contractorInn) setContractorInn(a.contractorInn);
       if (a.contractorPhone) setContractorPhone(a.contractorPhone);
 
-      setObjectAddress(a.objectAddress || '');
+      setObjectAddress(a.objectAddress || 'г. Ташкент');
       setBlock(a.block || '');
       setApartmentNumber(a.apartmentNumber || '');
       setAreaM2(a.areaM2 ? String(a.areaM2) : '');
@@ -710,7 +710,7 @@ export const AgreementFormPage: React.FC = () => {
                     type="text"
                     value={objectAddress}
                     onChange={e => setObjectAddress(e.target.value)}
-                    placeholder="г. Ташкент, Яккасарайский район, улица Абдулла Каххара, дом 133"
+                    placeholder="г. Ташкент"
                     className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-[#7c3aed] bg-white"
                   />
                 </div>
