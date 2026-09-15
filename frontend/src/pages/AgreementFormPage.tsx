@@ -54,7 +54,7 @@ export const AgreementFormPage: React.FC = () => {
   const [ndsRegNumber, setNdsRegNumber] = useState('');
 
   // Obyekt
-  const [objectAddress, setObjectAddress] = useState('г. Ташкент');
+  const [objectAddress, setObjectAddress] = useState('г. Ташкент, Яккасарайский район, улица ');
   const [block, setBlock] = useState('');
   const [apartmentNumber, setApartmentNumber] = useState('');
   const [areaM2, setAreaM2] = useState('');
@@ -142,7 +142,7 @@ export const AgreementFormPage: React.FC = () => {
       if (a.contractorInn) setContractorInn(a.contractorInn);
       if (a.contractorPhone) setContractorPhone(a.contractorPhone);
 
-      setObjectAddress(a.objectAddress || 'г. Ташкент');
+      setObjectAddress(a.objectAddress || 'г. Ташкент, Яккасарайский район, улица ');
       setBlock(a.block || '');
       setApartmentNumber(a.apartmentNumber || '');
       setAreaM2(a.areaM2 ? String(a.areaM2) : '');
@@ -1086,18 +1086,15 @@ export const AgreementFormPage: React.FC = () => {
               </p>
               <p className="text-sm font-bold mt-2 indent-6">2.4. Порядок платежей:</p>
               <p className="text-sm indent-8 mt-1">
-                2.4.1. <strong>{prepayPct}%</strong> от стоимости Договора{' '}
-                {totalNum > 0 && <span>— <strong>{fmt(prepayAmount)} сум</strong> — </span>}
+                2.4.1. <strong>{prepayPct}%</strong> от стоимости Договора
                 выплачивается в качестве предоплаты при подписании настоящего Договора.
               </p>
               <p className="text-sm indent-8 mt-1">
-                2.4.2. <strong>{intermediatePct}%</strong> от стоимости Договора{' '}
-                {totalNum > 0 && <span>— <strong>{fmt(intermediateAmount)} сум</strong> — </span>}
+                2.4.2. <strong>{intermediatePct}%</strong> от стоимости Договора
                 выплачивается после завершения промежуточного этапа работ.
               </p>
               <p className="text-sm indent-8 mt-1">
-                2.4.3. Оставшиеся <strong>{finalPct}%</strong> от стоимости Договора{' '}
-                {totalNum > 0 && <span>— <strong>{fmt(finalAmount)} сум</strong> — </span>}
+                2.4.3. Оставшиеся <strong>{finalPct}%</strong> от стоимости Договора
                 выплачиваются после полного завершения работ.
               </p>
             </div>
