@@ -171,7 +171,7 @@ const ProtectedLayout: React.FC = () => {
         />
 
         {/* Persistent Sub-header Navigation Tabs (Never disappears) */}
-        <div className="h-[48px] bg-white flex items-end px-6 border-b border-[#e4e7ec] gap-1 overflow-x-auto">
+        <div className="no-print h-[48px] bg-white flex items-end px-6 border-b border-[#e4e7ec] gap-1 overflow-x-auto">
           {navTabs.map((tab) => {
             const active = isTabActive(tab.path);
             return (

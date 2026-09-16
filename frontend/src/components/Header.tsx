@@ -13,7 +13,7 @@ export const Header: React.FC<HeaderProps> = ({ title, onOpenNewProject }) => {
   const isSuperAdmin = user?.role === UserRole.SuperAdmin;
 
   return (
-    <header className="h-[66px] bg-white border-b border-[#e4e7ec] flex items-center px-6 gap-3">
+    <header className="no-print h-[66px] bg-white border-b border-[#e4e7ec] flex items-center px-6 gap-3">
       {/* Breadcrumb */}
       <div className="text-xs text-[#a0a5af] flex items-center gap-1.5">
         <span>WorkDex</span>

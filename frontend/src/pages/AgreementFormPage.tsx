@@ -267,39 +267,96 @@ export const AgreementFormPage: React.FC = () => {
 
   return (
     <>
-      {/* Print styles — only contract-preview shown, A4 Portrait */}
+      {/* Print styles — clean multi-page A4 Portrait flow without overlap */}
       <style>{`
         @media print {
           @page {
             size: A4 portrait;
-            margin: 15mm 15mm 15mm 15mm;
+            margin: 15mm 12mm 15mm 12mm;
           }
 
-          /* Hide everything by default */
-          body * { visibility: hidden; }
+          /* 1. Hide UI chrome */
+          .no-print,
+          aside,
+          header,
+          nav {
+            display: none !important;
+          }
 
-          /* Show only the contract document */
-          .contract-preview,
-          .contract-preview * { visibility: visible !important; }
-
-          /* Position contract to fill the page */
-          .contract-preview {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
+          /* 2. Reset html, body, and all wrappers to natural block flow */
+          html, body {
             width: 100% !important;
             height: auto !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            color: black !important;
+          }
+
+          #root,
+          #root > div,
+          main,
+          .agreement-form-wrapper,
+          .contract-preview-scroll {
+            display: block !important;
+            position: static !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            background: white !important;
+            float: none !important;
+          }
+
+          /* 3. Contract Document — multi-page natural flow */
+          .contract-preview {
+            display: block !important;
+            position: static !important;
+            width: 100% !important;
+            max-width: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
             box-shadow: none !important;
+            border: none !important;
             border-radius: 0 !important;
-            overflow: visible !important;
             background: white !important;
+            overflow: visible !important;
+            color: #000 !important;
+            font-size: 11pt !important;
+            line-height: 1.45 !important;
+          }
+
+          /* Avoid breaking titles away from their section content */
+          .contract-preview h1,
+          .contract-preview h2,
+          .contract-preview h3,
+          .contract-preview .font-bold {
+            break-after: avoid !important;
+            page-break-after: avoid !important;
+          }
+
+          .contract-preview p {
+            orphans: 3 !important;
+            widows: 3 !important;
+          }
+
+          /* Section 10 (Bank requisites and signatures) must not be split in half */
+          .signature-section {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
           }
         }
       `}</style>
 
-      <div className="flex h-full bg-[#f8f9fb]">
+      <div className="agreement-form-wrapper flex h-full bg-[#f8f9fb]">
         {/* LEFT — Form */}
         <div className="w-[460px] flex-shrink-0 bg-white border-r border-gray-200 overflow-y-auto no-print">
           <div className="p-5">
@@ -977,7 +1034,7 @@ export const AgreementFormPage: React.FC = () => {
         </div>
 
         {/* RIGHT — Contract Preview */}
-        <div className="flex-1 overflow-auto bg-gray-100">
+        <div className="contract-preview-scroll flex-1 overflow-auto bg-gray-100">
           {/* Toolbar */}
           <div className="no-print bg-white border-b border-gray-200 px-5 py-3 flex items-center justify-between sticky top-0 z-10">
             <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">
@@ -1303,7 +1360,7 @@ export const AgreementFormPage: React.FC = () => {
 
             {/* Section 10 - SIGNATURES & REQUISITES */}
             {/* EXACT MATCH: CHAPDA = ZAKAZCHIK, O'NGDA = PODRYADCHIK */}
-            <div className="mt-8 pt-6 border-t border-gray-400">
+            <div className="signature-section mt-8 pt-6 border-t border-gray-400">
               <div className="font-bold text-center mb-6 tracking-wide text-sm uppercase">
                 10. БАНКОВСКИЕ РЕКВИЗИТЫ, ЮРИДИЧЕСКИЕ АДРЕСА И ПОДПИСИ СТОРОН
               </div>
