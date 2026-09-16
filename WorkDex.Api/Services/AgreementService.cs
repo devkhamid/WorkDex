@@ -139,7 +139,7 @@ public class AgreementService : IAgreementService
             ContractorMfo = dto.ContractorMfo,
             ContractorInn = dto.ContractorInn,
             ContractorPhone = dto.ContractorPhone,
-            ObjectAddress = string.IsNullOrWhiteSpace(dto.ObjectAddress) ? "г. Ташкент" : dto.ObjectAddress.Trim(),
+            ObjectAddress = string.IsNullOrWhiteSpace(dto.ObjectAddress) ? "г. Ташкент, Яккасарайский район, улица, дом 133" : dto.ObjectAddress.Trim(),
             Block = dto.Block,
             ApartmentNumber = dto.ApartmentNumber,
             AreaM2 = dto.AreaM2,
@@ -243,7 +243,7 @@ public class AgreementService : IAgreementService
         agreement.ContractorMfo = dto.ContractorMfo;
         agreement.ContractorInn = dto.ContractorInn;
         agreement.ContractorPhone = dto.ContractorPhone;
-        agreement.ObjectAddress = string.IsNullOrWhiteSpace(dto.ObjectAddress) ? "г. Ташкент" : dto.ObjectAddress.Trim();
+        agreement.ObjectAddress = string.IsNullOrWhiteSpace(dto.ObjectAddress) ? "г. Ташкент, Яккасарайский район, улица, дом 133" : dto.ObjectAddress.Trim();
         agreement.Block = dto.Block;
         agreement.ApartmentNumber = dto.ApartmentNumber;
         agreement.AreaM2 = dto.AreaM2;
