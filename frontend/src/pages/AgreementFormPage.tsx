@@ -267,20 +267,34 @@ export const AgreementFormPage: React.FC = () => {
 
   return (
     <>
-      {/* Print styles */}
+      {/* Print styles — only contract-preview shown, A4 Portrait */}
       <style>{`
         @media print {
-          .no-print { display: none !important; }
-          .print-only { display: block !important; }
-          body { background: white; }
+          @page {
+            size: A4 portrait;
+            margin: 15mm 15mm 15mm 15mm;
+          }
+
+          /* Hide everything by default */
+          body * { visibility: hidden; }
+
+          /* Show only the contract document */
+          .contract-preview,
+          .contract-preview * { visibility: visible !important; }
+
+          /* Position contract to fill the page */
           .contract-preview {
             position: fixed !important;
-            top: 0; left: 0;
+            top: 0 !important;
+            left: 0 !important;
             width: 100% !important;
             height: auto !important;
-            overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
             box-shadow: none !important;
             border-radius: 0 !important;
+            overflow: visible !important;
+            background: white !important;
           }
         }
       `}</style>
