@@ -1059,13 +1059,12 @@ export const AgreementFormPage: React.FC = () => {
             style={{ fontFamily: '"Times New Roman", Times, serif' }}
           >
             {/* Header Logo */}
-            <div className="text-center mb-8">
-              <div className="text-3xl font-bold tracking-[0.25em] text-gray-950 mb-1 uppercase">
-                {contractorCompanyName.replace(/^(ООО|OOO|СП ООО|ЧП|MCHJ)\s*[«"']/i, '').replace(/[»"']$/i, '') || 'UNIO'}
-              </div>
-              <div className="text-xs text-gray-500 tracking-[0.4em] uppercase font-sans font-semibold">
-                ARCHITECTS & BUILD
-              </div>
+            <div className="flex flex-col items-center justify-center mb-6">
+              <img
+                src="/unio-logo.png"
+                alt="UNIO ARCHITECTS"
+                className="h-16 md:h-20 w-auto object-contain"
+              />
             </div>
 
             {/* Title */}
