@@ -1390,9 +1390,7 @@ export const AgreementFormPage: React.FC = () => {
                       <div className="pt-10">
                         <div className="flex items-end gap-2">
                           <span>Заказчик</span>
-                          <span className="border-b border-gray-800 flex-1 min-w-[120px] text-center pb-0.5">
-                            {customerFullName || ''}
-                          </span>
+                          <span className="border-b border-gray-800 flex-1 min-w-[120px] pb-0.5">&nbsp;</span>
                         </div>
                         <div className="text-[10px] text-gray-400 mt-1 italic pl-16">(подпись)</div>
                       </div>
@@ -1461,9 +1459,7 @@ export const AgreementFormPage: React.FC = () => {
                       <div className="pt-8">
                         <div className="flex items-end gap-2">
                           <span>{directorTitle}</span>
-                          <span className="border-b border-gray-800 flex-1 min-w-[120px] text-center pb-0.5">
-                            {directorName || ''}
-                          </span>
+                          <span className="border-b border-gray-800 flex-1 min-w-[120px] pb-0.5">&nbsp;</span>
                         </div>
                         <div className="text-[10px] text-gray-400 mt-1 italic pl-24">(подпись / печать)</div>
                       </div>
@@ -1507,9 +1503,7 @@ export const AgreementFormPage: React.FC = () => {
                   <div className="pt-8">
                     <div className="flex items-end gap-2">
                       <span>Ген. директор</span>
-                      <span className="border-b border-gray-800 flex-1 min-w-[120px] text-center pb-0.5">
-                        {contractorDirectorName}
-                      </span>
+                      <span className="border-b border-gray-800 flex-1 min-w-[120px] pb-0.5">&nbsp;</span>
                     </div>
                     <div className="text-[10px] text-gray-400 mt-1 italic pl-24">(подпись / печать)</div>
                   </div>
