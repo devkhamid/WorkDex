@@ -20,7 +20,7 @@ public class ExpensesController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin,Finance,ProjectManager,FieldWorker")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager,FieldWorker")]
     public async Task<IActionResult> GetExpenses(Guid projectId, [FromQuery] ExpenseCategory? category)
     {
         try
@@ -35,7 +35,7 @@ public class ExpensesController : ControllerBase
     }
 
     [HttpGet("{expenseId:guid}")]
-    [Authorize(Roles = "Admin,Finance,ProjectManager,FieldWorker")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager,FieldWorker")]
     public async Task<IActionResult> GetExpenseById(Guid projectId, Guid expenseId)
     {
         try
@@ -50,7 +50,7 @@ public class ExpensesController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Finance,ProjectManager")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
     public async Task<IActionResult> AddExpense(Guid projectId, [FromBody] CreateExpenseDto dto)
     {
         try
@@ -66,7 +66,7 @@ public class ExpensesController : ControllerBase
     }
 
     [HttpDelete("{expenseId:guid}")]
-    [Authorize(Roles = "Admin,Finance")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance")]
     public async Task<IActionResult> DeleteExpense(Guid projectId, Guid expenseId)
     {
         try

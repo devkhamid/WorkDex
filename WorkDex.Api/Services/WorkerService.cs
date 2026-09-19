@@ -175,14 +175,18 @@ public class WorkerService : IWorkerService
         if (user is null)
             throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
 
-        if (dto.WorkAmount > dto.AgreedAmount)
+        var isUsd = string.Equals(dto.Currency, "USD", StringComparison.OrdinalIgnoreCase) && dto.ExchangeRateToUzs.HasValue && dto.ExchangeRateToUzs.Value > 0;
+        var originalAgreed = dto.OriginalAgreedAmount ?? dto.AgreedAmount;
+        var effectiveAgreed = isUsd ? Math.Round(originalAgreed * dto.ExchangeRateToUzs!.Value, 2) : dto.AgreedAmount;
+
+        if (dto.WorkAmount > effectiveAgreed)
         {
-            throw new InvalidOperationException($"Ishlangan haq (${dto.WorkAmount:N0}) kelishilgan umumiy summadan (${dto.AgreedAmount:N0}) ko'p bo'lishi mumkin emas.");
+            throw new InvalidOperationException($"Ishlangan haq ({dto.WorkAmount:N0} so'm) kelishilgan umumiy summadan ({effectiveAgreed:N0} so'm) ko'p bo'lishi mumkin emas.");
         }
 
-        if (dto.PaidAmount > dto.AgreedAmount)
+        if (dto.PaidAmount > effectiveAgreed)
         {
-            throw new InvalidOperationException($"Ustaga faqat ${dto.AgreedAmount:N0} gacha to'lash mumkin. Boshlang'ich to'lov kelishilgan umumiy summadan oshib ketmoqda.");
+            throw new InvalidOperationException($"Ustaga faqat {effectiveAgreed:N0} so'm gacha to'lash mumkin. Boshlang'ich to'lov kelishilgan umumiy summadan oshib ketmoqda.");
         }
 
         var workerPayment = new WorkerPayment
@@ -190,7 +194,10 @@ public class WorkerService : IWorkerService
             ProjectId = projectId,
             WorkerId = dto.WorkerId,
             JobDescription = dto.JobDescription.Trim(),
-            AgreedAmount = dto.AgreedAmount,
+            AgreedAmount = effectiveAgreed,
+            Currency = isUsd ? "USD" : "UZS",
+            ExchangeRateToUzs = isUsd ? dto.ExchangeRateToUzs : null,
+            OriginalAgreedAmount = isUsd ? originalAgreed : null,
             WorkAmount = dto.WorkAmount,
             PaidAmount = dto.PaidAmount,
             PaymentDate = dto.PaymentDate,
@@ -211,6 +218,9 @@ public class WorkerService : IWorkerService
             WorkerSpecialty = worker.Specialty,
             JobDescription = workerPayment.JobDescription,
             AgreedAmount = workerPayment.AgreedAmount,
+            Currency = workerPayment.Currency,
+            ExchangeRateToUzs = workerPayment.ExchangeRateToUzs,
+            OriginalAgreedAmount = workerPayment.OriginalAgreedAmount,
             WorkAmount = workerPayment.WorkAmount,
             PaidAmount = workerPayment.PaidAmount,
             PaymentDate = workerPayment.PaymentDate,
@@ -243,6 +253,9 @@ public class WorkerService : IWorkerService
             WorkerSpecialty = wp.Worker?.Specialty,
             JobDescription = wp.JobDescription,
             AgreedAmount = wp.AgreedAmount,
+            Currency = wp.Currency ?? "UZS",
+            ExchangeRateToUzs = wp.ExchangeRateToUzs,
+            OriginalAgreedAmount = wp.OriginalAgreedAmount,
             WorkAmount = wp.WorkAmount,
             PaidAmount = wp.PaidAmount,
             PaymentDate = wp.PaymentDate,
@@ -272,6 +285,9 @@ public class WorkerService : IWorkerService
             WorkerSpecialty = job.Worker?.Specialty,
             JobDescription = job.JobDescription,
             AgreedAmount = job.AgreedAmount,
+            Currency = job.Currency ?? "UZS",
+            ExchangeRateToUzs = job.ExchangeRateToUzs,
+            OriginalAgreedAmount = job.OriginalAgreedAmount,
             WorkAmount = job.WorkAmount,
             PaidAmount = job.PaidAmount,
             PaymentDate = job.PaymentDate,
@@ -294,12 +310,12 @@ public class WorkerService : IWorkerService
 
         if (dto.WorkAmount > job.AgreedAmount)
         {
-            throw new InvalidOperationException($"Ishlangan haq (${dto.WorkAmount:N0}) kelishilgan umumiy summadan (${job.AgreedAmount:N0}) ko'p bo'lishi mumkin emas.");
+            throw new InvalidOperationException($"Ishlangan haq ({dto.WorkAmount:N0} so'm) kelishilgan umumiy summadan ({job.AgreedAmount:N0} so'm) ko'p bo'lishi mumkin emas.");
         }
 
         if (dto.WorkAmount < job.PaidAmount)
         {
-            throw new InvalidOperationException($"Ishlangan haqni (${job.PaidAmount:N0}) allaqachon to'langan summadan past qilib bo'lmaydi.");
+            throw new InvalidOperationException($"Ishlangan haqni ({job.PaidAmount:N0} so'm) allaqachon to'langan summadan past qilib bo'lmaydi.");
         }
 
         job.WorkAmount = dto.WorkAmount;
@@ -307,7 +323,7 @@ public class WorkerService : IWorkerService
         {
             job.Notes = string.IsNullOrWhiteSpace(job.Notes)
                 ? dto.Notes.Trim()
-                : $"{job.Notes} | Ish haqi yangilandi: ${dto.WorkAmount:N0} ({dto.Notes.Trim()})";
+                : $"{job.Notes} | Ish haqi yangilandi: {dto.WorkAmount:N0} so'm ({dto.Notes.Trim()})";
         }
 
         await _context.SaveChangesAsync();
@@ -321,6 +337,9 @@ public class WorkerService : IWorkerService
             WorkerSpecialty = job.Worker?.Specialty,
             JobDescription = job.JobDescription,
             AgreedAmount = job.AgreedAmount,
+            Currency = job.Currency ?? "UZS",
+            ExchangeRateToUzs = job.ExchangeRateToUzs,
+            OriginalAgreedAmount = job.OriginalAgreedAmount,
             WorkAmount = job.WorkAmount,
             PaidAmount = job.PaidAmount,
             PaymentDate = job.PaymentDate,
@@ -341,24 +360,38 @@ public class WorkerService : IWorkerService
         if (job is null)
             throw new KeyNotFoundException("Usta ishi / to'lovi topilmadi.");
 
+        var isUsd = string.Equals(dto.Currency, "USD", StringComparison.OrdinalIgnoreCase) && dto.ExchangeRateToUzs.HasValue && dto.ExchangeRateToUzs.Value > 0;
+        var originalAmount = dto.OriginalAmount ?? dto.Amount;
+        var effectiveAmount = isUsd ? Math.Round(originalAmount * dto.ExchangeRateToUzs!.Value, 2) : dto.Amount;
+
         var remainingAllowed = job.AgreedAmount - job.PaidAmount;
         if (remainingAllowed <= 0)
         {
-            throw new InvalidOperationException($"Ustaga kelishilgan summa (${job.AgreedAmount:N0}) allaqachon to'liq to'langan.");
+            throw new InvalidOperationException($"Ustaga kelishilgan summa ({job.AgreedAmount:N0} so'm) allaqachon to'liq to'langan.");
         }
 
-        if (dto.Amount > remainingAllowed)
+        if (effectiveAmount > remainingAllowed)
         {
-            throw new InvalidOperationException($"Ustaga faqat ${remainingAllowed:N0} to'lash mumkin. Kiritilgan summa (${dto.Amount:N0}) kelishilgan umumiy summadan (${job.AgreedAmount:N0}) oshib ketmoqda.");
+            throw new InvalidOperationException($"Ustaga faqat {remainingAllowed:N0} so'm to'lash mumkin. Kiritilgan summa ({effectiveAmount:N0} so'm) kelishilgan umumiy summadan ({job.AgreedAmount:N0} so'm) oshib ketmoqda.");
         }
 
-        job.PaidAmount += dto.Amount;
+        job.PaidAmount += effectiveAmount;
         job.PaymentDate = dto.PaymentDate;
+        var paymentNote = isUsd
+            ? $"To'lov: ${originalAmount:N0} USD (kurs: {dto.ExchangeRateToUzs:N0}) = {effectiveAmount:N0} so'm"
+            : $"To'lov: {effectiveAmount:N0} so'm";
+
         if (!string.IsNullOrWhiteSpace(dto.Notes))
         {
             job.Notes = string.IsNullOrWhiteSpace(job.Notes)
-                ? dto.Notes.Trim()
-                : $"{job.Notes} | To'lov: ${dto.Amount:N0} ({dto.Notes.Trim()})";
+                ? $"{paymentNote} ({dto.Notes.Trim()})"
+                : $"{job.Notes} | {paymentNote} ({dto.Notes.Trim()})";
+        }
+        else
+        {
+            job.Notes = string.IsNullOrWhiteSpace(job.Notes)
+                ? paymentNote
+                : $"{job.Notes} | {paymentNote}";
         }
 
         await _context.SaveChangesAsync();
@@ -372,6 +405,9 @@ public class WorkerService : IWorkerService
             WorkerSpecialty = job.Worker?.Specialty,
             JobDescription = job.JobDescription,
             AgreedAmount = job.AgreedAmount,
+            Currency = job.Currency ?? "UZS",
+            ExchangeRateToUzs = job.ExchangeRateToUzs,
+            OriginalAgreedAmount = job.OriginalAgreedAmount,
             WorkAmount = job.WorkAmount,
             PaidAmount = job.PaidAmount,
             PaymentDate = job.PaymentDate,

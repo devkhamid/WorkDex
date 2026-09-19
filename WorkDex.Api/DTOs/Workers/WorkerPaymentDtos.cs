@@ -15,6 +15,11 @@ public class CreateWorkerPaymentDto
     [Range(0.01, double.MaxValue, ErrorMessage = "Kelishilgan summa 0 dan katta bo'lishi kerak.")]
     public decimal AgreedAmount { get; set; }
 
+    [MaxLength(3)]
+    public string Currency { get; set; } = "UZS";
+    public decimal? ExchangeRateToUzs { get; set; }
+    public decimal? OriginalAgreedAmount { get; set; }
+
     [Range(0, double.MaxValue, ErrorMessage = "Bajarilgan ish haqi manfiy bo'lishi mumkin emas.")]
     public decimal WorkAmount { get; set; } 
 
@@ -43,6 +48,11 @@ public class PayWorkerDto
     [Range(0.01, double.MaxValue, ErrorMessage = "To'lov summasi 0 dan katta bo'lishi kerak.")]
     public decimal Amount { get; set; }
 
+    [MaxLength(3)]
+    public string Currency { get; set; } = "UZS";
+    public decimal? ExchangeRateToUzs { get; set; }
+    public decimal? OriginalAmount { get; set; }
+
     [Required]
     public DateTime PaymentDate { get; set; }
 
@@ -59,6 +69,9 @@ public class WorkerPaymentDto
     public string? WorkerSpecialty { get; set; }
     public string JobDescription { get; set; } = string.Empty;
     public decimal AgreedAmount { get; set; }
+    public string Currency { get; set; } = "UZS";
+    public decimal? ExchangeRateToUzs { get; set; }
+    public decimal? OriginalAgreedAmount { get; set; }
     public decimal WorkAmount { get; set; } // Bajarilgan ish haqi
     public decimal PaidAmount { get; set; }
     public decimal RemainingAmount => AgreedAmount - PaidAmount; // Qoldiq qarz

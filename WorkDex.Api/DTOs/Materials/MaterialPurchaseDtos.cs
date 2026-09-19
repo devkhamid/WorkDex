@@ -53,6 +53,9 @@ public class MaterialPurchaseDto
     public string Unit { get; set; } = string.Empty;
     public decimal UnitPrice { get; set; }
     public decimal TotalCost { get; set; }
+    public string Currency { get; set; } = "UZS";
+    public decimal? ExchangeRateToUzs { get; set; }
+    public decimal? OriginalUnitPrice { get; set; }
     public string? Supplier { get; set; }
     public DateTime PurchaseDate { get; set; }
     public string? ReceiptNumber { get; set; }

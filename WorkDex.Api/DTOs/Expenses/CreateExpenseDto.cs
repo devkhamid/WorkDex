@@ -14,6 +14,11 @@ public class CreateExpenseDto
     [Range(0.01, double.MaxValue, ErrorMessage = "Xarajat summasi 0 dan katta bo'lishi kerak.")]
     public decimal Amount { get; set; }
 
+    [MaxLength(3)]
+    public string Currency { get; set; } = "UZS";
+    public decimal? ExchangeRateToUzs { get; set; }
+    public decimal? OriginalAmount { get; set; }
+
     [Required]
     [MaxLength(500)]
     public string Description { get; set; } = string.Empty;

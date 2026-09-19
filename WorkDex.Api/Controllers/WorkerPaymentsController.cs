@@ -18,7 +18,7 @@ public class WorkerPaymentsController : ControllerBase
     }
 
     [HttpGet("api/projects/{projectId:guid}/worker-payments")]
-    [Authorize(Roles = "Admin,Finance,ProjectManager,FieldWorker")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager,FieldWorker")]
     public async Task<IActionResult> GetWorkerJobs(Guid projectId)
     {
         try
@@ -33,7 +33,7 @@ public class WorkerPaymentsController : ControllerBase
     }
 
     [HttpGet("api/projects/{projectId:guid}/worker-payments/{paymentId:guid}")]
-    [Authorize(Roles = "Admin,Finance,ProjectManager,FieldWorker")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager,FieldWorker")]
     public async Task<IActionResult> GetWorkerJobById(Guid projectId, Guid paymentId)
     {
         try
@@ -48,7 +48,7 @@ public class WorkerPaymentsController : ControllerBase
     }
 
     [HttpPost("api/projects/{projectId:guid}/worker-payments")]
-    [Authorize(Roles = "Admin,Finance,ProjectManager")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
     public async Task<IActionResult> AddWorkerJob(Guid projectId, [FromBody] CreateWorkerPaymentDto dto)
     {
         try
@@ -69,7 +69,7 @@ public class WorkerPaymentsController : ControllerBase
 
     // Bajarilgan ish haqi summasini yangilash (ish hajmi tasdiqlanganda)
     [HttpPatch("api/projects/{projectId:guid}/worker-payments/{paymentId:guid}/work-amount")]
-    [Authorize(Roles = "Admin,Finance,ProjectManager")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
     public async Task<IActionResult> UpdateWorkAmount(Guid projectId, Guid paymentId, [FromBody] UpdateWorkerWorkAmountDto dto)
     {
         try
@@ -89,7 +89,7 @@ public class WorkerPaymentsController : ControllerBase
 
     // Ustaga haq / avans to'lash
     [HttpPatch("api/projects/{projectId:guid}/worker-payments/{paymentId:guid}/pay")]
-    [Authorize(Roles = "Admin,Finance")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance")]
     public async Task<IActionResult> PayWorker(Guid projectId, Guid paymentId, [FromBody] PayWorkerDto dto)
     {
         try
@@ -108,7 +108,7 @@ public class WorkerPaymentsController : ControllerBase
     }
 
     [HttpDelete("api/projects/{projectId:guid}/worker-payments/{paymentId:guid}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
     public async Task<IActionResult> DeleteWorkerJob(Guid projectId, Guid paymentId)
     {
         try
@@ -124,7 +124,7 @@ public class WorkerPaymentsController : ControllerBase
 
     // PDF §6 va §15 — Loyiha ustalari bo'yicha jami hakedis, to'langan va qolgan qarz xulosasi
     [HttpGet("api/projects/{projectId:guid}/workers-summary")]
-    [Authorize(Roles = "Admin,Finance,ProjectManager")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
     public async Task<IActionResult> GetWorkersSummary(Guid projectId)
     {
         try

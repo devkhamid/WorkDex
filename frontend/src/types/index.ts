@@ -168,6 +168,9 @@ export interface Expense {
   frequency?: ExpenseFrequency;
   frequencyName?: string;
   amount: number;
+  currency?: string;
+  exchangeRateToUzs?: number;
+  originalAmount?: number;
   description: string;
   expenseDate: string;
   notes?: string;
@@ -195,6 +198,9 @@ export interface MaterialPurchase {
   unit: string;
   unitPrice: number;
   totalCost: number;
+  currency?: string;
+  exchangeRateToUzs?: number;
+  originalUnitPrice?: number;
   supplier?: string;
   purchaseDate: string;
   receiptNumber?: string;
@@ -231,6 +237,9 @@ export interface WorkerPayment {
   workerSpecialty?: string;
   jobDescription: string;
   agreedAmount: number;
+  currency?: string;
+  exchangeRateToUzs?: number;
+  originalAgreedAmount?: number;
   workAmount: number;
   paidAmount: number;
   remainingAmount: number;

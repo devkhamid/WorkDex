@@ -8,6 +8,7 @@ public interface IProjectMediaService
 {
     // Documents
     Task<DocumentDto> AddDocumentAsync(Guid projectId, CreateDocumentDto dto, Guid uploadedByUserId);
+    Task<DocumentDto> UploadDocumentAsync(Guid projectId, IFormFile file, string? title, string? fileType, Guid uploadedByUserId);
     Task<List<DocumentDto>> GetDocumentsAsync(Guid projectId);
     Task DeleteDocumentAsync(Guid projectId, Guid documentId);
 

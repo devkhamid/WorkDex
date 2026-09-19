@@ -175,7 +175,10 @@ public class MaterialService : IMaterialService
         if (user is null)
             throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
 
-        var totalCost = Math.Round(dto.Quantity * dto.UnitPrice, 2);
+        var isUsd = string.Equals(dto.Currency, "USD", StringComparison.OrdinalIgnoreCase) && dto.ExchangeRateToUzs.HasValue && dto.ExchangeRateToUzs.Value > 0;
+        var originalPrice = dto.OriginalUnitPrice ?? dto.UnitPrice;
+        var effectiveUnitPrice = isUsd ? Math.Round(originalPrice * dto.ExchangeRateToUzs!.Value, 2) : dto.UnitPrice;
+        var totalCost = Math.Round(dto.Quantity * effectiveUnitPrice, 2);
         var finalBrand = !string.IsNullOrWhiteSpace(dto.Brand) ? dto.Brand.Trim() : material.Brand;
 
         var purchase = new MaterialPurchase
@@ -184,8 +187,11 @@ public class MaterialService : IMaterialService
             MaterialId = dto.MaterialId,
             Quantity = dto.Quantity,
             Unit = material.Unit,
-            UnitPrice = dto.UnitPrice,
+            UnitPrice = effectiveUnitPrice,
             TotalCost = totalCost,
+            Currency = isUsd ? "USD" : "UZS",
+            ExchangeRateToUzs = isUsd ? dto.ExchangeRateToUzs : null,
+            OriginalUnitPrice = isUsd ? originalPrice : null,
             Brand = finalBrand,
             Supplier = dto.Supplier?.Trim(),
             PurchaseDate = dto.PurchaseDate,
@@ -209,6 +215,9 @@ public class MaterialService : IMaterialService
             Unit = purchase.Unit,
             UnitPrice = purchase.UnitPrice,
             TotalCost = purchase.TotalCost,
+            Currency = purchase.Currency,
+            ExchangeRateToUzs = purchase.ExchangeRateToUzs,
+            OriginalUnitPrice = purchase.OriginalUnitPrice,
             Supplier = purchase.Supplier,
             PurchaseDate = purchase.PurchaseDate,
             ReceiptNumber = purchase.ReceiptNumber,
@@ -243,6 +252,9 @@ public class MaterialService : IMaterialService
             Unit = p.Unit,
             UnitPrice = p.UnitPrice,
             TotalCost = p.TotalCost,
+            Currency = p.Currency ?? "UZS",
+            ExchangeRateToUzs = p.ExchangeRateToUzs,
+            OriginalUnitPrice = p.OriginalUnitPrice,
             Supplier = p.Supplier,
             PurchaseDate = p.PurchaseDate,
             ReceiptNumber = p.ReceiptNumber,
@@ -274,6 +286,9 @@ public class MaterialService : IMaterialService
             Unit = purchase.Unit,
             UnitPrice = purchase.UnitPrice,
             TotalCost = purchase.TotalCost,
+            Currency = purchase.Currency ?? "UZS",
+            ExchangeRateToUzs = purchase.ExchangeRateToUzs,
+            OriginalUnitPrice = purchase.OriginalUnitPrice,
             Supplier = purchase.Supplier,
             PurchaseDate = purchase.PurchaseDate,
             ReceiptNumber = purchase.ReceiptNumber,

@@ -19,7 +19,7 @@ public class ProjectDocumentsController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin,Finance,ProjectManager,FieldWorker")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager,FieldWorker")]
     public async Task<IActionResult> GetDocuments(Guid projectId)
     {
         try
@@ -34,7 +34,7 @@ public class ProjectDocumentsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Finance,ProjectManager")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
     public async Task<IActionResult> AddDocument(Guid projectId, [FromBody] CreateDocumentDto dto)
     {
         try
@@ -49,8 +49,32 @@ public class ProjectDocumentsController : ControllerBase
         }
     }
 
+    [HttpPost("upload")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
+    public async Task<IActionResult> UploadDocument(
+        Guid projectId,
+        [FromForm] IFormFile file,
+        [FromForm] string? title,
+        [FromForm] string? fileType)
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            var doc = await _mediaService.UploadDocumentAsync(projectId, file, title, fileType, userId);
+            return Ok(doc);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
     [HttpDelete("{documentId:guid}")]
-    [Authorize(Roles = "Admin,ProjectManager")]
+    [Authorize(Roles = "SuperAdmin,Admin,ProjectManager")]
     public async Task<IActionResult> DeleteDocument(Guid projectId, Guid documentId)
     {
         try

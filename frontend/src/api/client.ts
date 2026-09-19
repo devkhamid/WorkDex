@@ -30,6 +30,13 @@ export const getApiBaseUrl = (): string => {
 
 export const API_BASE_URL = getApiBaseUrl();
 
+export const getFileUrl = (filePath: string): string => {
+  if (!filePath) return '';
+  if (filePath.startsWith('http://') || filePath.startsWith('https://')) return filePath;
+  const baseUrl = API_BASE_URL.replace(/\/api$/, '');
+  return `${baseUrl}${filePath.startsWith('/') ? '' : '/'}${filePath}`;
+};
+
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {

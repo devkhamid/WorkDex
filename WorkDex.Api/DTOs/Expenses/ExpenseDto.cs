@@ -11,6 +11,9 @@ public class ExpenseDto
     public ExpenseFrequency Frequency { get; set; }
     public string FrequencyName { get; set; } = string.Empty;
     public decimal Amount { get; set; }
+    public string Currency { get; set; } = "UZS";
+    public decimal? ExchangeRateToUzs { get; set; }
+    public decimal? OriginalAmount { get; set; }
     public string Description { get; set; } = string.Empty;
     public DateTime ExpenseDate { get; set; }
     public string? Notes { get; set; }

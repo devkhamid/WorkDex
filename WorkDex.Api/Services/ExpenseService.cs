@@ -24,12 +24,19 @@ public class ExpenseService : IExpenseService
         if (user is null)
             throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
 
+        var isUsd = string.Equals(dto.Currency, "USD", StringComparison.OrdinalIgnoreCase) && dto.ExchangeRateToUzs.HasValue && dto.ExchangeRateToUzs.Value > 0;
+        var originalAmount = dto.OriginalAmount ?? dto.Amount;
+        var effectiveAmount = isUsd ? Math.Round(originalAmount * dto.ExchangeRateToUzs!.Value, 2) : dto.Amount;
+
         var expense = new Expense
         {
             ProjectId = projectId,
             Category = dto.Category,
             Frequency = dto.Frequency,
-            Amount = dto.Amount,
+            Amount = effectiveAmount,
+            Currency = isUsd ? "USD" : "UZS",
+            ExchangeRateToUzs = isUsd ? dto.ExchangeRateToUzs : null,
+            OriginalAmount = isUsd ? originalAmount : null,
             Description = dto.Description.Trim(),
             ExpenseDate = dto.ExpenseDate.ToUniversalTime(),
             Notes = dto.Notes?.Trim(),
@@ -188,6 +195,9 @@ public class ExpenseService : IExpenseService
             Frequency = e.Frequency,
             FrequencyName = e.Frequency.ToString(),
             Amount = e.Amount,
+            Currency = e.Currency ?? "UZS",
+            ExchangeRateToUzs = e.ExchangeRateToUzs,
+            OriginalAmount = e.OriginalAmount,
             Description = e.Description,
             ExpenseDate = e.ExpenseDate,
             Notes = e.Notes,

@@ -168,6 +168,9 @@ export const projectsApi = {
   createExpense: async (projectId: string, data: {
     category: number;
     amount: number;
+    currency?: string;
+    exchangeRateToUzs?: number;
+    originalAmount?: number;
     description: string;
     expenseDate: string;
     notes?: string;
@@ -185,6 +188,9 @@ export const projectsApi = {
     brand?: string;
     quantity: number;
     unitPrice: number;
+    currency?: string;
+    exchangeRateToUzs?: number;
+    originalUnitPrice?: number;
     supplier?: string;
     purchaseDate: string;
     receiptNumber?: string;
@@ -206,6 +212,9 @@ export const projectsApi = {
     workerId: string;
     jobDescription: string;
     agreedAmount: number;
+    currency?: string;
+    exchangeRateToUzs?: number;
+    originalAgreedAmount?: number;
     workAmount?: number;
     paidAmount?: number;
     paymentDate?: string;
@@ -218,8 +227,16 @@ export const projectsApi = {
     const res = await apiClient.patch<WorkerPayment>(`/projects/${projectId}/worker-payments/${paymentId}/work-amount`, { workAmount, notes });
     return res.data;
   },
-  payWorker: async (projectId: string, paymentId: string, amount: number, paymentDate: string, notes?: string): Promise<WorkerPayment> => {
-    const res = await apiClient.patch<WorkerPayment>(`/projects/${projectId}/worker-payments/${paymentId}/pay`, { amount, paymentDate, notes });
+  payWorker: async (projectId: string, paymentId: string, data: {
+    amount: number;
+    currency?: string;
+    exchangeRateToUzs?: number;
+    originalAmount?: number;
+    paymentDate: string;
+    notes?: string;
+  } | number, paymentDate?: string, notes?: string): Promise<WorkerPayment> => {
+    const payload = typeof data === 'object' ? data : { amount: data, paymentDate, notes };
+    const res = await apiClient.patch<WorkerPayment>(`/projects/${projectId}/worker-payments/${paymentId}/pay`, payload);
     return res.data;
   },
   getWorkersSummary: async (projectId: string): Promise<WorkerSummary[]> => {
@@ -279,6 +296,15 @@ export const projectsApi = {
   }): Promise<ProjectDocument> => {
     const res = await apiClient.post<ProjectDocument>(`/projects/${projectId}/documents`, data);
     return res.data;
+  },
+  uploadDocument: async (projectId: string, formData: FormData): Promise<ProjectDocument> => {
+    const res = await apiClient.post<ProjectDocument>(`/projects/${projectId}/documents/upload`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return res.data;
+  },
+  deleteDocument: async (projectId: string, documentId: string): Promise<void> => {
+    await apiClient.delete(`/projects/${projectId}/documents/${documentId}`);
   },
   // Photos
   getPhotos: async (projectId: string): Promise<ProjectPhoto[]> => {

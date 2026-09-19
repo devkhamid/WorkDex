@@ -18,7 +18,7 @@ public class MaterialPurchasesController : ControllerBase
     }
 
     [HttpGet("api/projects/{projectId:guid}/material-purchases")]
-    [Authorize(Roles = "Admin,Finance,ProjectManager,FieldWorker")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager,FieldWorker")]
     public async Task<IActionResult> GetPurchases(Guid projectId)
     {
         try
@@ -33,7 +33,7 @@ public class MaterialPurchasesController : ControllerBase
     }
 
     [HttpGet("api/projects/{projectId:guid}/material-purchases/{purchaseId:guid}")]
-    [Authorize(Roles = "Admin,Finance,ProjectManager,FieldWorker")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager,FieldWorker")]
     public async Task<IActionResult> GetPurchaseById(Guid projectId, Guid purchaseId)
     {
         try
@@ -48,7 +48,7 @@ public class MaterialPurchasesController : ControllerBase
     }
 
     [HttpPost("api/projects/{projectId:guid}/material-purchases")]
-    [Authorize(Roles = "Admin,Finance,ProjectManager")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
     public async Task<IActionResult> AddPurchase(Guid projectId, [FromBody] CreateMaterialPurchaseDto dto)
     {
         try
@@ -64,7 +64,7 @@ public class MaterialPurchasesController : ControllerBase
     }
 
     [HttpDelete("api/projects/{projectId:guid}/material-purchases/{purchaseId:guid}")]
-    [Authorize(Roles = "Admin,Finance")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance")]
     public async Task<IActionResult> DeletePurchase(Guid projectId, Guid purchaseId)
     {
         try
@@ -80,7 +80,7 @@ public class MaterialPurchasesController : ControllerBase
 
     // PDF §5 — Qaysi materialdan qancha olingani va qancha sarflangani xulosasi
     [HttpGet("api/projects/{projectId:guid}/materials-summary")]
-    [Authorize(Roles = "Admin,Finance,ProjectManager")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
     public async Task<IActionResult> GetMaterialSummary(Guid projectId)
     {
         try

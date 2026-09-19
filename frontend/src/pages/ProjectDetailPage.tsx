@@ -11,9 +11,12 @@ import {
   UserPlus,
   PackagePlus,
   Clock,
-  HardHat
+  HardHat,
+  Upload,
+  Trash2
 } from 'lucide-react';
 import { projectsApi, reportsApi, materialsApi, workersApi } from '../api/services';
+import { getFileUrl } from '../api/client';
 import {
   Project,
   ProjectSummary,
@@ -110,6 +113,9 @@ export const ProjectDetailPage: React.FC = () => {
   // Expense Form State
   const [newExpCategory, setNewExpCategory] = useState(9); // Default: Yuklarni tashish / Ko'tarish
   const [newExpAmount, setNewExpAmount] = useState<number | ''>('');
+  const [newExpCurrency, setNewExpCurrency] = useState<'UZS' | 'USD'>('UZS');
+  const [newExpRate, setNewExpRate] = useState<number | ''>('');
+  const [newExpAmountUsd, setNewExpAmountUsd] = useState<number | ''>('');
   const [newExpDesc, setNewExpDesc] = useState('');
   const [newExpDate, setNewExpDate] = useState(new Date().toISOString().split('T')[0]);
 
@@ -121,6 +127,9 @@ export const ProjectDetailPage: React.FC = () => {
   const [newPurMatId, setNewPurMatId] = useState('');
   const [newPurQty, setNewPurQty] = useState<number | ''>('');
   const [newPurPrice, setNewPurPrice] = useState<number | ''>('');
+  const [newPurCurrency, setNewPurCurrency] = useState<'UZS' | 'USD'>('UZS');
+  const [newPurRate, setNewPurRate] = useState<number | ''>('');
+  const [newPurPriceUsd, setNewPurPriceUsd] = useState<number | ''>('');
   const [newPurSupplier, setNewPurSupplier] = useState('');
 
   // Worker Payment Form State
@@ -131,13 +140,24 @@ export const ProjectDetailPage: React.FC = () => {
   const [newWorkId, setNewWorkId] = useState('');
   const [newWorkDesc, setNewWorkDesc] = useState('');
   const [newWorkAgreed, setNewWorkAgreed] = useState<number | ''>('');
+  const [newWorkCurrency, setNewWorkCurrency] = useState<'UZS' | 'USD'>('UZS');
+  const [newWorkRate, setNewWorkRate] = useState<number | ''>('');
+  const [newWorkAgreedUsd, setNewWorkAgreedUsd] = useState<number | ''>('');
 
   // Pay Worker Modal State
   const [isPayWorkerModalOpen, setIsPayWorkerModalOpen] = useState(false);
   const [selectedWorkerForPay, setSelectedWorkerForPay] = useState<WorkerPayment | null>(null);
   const [payWorkerAmount, setPayWorkerAmount] = useState<number | ''>('');
+  const [payWorkerCurrency, setPayWorkerCurrency] = useState<'UZS' | 'USD'>('UZS');
+  const [payWorkerRate, setPayWorkerRate] = useState<number | ''>('');
+  const [payWorkerAmountUsd, setPayWorkerAmountUsd] = useState<number | ''>('');
   const [payWorkerDate, setPayWorkerDate] = useState(new Date().toISOString().split('T')[0]);
   const [payWorkerNotes, setPayWorkerNotes] = useState('');
+
+  // Document Upload State
+  const [selectedDocFile, setSelectedDocFile] = useState<File | null>(null);
+  const [docUploadMode, setDocUploadMode] = useState<'file' | 'url'>('file');
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
 
   // Update Work Amount (Hakediş) Modal State
   const [isWorkAmountModalOpen, setIsWorkAmountModalOpen] = useState(false);
@@ -272,15 +292,34 @@ export const ProjectDetailPage: React.FC = () => {
   const handleCreateExpense = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
+    const isUsd = newExpCurrency === 'USD';
+    const amountVal = isUsd ? Number(newExpAmountUsd) : Number(newExpAmount);
+    const rateVal = isUsd ? Number(newExpRate) : undefined;
+
+    if (!amountVal || amountVal <= 0) {
+      alert("Summa 0 dan katta bo'lishi kerak.");
+      return;
+    }
+    if (isUsd && (!rateVal || rateVal <= 0)) {
+      alert("Dollar kursini kiriting (masalan: 11 750).");
+      return;
+    }
+
     try {
       await projectsApi.createExpense(id, {
         category: newExpCategory,
-        amount: Number(newExpAmount) || 0,
+        amount: isUsd ? Math.round(amountVal * (rateVal || 1)) : amountVal,
+        currency: newExpCurrency,
+        exchangeRateToUzs: rateVal,
+        originalAmount: isUsd ? amountVal : undefined,
         description: newExpDesc.trim(),
         expenseDate: new Date(newExpDate).toISOString(),
       });
       setIsExpenseModalOpen(false);
       setNewExpAmount('');
+      setNewExpAmountUsd('');
+      setNewExpRate('');
+      setNewExpCurrency('UZS');
       setNewExpDesc('');
       setNewExpDate(new Date().toISOString().split('T')[0]);
       loadAllData(id);
@@ -292,6 +331,19 @@ export const ProjectDetailPage: React.FC = () => {
   const handleCreatePurchase = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
+    const isUsd = newPurCurrency === 'USD';
+    const unitPriceVal = isUsd ? Number(newPurPriceUsd) : Number(newPurPrice);
+    const rateVal = isUsd ? Number(newPurRate) : undefined;
+
+    if (!unitPriceVal || unitPriceVal <= 0) {
+      alert("Narx 0 dan katta bo'lishi kerak.");
+      return;
+    }
+    if (isUsd && (!rateVal || rateVal <= 0)) {
+      alert("Dollar kursini kiriting (masalan: 11 750).");
+      return;
+    }
+
     try {
       let finalMaterialId = newPurMatId;
 
@@ -308,7 +360,10 @@ export const ProjectDetailPage: React.FC = () => {
         materialId: finalMaterialId,
         brand: newPurMatBrand || undefined,
         quantity: Number(newPurQty) || 0,
-        unitPrice: Number(newPurPrice) || 0,
+        unitPrice: isUsd ? Math.round(unitPriceVal * (rateVal || 1)) : unitPriceVal,
+        currency: newPurCurrency,
+        exchangeRateToUzs: rateVal,
+        originalUnitPrice: isUsd ? unitPriceVal : undefined,
         supplier: newPurSupplier || undefined,
         purchaseDate: new Date().toISOString()
       });
@@ -318,6 +373,9 @@ export const ProjectDetailPage: React.FC = () => {
       setNewPurMatBrand('');
       setNewPurQty('');
       setNewPurPrice('');
+      setNewPurPriceUsd('');
+      setNewPurRate('');
+      setNewPurCurrency('UZS');
       setNewPurSupplier('');
       loadAllData(id);
     } catch (err: any) {
@@ -328,12 +386,20 @@ export const ProjectDetailPage: React.FC = () => {
   const handleCreateWorkerPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
-    const agreedAmount = Number(newWorkAgreed);
+    const isUsd = newWorkCurrency === 'USD';
+    const agreedVal = isUsd ? Number(newWorkAgreedUsd) : Number(newWorkAgreed);
+    const rateVal = isUsd ? Number(newWorkRate) : undefined;
 
-    if (!Number.isFinite(agreedAmount) || agreedAmount <= 0) {
+    if (!Number.isFinite(agreedVal) || agreedVal <= 0) {
       alert("Kelishilgan summa 0 dan katta bo'lishi kerak.");
       return;
     }
+    if (isUsd && (!rateVal || rateVal <= 0)) {
+      alert("Dollar kursini kiriting (masalan: 11 750).");
+      return;
+    }
+
+    const effectiveAgreed = isUsd ? Math.round(agreedVal * (rateVal || 1)) : agreedVal;
 
     try {
       let finalWorkerId = newWorkId;
@@ -350,7 +416,10 @@ export const ProjectDetailPage: React.FC = () => {
       await projectsApi.createWorkerPayment(id, {
         workerId: finalWorkerId,
         jobDescription: newWorkDesc,
-        agreedAmount,
+        agreedAmount: effectiveAgreed,
+        currency: newWorkCurrency,
+        exchangeRateToUzs: rateVal,
+        originalAgreedAmount: isUsd ? agreedVal : undefined,
       });
       setIsWorkerModalOpen(false);
       setIsNewWorker(false);
@@ -358,6 +427,9 @@ export const ProjectDetailPage: React.FC = () => {
       setNewWorkerPhone('');
       setNewWorkDesc('');
       setNewWorkAgreed('');
+      setNewWorkAgreedUsd('');
+      setNewWorkRate('');
+      setNewWorkCurrency('UZS');
       loadAllData(id);
     } catch (err: any) {
       alert(err.response?.data?.message || 'Xatolik');
@@ -368,6 +440,9 @@ export const ProjectDetailPage: React.FC = () => {
     setSelectedWorkerForPay(wp);
     const maxAllowed = Math.max(0, wp.remainingAllowedToPay ?? wp.agreedAmount - wp.paidAmount);
     setPayWorkerAmount(maxAllowed > 0 ? maxAllowed : '');
+    setPayWorkerAmountUsd('');
+    setPayWorkerRate('');
+    setPayWorkerCurrency('UZS');
     setPayWorkerDate(new Date().toISOString().split('T')[0]);
     setPayWorkerNotes('');
     setIsPayWorkerModalOpen(true);
@@ -376,24 +451,42 @@ export const ProjectDetailPage: React.FC = () => {
   const submitPayWorker = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id || !selectedWorkerForPay) return;
-    const amount = Number(payWorkerAmount);
-    const maxAllowed = selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount;
+    const isUsd = payWorkerCurrency === 'USD';
+    const amountVal = isUsd ? Number(payWorkerAmountUsd) : Number(payWorkerAmount);
+    const rateVal = isUsd ? Number(payWorkerRate) : undefined;
 
-    if (!amount || amount <= 0) {
+    if (!amountVal || amountVal <= 0) {
       alert("Iltimos, to'g'ri to'lov summasini kiriting.");
       return;
     }
+    if (isUsd && (!rateVal || rateVal <= 0)) {
+      alert("Dollar kursini kiriting (masalan: 11 750).");
+      return;
+    }
 
-    if (amount > maxAllowed) {
-      alert(`⚠️ Ustaga faqat $${maxAllowed.toLocaleString()} to'lash mumkin. Kiritilgan summa ($${amount.toLocaleString()}) kelishilgan umumiy summadan ($${selectedWorkerForPay.agreedAmount.toLocaleString()}) oshib ketmoqda.`);
+    const effectiveAmountInUzs = isUsd ? Math.round(amountVal * (rateVal || 1)) : amountVal;
+    const maxAllowed = selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount;
+
+    if (effectiveAmountInUzs > maxAllowed) {
+      alert(`⚠️ Ustaga faqat ${maxAllowed.toLocaleString()} so'm to'lash mumkin. Kiritilgan summa (${effectiveAmountInUzs.toLocaleString()} so'm) kelishilgan umumiy summadan (${selectedWorkerForPay.agreedAmount.toLocaleString()} so'm) oshib ketmoqda.`);
       return;
     }
 
     try {
-      await projectsApi.payWorker(id, selectedWorkerForPay.id, amount, new Date(payWorkerDate).toISOString(), payWorkerNotes || undefined);
+      await projectsApi.payWorker(id, selectedWorkerForPay.id, {
+        amount: effectiveAmountInUzs,
+        currency: payWorkerCurrency,
+        exchangeRateToUzs: rateVal,
+        originalAmount: isUsd ? amountVal : undefined,
+        paymentDate: new Date(payWorkerDate).toISOString(),
+        notes: payWorkerNotes || undefined
+      });
       setIsPayWorkerModalOpen(false);
       setSelectedWorkerForPay(null);
       setPayWorkerAmount('');
+      setPayWorkerAmountUsd('');
+      setPayWorkerRate('');
+      setPayWorkerCurrency('UZS');
       loadAllData(id);
     } catch (err: any) {
       alert(err.response?.data?.message || 'Xatolik yuz berdi');
@@ -796,7 +889,12 @@ export const ProjectDetailPage: React.FC = () => {
                 <div key={exp.id} className="p-4 flex justify-between items-center text-xs hover:bg-gray-50/50 transition-colors">
                   <div className="space-y-0.5">
                     <div className="font-bold text-sm text-gray-900 flex items-center gap-2">
-                      <span>${exp.amount.toLocaleString()}</span>
+                      <span>{exp.amount.toLocaleString()} so'm</span>
+                      {exp.currency === 'USD' && exp.originalAmount && (
+                        <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                          ${exp.originalAmount.toLocaleString()} (kurs: {exp.exchangeRateToUzs?.toLocaleString() || '-'})
+                        </span>
+                      )}
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-800 font-medium">
                         {expenseCategoryLabels[exp.category] || exp.categoryName}
                       </span>
@@ -808,7 +906,14 @@ export const ProjectDetailPage: React.FC = () => {
                       Sana: {formatDateUz(exp.expenseDate)} · Kiritdi: <b className="text-gray-700">{exp.createdByName}</b>
                     </div>
                   </div>
-                  <span className="text-red-600 font-extrabold text-base">-${exp.amount.toLocaleString()}</span>
+                  <div className="text-right">
+                    <span className="text-red-600 font-extrabold text-base block">-${exp.amount.toLocaleString()} so'm</span>
+                    {exp.currency === 'USD' && exp.originalAmount && (
+                      <span className="text-xs text-gray-500 font-medium block">
+                        -${exp.originalAmount.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
                 </div>
               ))}
               {expenses.length === 0 && (
@@ -945,8 +1050,26 @@ export const ProjectDetailPage: React.FC = () => {
                         )}
                       </td>
                       <td className="py-2.5 px-3">{pur.quantity} {pur.unit}</td>
-                      <td className="py-2.5 px-3 font-medium">${pur.unitPrice.toLocaleString()}</td>
-                      <td className="py-2.5 px-3 font-bold text-[#ff7a16]">${pur.totalCost.toLocaleString()}</td>
+                      <td className="py-2.5 px-3 font-medium">
+                        {pur.currency === 'USD' && pur.originalUnitPrice ? (
+                          <div>
+                            <span className="font-bold text-emerald-700">${pur.originalUnitPrice.toLocaleString()}</span>
+                            <div className="text-[10px] text-gray-400">kurs: {pur.exchangeRateToUzs?.toLocaleString()} ({pur.unitPrice.toLocaleString()} so'm)</div>
+                          </div>
+                        ) : (
+                          `${pur.unitPrice.toLocaleString()} so'm`
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3 font-bold text-[#ff7a16]">
+                        {pur.currency === 'USD' && pur.originalUnitPrice ? (
+                          <div>
+                            <span className="text-emerald-700 font-bold">${(pur.originalUnitPrice * pur.quantity).toLocaleString()}</span>
+                            <div className="text-[10px] text-gray-500 font-normal">({pur.totalCost.toLocaleString()} so'm)</div>
+                          </div>
+                        ) : (
+                          `${pur.totalCost.toLocaleString()} so'm`
+                        )}
+                      </td>
                       <td className="py-2.5 px-3 text-gray-600">{pur.supplier || '-'}</td>
                       <td className="py-2.5 px-3 text-gray-600 font-medium">{pur.createdByName || '-'}</td>
                     </tr>
@@ -1075,12 +1198,21 @@ export const ProjectDetailPage: React.FC = () => {
                           {wp.workerSpecialty && <div className="text-[10px] text-gray-400">{wp.workerSpecialty}</div>}
                         </td>
                         <td className="py-2.5 px-3 text-gray-700">{wp.jobDescription}</td>
-                        <td className="py-2.5 px-3 font-semibold text-gray-900">${wp.agreedAmount.toLocaleString()}</td>
-                        <td className="py-2.5 px-3 font-semibold text-purple-700">${wp.workAmount.toLocaleString()}</td>
-                        <td className="py-2.5 px-3 font-semibold text-emerald-700">${wp.paidAmount.toLocaleString()}</td>
+                        <td className="py-2.5 px-3 font-semibold text-gray-900">
+                          {wp.currency === 'USD' && wp.originalAgreedAmount ? (
+                            <div>
+                              <span className="text-emerald-700 font-bold">${wp.originalAgreedAmount.toLocaleString()}</span>
+                              <div className="text-[10px] text-gray-400 font-normal">kurs: {wp.exchangeRateToUzs?.toLocaleString()} ({wp.agreedAmount.toLocaleString()} so'm)</div>
+                            </div>
+                          ) : (
+                            `${wp.agreedAmount.toLocaleString()} so'm`
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3 font-semibold text-purple-700">{wp.workAmount.toLocaleString()} so'm</td>
+                        <td className="py-2.5 px-3 font-semibold text-emerald-700">{wp.paidAmount.toLocaleString()} so'm</td>
                         <td className="py-2.5 px-3 font-bold">
                           <span className={isOverpaid ? 'text-red-600' : isFullyPaid ? 'text-emerald-700' : 'text-gray-900'}>
-                            {isOverpaid ? `-$${Math.abs(debt).toLocaleString()}` : `$${debt.toLocaleString()}`}
+                            {isOverpaid ? `-${Math.abs(debt).toLocaleString()} so'm` : `${debt.toLocaleString()} so'm`}
                           </span>
                         </td>
                         <td className="py-2.5 px-3">
@@ -1257,41 +1389,114 @@ export const ProjectDetailPage: React.FC = () => {
           </div>
 
           {/* Add Document Form */}
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const form = e.target as HTMLFormElement;
-              const title = (form.elements.namedItem('docTitle') as HTMLInputElement).value.trim();
-              const url = (form.elements.namedItem('docUrl') as HTMLInputElement).value.trim();
-              const fileType = (form.elements.namedItem('docType') as HTMLSelectElement).value;
-              if (!title || !url) return;
-              try {
-                await projectsApi.createDocument(id!, { title, filePath: url, fileType, fileSizeBytes: 0 });
-                form.reset();
-                loadAllData(id!);
-              } catch (err: any) {
-                alert(err.response?.data?.message || 'Xatolik');
-              }
-            }}
-            className="p-3 bg-gray-50 border border-gray-200 rounded-lg"
-          >
-            <div className="text-xs font-bold text-gray-700 mb-2">📄 Yangi Hujjat / Shartnoma Qo'shish</div>
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+          <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                <Upload className="w-4 h-4 text-[#ff7a16]" />
+                <span>Yangi Hujjat / Shartnoma Qo'shish</span>
+              </div>
+              <div className="flex items-center bg-gray-200/80 p-0.5 rounded-lg text-[11px] font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setDocUploadMode('file')}
+                  className={`px-2.5 py-1 rounded-md transition-all ${docUploadMode === 'file' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  📁 Kompyuterdan fayl yuklash
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDocUploadMode('url')}
+                  className={`px-2.5 py-1 rounded-md transition-all ${docUploadMode === 'url' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  🔗 Havola (URL)
+                </button>
+              </div>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!id) return;
+                const form = e.target as HTMLFormElement;
+                const title = (form.elements.namedItem('docTitle') as HTMLInputElement)?.value.trim();
+                const fileType = (form.elements.namedItem('docType') as HTMLSelectElement)?.value;
+
+                if (docUploadMode === 'file') {
+                  if (!selectedDocFile) {
+                    alert("Iltimos, kompyuterdan faylni tanlang.");
+                    return;
+                  }
+                  setIsUploadingDoc(true);
+                  try {
+                    const fd = new FormData();
+                    fd.append('file', selectedDocFile);
+                    if (title) fd.append('title', title);
+                    if (fileType) fd.append('fileType', fileType);
+                    await projectsApi.uploadDocument(id, fd);
+                    setSelectedDocFile(null);
+                    form.reset();
+                    loadAllData(id);
+                  } catch (err: any) {
+                    alert(err.response?.data?.message || 'Fayl yuklashda xatolik yuz berdi');
+                  } finally {
+                    setIsUploadingDoc(false);
+                  }
+                } else {
+                  const url = (form.elements.namedItem('docUrl') as HTMLInputElement)?.value.trim();
+                  if (!title || !url) {
+                    alert("Hujjat nomi va URL manzilini kiriting.");
+                    return;
+                  }
+                  try {
+                    await projectsApi.createDocument(id, { title, filePath: url, fileType, fileSizeBytes: 0 });
+                    form.reset();
+                    loadAllData(id);
+                  } catch (err: any) {
+                    alert(err.response?.data?.message || 'Xatolik');
+                  }
+                }
+              }}
+              className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-center"
+            >
+              {docUploadMode === 'file' ? (
+                <div className="sm:col-span-1">
+                  <label className="relative flex items-center justify-center gap-2 h-8 px-2 border-2 border-dashed border-[#ff7a16]/40 hover:border-[#ff7a16] bg-white rounded cursor-pointer text-[11px] font-medium text-gray-700 hover:bg-orange-50/40 transition-colors">
+                    <Upload className="w-3.5 h-3.5 text-[#ff7a16]" />
+                    <span className="truncate">{selectedDocFile ? selectedDocFile.name : 'Faylni tanlang...'}</span>
+                    <input
+                      type="file"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setSelectedDocFile(file);
+                        const titleInput = document.getElementById('doc-title') as HTMLInputElement;
+                        if (file && titleInput && !titleInput.value) {
+                          const baseName = file.name.replace(/\.[^/.]+$/, "");
+                          titleInput.value = baseName;
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+              ) : (
+                <input
+                  name="docUrl"
+                  type="url"
+                  required
+                  placeholder="URL yo'li (https://...)"
+                  className="sm:col-span-1 h-8 px-2 border border-gray-300 rounded text-xs bg-white outline-none focus:border-[#ff7a16]"
+                />
+              )}
+
               <input
                 id="doc-title"
                 name="docTitle"
                 type="text"
                 required
                 placeholder="Hujjat nomi (masalan: Asosiy shartnoma)"
-                className="sm:col-span-1 h-8 px-2 border border-gray-300 rounded text-xs outline-none focus:border-[#ff7a16]"
+                className="sm:col-span-1 h-8 px-2 border border-gray-300 rounded text-xs bg-white outline-none focus:border-[#ff7a16]"
               />
-              <input
-                name="docUrl"
-                type="text"
-                required
-                placeholder="URL yoki fayl yo'li (https://...)"
-                className="sm:col-span-1 h-8 px-2 border border-gray-300 rounded text-xs outline-none focus:border-[#ff7a16]"
-              />
+
               <select
                 name="docType"
                 className="h-8 px-2 border border-gray-300 rounded text-xs bg-white outline-none focus:border-[#ff7a16]"
@@ -1303,15 +1508,17 @@ export const ProjectDetailPage: React.FC = () => {
                 <option value="rasm">🖼️ Rasm</option>
                 <option value="boshqa">📎 Boshqa</option>
               </select>
+
               <button
                 type="submit"
-                className="h-8 bg-[#ff7a16] hover:bg-[#e86807] text-white text-xs font-semibold rounded flex items-center justify-center gap-1 transition-colors"
+                disabled={isUploadingDoc}
+                className="h-8 bg-[#ff7a16] hover:bg-[#e86807] text-white text-xs font-semibold rounded flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
               >
-                <Plus className="w-3 h-3" />
-                <span>Qo'shish</span>
+                <Plus className="w-3.5 h-3.5" />
+                <span>{isUploadingDoc ? 'Yuklanmoqda...' : 'Qo\'shish'}</span>
               </button>
-            </div>
-          </form>
+            </form>
+          </div>
 
           {/* Documents Table */}
           <div className="overflow-x-auto">
@@ -1320,6 +1527,7 @@ export const ProjectDetailPage: React.FC = () => {
                 <tr className="border-b border-[#e4e7ec] bg-gray-50/50">
                   <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">HUJJAT NOMI</th>
                   <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">TURI</th>
+                  <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">HAJMI</th>
                   <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">KIM YUKLAGAN</th>
                   <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">SANA</th>
                   <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px] text-right">AMAL</th>
@@ -1339,24 +1547,52 @@ export const ProjectDetailPage: React.FC = () => {
                         {d.fileType || 'hujjat'}
                       </span>
                     </td>
+                    <td className="py-2.5 px-3 text-gray-500 text-[11px]">
+                      {d.fileSizeBytes > 0
+                        ? d.fileSizeBytes > 1024 * 1024
+                          ? `${(d.fileSizeBytes / (1024 * 1024)).toFixed(1)} MB`
+                          : `${Math.round(d.fileSizeBytes / 1024)} KB`
+                        : '-'}
+                    </td>
                     <td className="py-2.5 px-3 text-gray-600">{d.uploadedByName}</td>
                     <td className="py-2.5 px-3 text-gray-500">{formatDateUz(d.createdAt)}</td>
                     <td className="py-2.5 px-3 text-right">
-                      <a
-                        href={d.filePath}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-2.5 py-1 bg-[#ff7a16] text-white rounded text-[11px] font-semibold hover:bg-[#e86807] transition-colors"
-                      >
-                        Ochish →
-                      </a>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <a
+                          href={getFileUrl(d.filePath)}
+                          target="_blank"
+                          rel="noreferrer"
+                          download
+                          className="px-2.5 py-1 bg-[#ff7a16] text-white rounded text-[11px] font-semibold hover:bg-[#e86807] transition-colors"
+                        >
+                          Ochish →
+                        </a>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!id) return;
+                            if (window.confirm(`"${d.title}" hujjatini o'chirishni tasdiqlaysizmi?`)) {
+                              try {
+                                await projectsApi.deleteDocument(id, d.id);
+                                loadAllData(id);
+                              } catch (err: any) {
+                                alert(err.response?.data?.message || "O'chirishda xatolik");
+                              }
+                            }
+                          }}
+                          className="p-1 text-gray-400 hover:text-red-600 rounded transition-colors"
+                          title="Hujjatni o'chirish"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
                 {documents.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-xs text-gray-400">
-                      Hujjatlar mavjud emas. Yuqoridagi formadan shartnoma yoki hujjat qo'shing.
+                    <td colSpan={6} className="py-8 text-center text-xs text-gray-400">
+                      Hujjatlar mavjud emas. Yuqoridagi formadan fayl tanlang yoki havola kiriting.
                     </td>
                   </tr>
                 )}
@@ -1483,18 +1719,76 @@ export const ProjectDetailPage: React.FC = () => {
                   <option value={7}>📋 Boshqa (Other)</option>
                 </select>
               </div>
+              {/* Currency Toggle */}
               <div>
-                <label className="block text-xs font-semibold mb-1">Summa ($) *</label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  placeholder="1200"
-                  value={newExpAmount}
-                  onChange={(e) => setNewExpAmount(Number(e.target.value))}
-                  className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none"
-                />
+                <label className="block text-xs font-semibold mb-1">To'lov Valyutasi</label>
+                <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => setNewExpCurrency('UZS')}
+                    className={`py-1 text-xs font-semibold rounded-md transition-all ${newExpCurrency === 'UZS' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
+                  >
+                    🇺🇿 So'm (UZS)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewExpCurrency('USD')}
+                    className={`py-1 text-xs font-semibold rounded-md transition-all ${newExpCurrency === 'USD' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
+                  >
+                    💵 Dollar (USD)
+                  </button>
+                </div>
               </div>
+
+              {newExpCurrency === 'UZS' ? (
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Summa (so'm) *</label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    placeholder="300 000"
+                    value={newExpAmount}
+                    onChange={(e) => setNewExpAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none focus:border-[#ff7a16]"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2 p-2.5 bg-emerald-50/50 border border-emerald-200 rounded-lg">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-emerald-900 mb-1">Dollar summasi ($) *</label>
+                      <input
+                        type="number"
+                        required
+                        min="0.01"
+                        step="any"
+                        placeholder="100"
+                        value={newExpAmountUsd}
+                        onChange={(e) => setNewExpAmountUsd(e.target.value === '' ? '' : Number(e.target.value))}
+                        className="w-full h-8 px-2.5 border border-emerald-300 rounded text-xs bg-white outline-none focus:border-emerald-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-emerald-900 mb-1">Dollar kursi (manual) *</label>
+                      <input
+                        type="number"
+                        required
+                        min="1"
+                        placeholder="11750"
+                        value={newExpRate}
+                        onChange={(e) => setNewExpRate(e.target.value === '' ? '' : Number(e.target.value))}
+                        className="w-full h-8 px-2.5 border border-emerald-300 rounded text-xs bg-white outline-none focus:border-emerald-600"
+                      />
+                    </div>
+                  </div>
+                  {Number(newExpAmountUsd) > 0 && Number(newExpRate) > 0 && (
+                    <div className="text-[11px] font-semibold text-emerald-800 text-right">
+                      = {(Number(newExpAmountUsd) * Number(newExpRate)).toLocaleString()} so'm
+                    </div>
+                  )}
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-semibold mb-1">Tavsif (Izoh) *</label>
                 <input
@@ -1621,34 +1915,105 @@ export const ProjectDetailPage: React.FC = () => {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-semibold mb-1">Miqdor *</label>
-                  <input
-                    type="number"
-                    required
-                    min="0.1"
-                    step="any"
-                    placeholder="50"
-                    value={newPurQty}
-                    onChange={(e) => setNewPurQty(Number(e.target.value))}
-                    className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold mb-1">Birlik narxi ($) *</label>
-                  <input
-                    type="number"
-                    required
-                    min="0.1"
-                    step="any"
-                    placeholder="25"
-                    value={newPurPrice}
-                    onChange={(e) => setNewPurPrice(Number(e.target.value))}
-                    className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none"
-                  />
+              {/* Currency Toggle */}
+              <div>
+                <label className="block text-xs font-semibold mb-1">Narx Valyutasi</label>
+                <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => setNewPurCurrency('UZS')}
+                    className={`py-1 text-xs font-semibold rounded-md transition-all ${newPurCurrency === 'UZS' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
+                  >
+                    🇺🇿 So'm (UZS)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewPurCurrency('USD')}
+                    className={`py-1 text-xs font-semibold rounded-md transition-all ${newPurCurrency === 'USD' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
+                  >
+                    💵 Dollar (USD)
+                  </button>
                 </div>
               </div>
+
+              {newPurCurrency === 'UZS' ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-semibold mb-1">Miqdor *</label>
+                    <input
+                      type="number"
+                      required
+                      min="0.01"
+                      step="any"
+                      placeholder="50"
+                      value={newPurQty}
+                      onChange={(e) => setNewPurQty(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold mb-1">Birlik narxi (so'm) *</label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      step="any"
+                      placeholder="250 000"
+                      value={newPurPrice}
+                      onChange={(e) => setNewPurPrice(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2 p-2.5 bg-emerald-50/50 border border-emerald-200 rounded-lg">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-emerald-900 mb-1">Miqdor *</label>
+                      <input
+                        type="number"
+                        required
+                        min="0.01"
+                        step="any"
+                        placeholder="50"
+                        value={newPurQty}
+                        onChange={(e) => setNewPurQty(e.target.value === '' ? '' : Number(e.target.value))}
+                        className="w-full h-8 px-2.5 border border-emerald-300 rounded text-xs bg-white outline-none focus:border-emerald-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-emerald-900 mb-1">Birlik narxi ($) *</label>
+                      <input
+                        type="number"
+                        required
+                        min="0.01"
+                        step="any"
+                        placeholder="25"
+                        value={newPurPriceUsd}
+                        onChange={(e) => setNewPurPriceUsd(e.target.value === '' ? '' : Number(e.target.value))}
+                        className="w-full h-8 px-2.5 border border-emerald-300 rounded text-xs bg-white outline-none focus:border-emerald-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-emerald-900 mb-1">Dollar kursi *</label>
+                      <input
+                        type="number"
+                        required
+                        min="1"
+                        placeholder="11750"
+                        value={newPurRate}
+                        onChange={(e) => setNewPurRate(e.target.value === '' ? '' : Number(e.target.value))}
+                        className="w-full h-8 px-2.5 border border-emerald-300 rounded text-xs bg-white outline-none focus:border-emerald-600"
+                      />
+                    </div>
+                  </div>
+                  {Number(newPurQty) > 0 && Number(newPurPriceUsd) > 0 && Number(newPurRate) > 0 && (
+                    <div className="text-[11px] font-semibold text-emerald-800 text-right">
+                      = ${(Number(newPurQty) * Number(newPurPriceUsd)).toLocaleString()} × {Number(newPurRate).toLocaleString()} = {(Number(newPurQty) * Number(newPurPriceUsd) * Number(newPurRate)).toLocaleString()} so'm
+                    </div>
+                  )}
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-semibold mb-1">Do'kon / Yetkazib beruvchi</label>
                 <input
@@ -1752,18 +2117,76 @@ export const ProjectDetailPage: React.FC = () => {
                   className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none"
                 />
               </div>
+              {/* Currency Toggle */}
               <div>
-                <label className="block text-xs font-semibold mb-1">Kelishilgan Haq ($) *</label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  placeholder="3000"
-                  value={newWorkAgreed}
-                  onChange={(e) => setNewWorkAgreed(Number(e.target.value))}
-                  className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none"
-                />
+                <label className="block text-xs font-semibold mb-1">Valyuta</label>
+                <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => setNewWorkCurrency('UZS')}
+                    className={`py-1 text-xs font-semibold rounded-md transition-all ${newWorkCurrency === 'UZS' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
+                  >
+                    🇺🇿 So'm (UZS)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewWorkCurrency('USD')}
+                    className={`py-1 text-xs font-semibold rounded-md transition-all ${newWorkCurrency === 'USD' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
+                  >
+                    💵 Dollar (USD)
+                  </button>
+                </div>
               </div>
+
+              {newWorkCurrency === 'UZS' ? (
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Kelishilgan Haq (so'm) *</label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    placeholder="3 000 000"
+                    value={newWorkAgreed}
+                    onChange={(e) => setNewWorkAgreed(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none focus:border-[#ff7a16]"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2 p-2.5 bg-emerald-50/50 border border-emerald-200 rounded-lg">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-emerald-900 mb-1">Kelishilgan Haq ($) *</label>
+                      <input
+                        type="number"
+                        required
+                        min="0.01"
+                        step="any"
+                        placeholder="300"
+                        value={newWorkAgreedUsd}
+                        onChange={(e) => setNewWorkAgreedUsd(e.target.value === '' ? '' : Number(e.target.value))}
+                        className="w-full h-8 px-2.5 border border-emerald-300 rounded text-xs bg-white outline-none focus:border-emerald-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-emerald-900 mb-1">Dollar kursi *</label>
+                      <input
+                        type="number"
+                        required
+                        min="1"
+                        placeholder="11750"
+                        value={newWorkRate}
+                        onChange={(e) => setNewWorkRate(e.target.value === '' ? '' : Number(e.target.value))}
+                        className="w-full h-8 px-2.5 border border-emerald-300 rounded text-xs bg-white outline-none focus:border-emerald-600"
+                      />
+                    </div>
+                  </div>
+                  {Number(newWorkAgreedUsd) > 0 && Number(newWorkRate) > 0 && (
+                    <div className="text-[11px] font-semibold text-emerald-800 text-right">
+                      = ${(Number(newWorkAgreedUsd)).toLocaleString()} × {Number(newWorkRate).toLocaleString()} = {(Number(newWorkAgreedUsd) * Number(newWorkRate)).toLocaleString()} so'm
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setIsWorkerModalOpen(false)} className="px-3 py-1.5 border rounded-lg text-xs">Bekor qilish</button>
                 <button type="submit" className="px-3 py-1.5 bg-[#ff7a16] text-white rounded-lg text-xs font-semibold">Biriktirish</button>
@@ -1890,39 +2313,104 @@ export const ProjectDetailPage: React.FC = () => {
               <div className="grid grid-cols-3 gap-1 pt-2 mt-1 border-t border-gray-200 text-[11px]">
                 <div>
                   <span className="text-gray-500">Kelishilgan:</span>
-                  <div className="font-bold text-gray-900">${selectedWorkerForPay.agreedAmount.toLocaleString()}</div>
+                  <div className="font-bold text-gray-900">
+                    {selectedWorkerForPay.currency === 'USD' && selectedWorkerForPay.originalAgreedAmount
+                      ? `$${selectedWorkerForPay.originalAgreedAmount.toLocaleString()} (${selectedWorkerForPay.agreedAmount.toLocaleString()} so'm)`
+                      : `${selectedWorkerForPay.agreedAmount.toLocaleString()} so'm`}
+                  </div>
                 </div>
                 <div>
                   <span className="text-gray-500">To'langan:</span>
-                  <div className="font-bold text-emerald-700">${selectedWorkerForPay.paidAmount.toLocaleString()}</div>
+                  <div className="font-bold text-emerald-700">{selectedWorkerForPay.paidAmount.toLocaleString()} so'm</div>
                 </div>
                 <div>
                   <span className="text-gray-500">Qolgan limit:</span>
-                  <div className="font-bold text-blue-700">${(selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount).toLocaleString()}</div>
+                  <div className="font-bold text-blue-700">{(selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount).toLocaleString()} so'm</div>
                 </div>
               </div>
             </div>
 
             <form onSubmit={submitPayWorker} className="space-y-3">
+              {/* Currency Toggle */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">To'lov Summasi ($) *</label>
-                <input
-                  type="number"
-                  required
-                  min="0.01"
-                  step="any"
-                  max={selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount}
-                  placeholder={`Maksimal: $${selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount}`}
-                  value={payWorkerAmount}
-                  onChange={(e) => setPayWorkerAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                  className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none focus:border-emerald-600"
-                />
-                {Number(payWorkerAmount) > (selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount) && (
-                  <p className="text-[11px] text-red-600 mt-1 font-medium bg-red-50 p-2 rounded border border-red-200">
-                    ⚠️ Ustaga faqat ${(selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount).toLocaleString()} to'lash mumkin. Kiritilgan summa kelishilgan umumiy summadan oshib ketmoqda.
-                  </p>
-                )}
+                <label className="block text-xs font-semibold mb-1">To'lov Valyutasi</label>
+                <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => setPayWorkerCurrency('UZS')}
+                    className={`py-1 text-xs font-semibold rounded-md transition-all ${payWorkerCurrency === 'UZS' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
+                  >
+                    🇺🇿 So'm (UZS)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPayWorkerCurrency('USD')}
+                    className={`py-1 text-xs font-semibold rounded-md transition-all ${payWorkerCurrency === 'USD' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
+                  >
+                    💵 Dollar (USD)
+                  </button>
+                </div>
               </div>
+
+              {payWorkerCurrency === 'UZS' ? (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">To'lov Summasi (so'm) *</label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    placeholder={`Maksimal: ${(selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount).toLocaleString()} so'm`}
+                    value={payWorkerAmount}
+                    onChange={(e) => setPayWorkerAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none focus:border-emerald-600"
+                  />
+                  {Number(payWorkerAmount) > (selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount) && (
+                    <p className="text-[11px] text-red-600 mt-1 font-medium bg-red-50 p-2 rounded border border-red-200">
+                      ⚠️ Ustaga faqat {(selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount).toLocaleString()} so'm to'lash mumkin.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2 p-2.5 bg-emerald-50/50 border border-emerald-200 rounded-lg">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-emerald-900 mb-1">To'lov summasi ($) *</label>
+                      <input
+                        type="number"
+                        required
+                        min="0.01"
+                        step="any"
+                        placeholder="100"
+                        value={payWorkerAmountUsd}
+                        onChange={(e) => setPayWorkerAmountUsd(e.target.value === '' ? '' : Number(e.target.value))}
+                        className="w-full h-8 px-2.5 border border-emerald-300 rounded text-xs bg-white outline-none focus:border-emerald-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-emerald-900 mb-1">Dollar kursi (manual) *</label>
+                      <input
+                        type="number"
+                        required
+                        min="1"
+                        placeholder="11750"
+                        value={payWorkerRate}
+                        onChange={(e) => setPayWorkerRate(e.target.value === '' ? '' : Number(e.target.value))}
+                        className="w-full h-8 px-2.5 border border-emerald-300 rounded text-xs bg-white outline-none focus:border-emerald-600"
+                      />
+                    </div>
+                  </div>
+                  {Number(payWorkerAmountUsd) > 0 && Number(payWorkerRate) > 0 && (
+                    <div className="text-[11px] font-semibold text-emerald-800 text-right">
+                      = ${(Number(payWorkerAmountUsd)).toLocaleString()} × {Number(payWorkerRate).toLocaleString()} = {(Number(payWorkerAmountUsd) * Number(payWorkerRate)).toLocaleString()} so'm
+                    </div>
+                  )}
+                  {Number(payWorkerAmountUsd) > 0 && Number(payWorkerRate) > 0 && (Number(payWorkerAmountUsd) * Number(payWorkerRate)) > (selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount) && (
+                    <p className="text-[11px] text-red-600 mt-1 font-medium bg-red-50 p-2 rounded border border-red-200">
+                      ⚠️ Hisoblangan summa ({(Number(payWorkerAmountUsd) * Number(payWorkerRate)).toLocaleString()} so'm) qoldiqdan oshib ketmoqda.
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">To'lov Sanasi *</label>
@@ -1957,9 +2445,15 @@ export const ProjectDetailPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={
-                    !payWorkerAmount ||
-                    Number(payWorkerAmount) <= 0 ||
-                    Number(payWorkerAmount) > (selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount)
+                    payWorkerCurrency === 'UZS'
+                      ? (!payWorkerAmount ||
+                         Number(payWorkerAmount) <= 0 ||
+                         Number(payWorkerAmount) > (selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount))
+                      : (!payWorkerAmountUsd ||
+                         Number(payWorkerAmountUsd) <= 0 ||
+                         !payWorkerRate ||
+                         Number(payWorkerRate) <= 0 ||
+                         (Number(payWorkerAmountUsd) * Number(payWorkerRate)) > (selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount))
                   }
                   className="px-4 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
                 >

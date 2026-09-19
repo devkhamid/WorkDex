@@ -10,13 +10,76 @@ namespace WorkDex.Api.Services;
 public class ProjectMediaService : IProjectMediaService
 {
     private readonly AppDbContext _context;
+    private readonly IWebHostEnvironment _env;
 
-    public ProjectMediaService(AppDbContext context)
+    public ProjectMediaService(AppDbContext context, IWebHostEnvironment env)
     {
         _context = context;
+        _env = env;
     }
 
     // Documents
+    public async Task<DocumentDto> UploadDocumentAsync(Guid projectId, IFormFile file, string? title, string? fileType, Guid uploadedByUserId)
+    {
+        if (file == null || file.Length == 0)
+            throw new ArgumentException("Fayl tanlanmagan.");
+
+        var project = await _context.Projects.FindAsync(projectId);
+        if (project is null)
+            throw new KeyNotFoundException("Loyiha topilmadi.");
+
+        var user = await _context.Users.FindAsync(uploadedByUserId);
+        if (user is null)
+            throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
+
+        var rootPath = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        var folder = Path.Combine(rootPath, "uploads", "documents", projectId.ToString());
+        if (!Directory.Exists(folder))
+        {
+            Directory.CreateDirectory(folder);
+        }
+
+        var ext = Path.GetExtension(file.FileName);
+        var safeFileName = $"{Guid.NewGuid():N}_{Path.GetFileNameWithoutExtension(file.FileName)}{ext}";
+        var fullPath = Path.Combine(folder, safeFileName);
+
+        using (var stream = new FileStream(fullPath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        var relativePath = $"/uploads/documents/{projectId}/{safeFileName}";
+        var finalTitle = !string.IsNullOrWhiteSpace(title) ? title.Trim() : Path.GetFileNameWithoutExtension(file.FileName);
+        var finalType = !string.IsNullOrWhiteSpace(fileType) ? fileType.Trim() : ext.TrimStart('.').ToLowerInvariant();
+
+        var doc = new ProjectDocument
+        {
+            ProjectId = projectId,
+            Title = finalTitle,
+            FilePath = relativePath,
+            FileType = finalType,
+            FileSizeBytes = file.Length,
+            UploadedByUserId = uploadedByUserId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.Documents.Add(doc);
+        await _context.SaveChangesAsync();
+
+        return new DocumentDto
+        {
+            Id = doc.Id,
+            ProjectId = doc.ProjectId,
+            Title = doc.Title,
+            FilePath = doc.FilePath,
+            FileType = doc.FileType,
+            FileSizeBytes = doc.FileSizeBytes,
+            UploadedByUserId = doc.UploadedByUserId,
+            UploadedByName = user.FullName,
+            CreatedAt = doc.CreatedAt
+        };
+    }
+
     public async Task<DocumentDto> AddDocumentAsync(Guid projectId, CreateDocumentDto dto, Guid uploadedByUserId)
     {
         var project = await _context.Projects.FindAsync(projectId);
@@ -88,6 +151,23 @@ public class ProjectMediaService : IProjectMediaService
 
         if (doc is null)
             throw new KeyNotFoundException("Hujjat topilmadi.");
+
+        if (!string.IsNullOrEmpty(doc.FilePath) && doc.FilePath.StartsWith("/uploads/"))
+        {
+            try
+            {
+                var rootPath = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                var diskPath = Path.Combine(rootPath, doc.FilePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+                if (File.Exists(diskPath))
+                {
+                    File.Delete(diskPath);
+                }
+            }
+            catch
+            {
+                // Silently ignore disk cleanup errors to avoid blocking DB deletion
+            }
+        }
 
         _context.Documents.Remove(doc);
         await _context.SaveChangesAsync();
