@@ -18,6 +18,11 @@ public class MaterialPurchase
     public string? ReceiptNumber { get; set; } // Hisob-faktura yoki chek raqami
     public string? Notes { get; set; }
 
+    // Valyuta maydonlari: UZS yoki USD bilan kiritilishi mumkin
+    public string Currency { get; set; } = "UZS"; // "UZS" yoki "USD"
+    public decimal? ExchangeRateToUzs { get; set; } // Dollar kursi (masalan: 11750)
+    public decimal? OriginalUnitPrice { get; set; } // Original valutadagi birlik narxi
+
     public Guid CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

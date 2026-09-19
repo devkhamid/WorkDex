@@ -15,6 +15,11 @@ public class WorkerPayment
     public DateTime? PaymentDate { get; set; }
     public string? Notes { get; set; }
 
+    // Valyuta maydonlari
+    public string Currency { get; set; } = "UZS"; // "UZS" yoki "USD"
+    public decimal? ExchangeRateToUzs { get; set; } // Dollar kursi
+    public decimal? OriginalAgreedAmount { get; set; } // Original valutadagi kelishilgan summa
+
     public Guid CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

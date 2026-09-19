@@ -14,6 +14,11 @@ public class Expense
     public DateTime ExpenseDate { get; set; }
     public string? Notes { get; set; }
 
+    // Valyuta maydonlari
+    public string Currency { get; set; } = "UZS"; // "UZS" yoki "USD"
+    public decimal? ExchangeRateToUzs { get; set; } // Dollar kursi
+    public decimal? OriginalAmount { get; set; } // Original valutadagi summa
+
     public Guid CreatedByUserId { get; set; }
     public Guid? CompanyAdminId { get; set; }  // Tenant izolyatsiya
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

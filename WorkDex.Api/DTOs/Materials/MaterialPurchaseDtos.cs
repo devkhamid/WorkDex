@@ -18,6 +18,17 @@ public class CreateMaterialPurchaseDto
     [Range(0.01, double.MaxValue, ErrorMessage = "Birlik narxi 0 dan katta bo'lishi kerak.")]
     public decimal UnitPrice { get; set; }
 
+    // Valyuta: "UZS" yoki "USD"
+    [MaxLength(3)]
+    public string Currency { get; set; } = "UZS";
+
+    // Agar USD bo'lsa, dollar kursi (UZS/USD)
+    [Range(0.01, double.MaxValue, ErrorMessage = "Dollar kursi 0 dan katta bo'lishi kerak.")]
+    public decimal? ExchangeRateToUzs { get; set; }
+
+    // Original valutadagi birlik narxi (USD bo'lsa dollar narxi)
+    public decimal? OriginalUnitPrice { get; set; }
+
     [MaxLength(200)]
     public string? Supplier { get; set; }
 
