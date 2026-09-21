@@ -65,17 +65,29 @@ export const FinancePage: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between min-h-[110px]">
-          <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#8b5cf6]" />
-          <div>
-            <small className="block text-[11px] font-medium text-[#697180] mb-1">Kutilayotgan Sof Foyda</small>
-            <b className="text-2xl font-extrabold text-emerald-600 block mt-1">${stats?.totalNetProfit.toLocaleString() ?? 0}</b>
-          </div>
-          <div className="text-[11px] font-semibold text-emerald-600 mt-2 flex items-center gap-1">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>Daromad va xarajat farqi</span>
-          </div>
-        </div>
+        {(() => {
+          const netBal = stats?.netBalance ?? ((stats?.totalRevenueReceived ?? 0) - (stats?.totalExpenses ?? 0));
+          const isNegative = netBal < 0;
+          return (
+            <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between min-h-[110px]">
+              <div className={`absolute left-0 top-4 w-1.5 h-8 rounded-r ${isNegative ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+              <div>
+                <small className="block text-[11px] font-bold text-[#697180] mb-1 uppercase tracking-wider">Net Balans (Qo'ldagi summa)</small>
+                <b className={`text-2xl font-extrabold block mt-1 ${isNegative ? 'text-rose-600' : 'text-emerald-600'}`}>
+                  {isNegative ? `-$${Math.abs(netBal).toLocaleString()}` : `$${netBal.toLocaleString()}`}
+                </b>
+              </div>
+              <div className="text-[11px] font-medium text-gray-500 mt-2 flex items-center justify-between">
+                <span>Tushum − Xarajatlar</span>
+                {stats?.totalNetProfit !== undefined && (
+                  <span className="text-[10px] text-purple-600 font-semibold" title="Kutilayotgan sof foyda">
+                    Kutilayotgan: ${stats.totalNetProfit.toLocaleString()}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
@@ -99,8 +111,26 @@ export const FinancePage: React.FC = () => {
               <span className="font-semibold text-gray-700">Kutilayotgan qarzdorliklar tushumi</span>
               <b className="text-blue-600 font-bold text-sm">+${stats?.totalPendingReceivables.toLocaleString() ?? 0}</b>
             </div>
-            <div className="p-4 flex justify-between items-center bg-emerald-50/60 border border-emerald-200 rounded-xl mt-4">
-              <span className="font-bold text-emerald-950 text-xs uppercase tracking-wide">YAKUNIY SOF NATIJA (FOYDA):</span>
+            <div className="p-3.5 flex justify-between items-center bg-gray-50 border border-gray-200 rounded-xl mt-3">
+              <div>
+                <span className="font-bold text-gray-900 text-xs uppercase tracking-wide block">NET BALANS (QO'LDAGI REAL SUMMA):</span>
+                <span className="text-[10px] text-gray-500 font-medium">Loyiha tushumlari − Jami xarajatlar</span>
+              </div>
+              {(() => {
+                const nb = stats?.netBalance ?? ((stats?.totalRevenueReceived ?? 0) - (stats?.totalExpenses ?? 0));
+                const isNeg = nb < 0;
+                return (
+                  <b className={`font-extrabold text-base ${isNeg ? 'text-rose-600' : 'text-emerald-600'}`}>
+                    {isNeg ? `-$${Math.abs(nb).toLocaleString()}` : `+$${nb.toLocaleString()}`}
+                  </b>
+                );
+              })()}
+            </div>
+            <div className="p-4 flex justify-between items-center bg-emerald-50/60 border border-emerald-200 rounded-xl mt-2">
+              <div>
+                <span className="font-bold text-emerald-950 text-xs uppercase tracking-wide block">KUTILAYOTGAN YAKUNIY SOF FOYDA:</span>
+                <span className="text-[10px] text-emerald-700 font-medium">Barcha shartnoma qarzlari to'liq yopilgandan so'ng</span>
+              </div>
               <b className="text-emerald-700 font-extrabold text-lg">${stats?.totalNetProfit.toLocaleString() ?? 0}</b>
             </div>
           </div>

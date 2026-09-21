@@ -26,6 +26,7 @@ public class ProjectSummaryDto
     // Hisoblangan ko'rsatkichlar
     public decimal BudgetUtilizationPercent { get; set; }
     public decimal GrossProfit { get; set; }
+    public decimal NetBalance { get; set; } // Olingan to'lov - Jami xarajatlar (Qo'ldagi real summa)
     public decimal RemainingBudget { get; set; }
 
     public decimal ProgressPercent { get; set; }

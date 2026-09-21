@@ -302,20 +302,35 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* KPI 4: Sof Foyda */}
-        <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between">
-          <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#8b5cf6]" />
-          <div>
-            <small className="block text-[11px] font-medium text-[#697180] mb-1.5">Kutilayotgan Sof Foyda</small>
-            <strong className="text-2xl font-bold tracking-tight text-[#171b25]">
-              {formatMoney(stats?.totalNetProfit ?? 0)}
-            </strong>
-          </div>
-          <div className="text-[11px] font-semibold mt-2 text-[#21bd68] flex items-center gap-1">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>Xavf ostida: {stats?.atRiskProjectsCount ?? 0} ta loyiha</span>
-          </div>
-        </div>
+        {/* KPI 4: Net Balans */}
+        {(() => {
+          const netBal = stats?.netBalance ?? ((stats?.totalRevenueReceived ?? 0) - (stats?.totalExpenses ?? 0));
+          const isNegative = netBal < 0;
+          return (
+            <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between">
+              <div className={`absolute left-0 top-4 w-1.5 h-8 rounded-r ${isNegative ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <small className="block text-[11px] font-bold text-[#697180] uppercase tracking-wider">Net Balans (Qo'ldagi summa)</small>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${isNegative ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
+                    {isNegative ? 'Kamomad' : 'Kassa ijobiy'}
+                  </span>
+                </div>
+                <strong className={`text-2xl font-extrabold tracking-tight block ${isNegative ? 'text-rose-600' : 'text-emerald-600'}`}>
+                  {isNegative ? `-${formatMoney(Math.abs(netBal))}` : formatMoney(netBal)}
+                </strong>
+              </div>
+              <div className="text-[11px] font-medium mt-2 text-gray-500 flex items-center justify-between">
+                <span>Tushum − Xarajatlar</span>
+                {stats?.totalNetProfit !== undefined && (
+                  <span className="text-[10px] text-purple-600 font-semibold" title="Kutilayotgan sof foyda">
+                    Kutilayotgan: {formatMoney(stats.totalNetProfit)}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Dashboard Grid (2 Columns) */}

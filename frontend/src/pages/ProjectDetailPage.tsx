@@ -650,10 +650,33 @@ export const ProjectDetailPage: React.FC = () => {
           <small className="block text-[9px] font-bold text-[#8e95a0] uppercase tracking-wider">QOLGAN TO'LOV (QARZ)</small>
           <b className="text-xl font-extrabold text-[#ff7a16] block mt-1.5">${summary?.remainingPayment.toLocaleString() ?? project.contractAmount.toLocaleString()}</b>
         </div>
-        <div className="bg-white border border-[#e4e7ec] rounded-xl p-3.5 shadow-xs">
-          <small className="block text-[9px] font-bold text-[#8e95a0] uppercase tracking-wider">KUTILAYOTGAN SOF FOYDA</small>
-          <b className="text-xl font-extrabold text-[#8b5cf6] block mt-1.5">${summary?.grossProfit.toLocaleString() ?? 0}</b>
-        </div>
+        {(() => {
+          const netBal = summary?.netBalance ?? ((summary?.totalPaid ?? 0) - (summary?.totalExpenses ?? 0));
+          const isNegative = netBal < 0;
+          return (
+            <div className="bg-white border border-[#e4e7ec] rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <small className="block text-[9px] font-bold text-[#8e95a0] uppercase tracking-wider">NET BALANS (QO'LDAGI SUMMA)</small>
+                  <span className={`text-[9px] px-1 py-0.2 rounded font-bold ${isNegative ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>
+                    {isNegative ? 'Kamomad' : 'Kassa ijobiy'}
+                  </span>
+                </div>
+                <b className={`text-xl font-extrabold block mt-1.5 ${isNegative ? 'text-red-600' : 'text-[#21bd68]'}`}>
+                  {isNegative ? `-$${Math.abs(netBal).toLocaleString()}` : `$${netBal.toLocaleString()}`}
+                </b>
+              </div>
+              <div className="text-[10px] text-gray-400 mt-1 flex items-center justify-between">
+                <span>Olingan to'lov − Xarajatlar</span>
+                {summary?.grossProfit !== undefined && (
+                  <span className="text-[9px] text-purple-600 font-medium" title="Kutilayotgan sof foyda">
+                    Kutilayotgan: ${summary.grossProfit.toLocaleString()}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* TAB 1: OVERVIEW */}

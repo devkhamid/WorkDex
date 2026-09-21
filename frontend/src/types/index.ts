@@ -142,6 +142,7 @@ export interface ProjectSummary {
   totalExpenses: number;
   budgetUtilizationPercent: number;
   grossProfit: number;
+  netBalance?: number;
   remainingBudget: number;
   progressPercent: number;
   status: ProjectStatus;
@@ -345,6 +346,7 @@ export interface DashboardStats {
   totalPendingReceivables: number;
   totalExpenses: number;
   totalNetProfit: number;
+  netBalance?: number;
   averageBudgetUtilizationPercent: number;
   atRiskProjectsCount: number;
 }

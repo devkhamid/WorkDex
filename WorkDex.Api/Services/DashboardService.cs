@@ -125,6 +125,7 @@ public class DashboardService : IDashboardService
         }
 
         var avgUtilization = totalProjects > 0 ? Math.Round(totalBudgetUtilization / totalProjects, 2) : 0;
+        var netBalance = totalRevenue - totalExpenses;
 
         return new DashboardStatsDto
         {
@@ -137,6 +138,7 @@ public class DashboardService : IDashboardService
             TotalPendingReceivables = totalPendingReceivables,
             TotalExpenses = totalExpenses,
             TotalNetProfit = totalNetProfit,
+            NetBalance = netBalance,
             AverageBudgetUtilizationPercent = avgUtilization,
             AtRiskProjectsCount = atRiskCount
         };

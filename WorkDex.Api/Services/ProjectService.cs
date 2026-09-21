@@ -225,6 +225,7 @@ public class ProjectService : IProjectService
             ? Math.Round(totalExpenses / project.Budget * 100, 2)
             : 0;
         var grossProfit = totalContractAmount - totalExpenses;
+        var netBalance = totalPaid - totalExpenses;
         var remainingBudget = project.Budget - totalExpenses;
 
         return new ProjectSummaryDto
@@ -244,6 +245,7 @@ public class ProjectService : IProjectService
             TotalExpenses = totalExpenses,
             BudgetUtilizationPercent = budgetUtilization,
             GrossProfit = grossProfit,
+            NetBalance = netBalance,
             RemainingBudget = remainingBudget,
             ProgressPercent = project.ProgressPercent,
             Status = project.Status

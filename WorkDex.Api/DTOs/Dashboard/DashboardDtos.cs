@@ -14,7 +14,8 @@ public class DashboardStatsDto
     public decimal TotalRevenueReceived { get; set; } // Olingan jami tushum
     public decimal TotalPendingReceivables { get; set; } // Mijozlardan kutilayotgan qoldiq tushum
     public decimal TotalExpenses { get; set; } // Jami xarajatlar (Material + Usta + Boshqa + Qo'shimcha tannarx)
-    public decimal TotalNetProfit { get; set; } // Sof/Yalpi foyda
+    public decimal TotalNetProfit { get; set; } // Kutilayotgan umumiy sof foyda (Shartnoma - Jami xarajatlar)
+    public decimal NetBalance { get; set; } // Olingan tushum - Jami xarajatlar (Qo'ldagi naqd summa)
 
     public decimal AverageBudgetUtilizationPercent { get; set; }
     public int AtRiskProjectsCount { get; set; } // Byudjetdan 90% dan ko'prog'i sarflangan yoki oshib ketgan loyihalar
