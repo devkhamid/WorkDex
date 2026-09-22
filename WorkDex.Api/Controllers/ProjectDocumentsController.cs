@@ -55,14 +55,12 @@ public class ProjectDocumentsController : ControllerBase
     [DisableRequestSizeLimit]
     public async Task<IActionResult> UploadDocument(
         Guid projectId,
-        [FromForm] IFormFile file,
-        [FromForm] string? title,
-        [FromForm] string? fileType)
+        [FromForm] UploadDocumentDto dto)
     {
         try
         {
             var userId = User.GetUserId();
-            var doc = await _mediaService.UploadDocumentAsync(projectId, file, title, fileType, userId);
+            var doc = await _mediaService.UploadDocumentAsync(projectId, dto.File, dto.Title, dto.FileType, userId);
             return Ok(doc);
         }
         catch (ArgumentException ex)

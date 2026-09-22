@@ -1,6 +1,19 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace WorkDex.Api.DTOs.Documents;
+
+public class UploadDocumentDto
+{
+    [Required]
+    public IFormFile File { get; set; } = null!;
+
+    [MaxLength(300)]
+    public string? Title { get; set; }
+
+    [MaxLength(50)]
+    public string? FileType { get; set; }
+}
 
 public class CreateDocumentDto
 {
