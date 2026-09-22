@@ -51,6 +51,8 @@ public class ProjectDocumentsController : ControllerBase
 
     [HttpPost("upload")]
     [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
+    [Consumes("multipart/form-data")]
+    [DisableRequestSizeLimit]
     public async Task<IActionResult> UploadDocument(
         Guid projectId,
         [FromForm] IFormFile file,
