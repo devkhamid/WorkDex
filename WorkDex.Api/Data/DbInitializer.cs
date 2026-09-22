@@ -37,6 +37,8 @@ public static class DbInitializer
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Projects\" ADD COLUMN IF NOT EXISTS \"FinalPercent\" INTEGER DEFAULT 20;");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Projects\" ADD COLUMN IF NOT EXISTS \"ExchangeRate\" NUMERIC(18,2);");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Projects\" ADD COLUMN IF NOT EXISTS \"AgreementId\" UUID;");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Projects\" ADD COLUMN IF NOT EXISTS \"ContractAmountUzs\" NUMERIC(18,2);");
+
 
         // Valyuta maydonlari — MaterialPurchases
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"MaterialPurchases\" ADD COLUMN IF NOT EXISTS \"Currency\" VARCHAR(3) DEFAULT 'UZS';");

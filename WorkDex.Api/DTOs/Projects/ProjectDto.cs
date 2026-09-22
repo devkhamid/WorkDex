@@ -37,5 +37,6 @@ public class ProjectDto
     public int IntermediatePercent { get; set; } = 50;
     public int FinalPercent { get; set; } = 20;
     public decimal? ExchangeRate { get; set; }
+    public decimal? ContractAmountUzs { get; set; } // UZS da kiritilgan asl shartnoma summasi
     public Guid? AgreementId { get; set; }
 }

@@ -310,6 +310,9 @@ public class AgreementService : IAgreementService
             projectEntity.FinalPercent = agreement.FinalPercent;
             projectEntity.ExchangeRate = agreement.ExchangeRate;
             projectEntity.AgreementId = agreement.Id;
+            // Shartnomadan UZS summasi ham saqlaymiz
+            if (agreement.TotalAmountUZS > 0)
+                projectEntity.ContractAmountUzs = agreement.TotalAmountUZS;
         }
 
         // Menejerlarni qo'shish

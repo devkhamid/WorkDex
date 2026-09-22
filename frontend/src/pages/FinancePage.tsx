@@ -183,7 +183,11 @@ export const FinancePage: React.FC = () => {
                 <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="py-3.5 px-5 font-bold text-[#171b25]">{p.name}</td>
                   <td className="py-3.5 px-5 text-gray-700">{p.customerName || '-'}</td>
-                  <td className="py-3.5 px-5 font-semibold text-gray-900">${p.contractAmount.toLocaleString()}</td>
+                  <td className="py-3.5 px-5 font-semibold text-gray-900">
+                    {p.currency?.toUpperCase() === 'UZS' && p.contractAmountUzs
+                      ? <span>{p.contractAmountUzs.toLocaleString()} so'm<span className="block text-[10px] text-gray-400 font-normal">≈ ${p.contractAmount.toLocaleString()}</span></span>
+                      : `$${p.contractAmount.toLocaleString()}`}
+                  </td>
                   <td className="py-3.5 px-5 text-gray-600">${p.budget.toLocaleString()}</td>
                   <td className="py-3.5 px-5">
                     <span className="px-2.5 py-0.5 bg-gray-100 text-gray-700 rounded-full text-[10px] font-bold">

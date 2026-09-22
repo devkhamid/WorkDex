@@ -77,6 +77,8 @@ builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<ICustomerPortalService, CustomerPortalService>();
 builder.Services.AddScoped<IExcelExportService, ExcelExportService>();
 builder.Services.AddScoped<IAgreementService, AgreementService>();
+builder.Services.AddSingleton<ICurrencyService, CurrencyService>();
+builder.Services.AddHttpClient("CBU");
 
 // =============================================
 // CONTROLLERS

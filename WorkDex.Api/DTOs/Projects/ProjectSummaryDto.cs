@@ -9,6 +9,7 @@ public class ProjectSummaryDto
     public string ProjectName { get; set; } = string.Empty;
     public string CustomerName { get; set; } = string.Empty;
     public decimal ContractAmount { get; set; }
+    public decimal? ContractAmountUzs { get; set; } // UZS da kiritilgan asl shartnoma summasi
     public string Currency { get; set; } = "USD";
 
     // To'lovlar (Phase 8 da real ma'lumotlar bilan to'ldiriladi)

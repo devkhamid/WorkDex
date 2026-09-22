@@ -8,10 +8,12 @@ namespace WorkDex.Api.Services;
 public class ProjectService : IProjectService
 {
     private readonly AppDbContext _context;
+    private readonly ICurrencyService _currencyService;
 
-    public ProjectService(AppDbContext context)
+    public ProjectService(AppDbContext context, ICurrencyService currencyService)
     {
         _context = context;
+        _currencyService = currencyService;
     }
 
     public async Task<List<ProjectDto>> GetAllAsync(Guid requestingUserId, UserRole requestingUserRole)
@@ -82,15 +84,39 @@ public class ProjectService : IProjectService
         if (requestingUser?.Role != UserRole.SuperAdmin && customer.CompanyAdminId != null && customer.CompanyAdminId != companyAdminId)
             throw new InvalidOperationException("Tanlangan mijoz boshqa kompaniyaga tegishli.");
 
+        // Valyuta konvertatsiyasi: agar UZS da kiritilgan bo'lsa, CBU kursi bilan USD ga o'giramiz
+        var inputCurrency = string.IsNullOrWhiteSpace(dto.Currency) ? "USD" : dto.Currency.Trim().ToUpper();
+        decimal contractAmountUsd = dto.ContractAmount;
+        decimal? contractAmountUzs = null;
+        decimal? exchangeRate = null;
+
+        if (inputCurrency == "UZS" && dto.ContractAmount > 0)
+        {
+            var rate = await _currencyService.GetUsdToUzsRateAsync();
+            if (rate > 0)
+            {
+                exchangeRate = rate;
+                contractAmountUzs = dto.ContractAmount;
+                contractAmountUsd = Math.Round(dto.ContractAmount / rate, 2);
+            }
+        }
+        else if (inputCurrency == "USD")
+        {
+            // USD da kiritilgan — kursni so'raymiz (ma'lumot uchun saqlaymiz)
+            exchangeRate = await _currencyService.GetUsdToUzsRateAsync();
+        }
+
         var project = new Project
         {
             Name = dto.Name.Trim(),
             Description = dto.Description?.Trim(),
             ProjectType = dto.ProjectType?.Trim(),
             CustomerId = dto.CustomerId,
-            ContractAmount = dto.ContractAmount,
+            ContractAmount = contractAmountUsd,
+            ContractAmountUzs = contractAmountUzs,
             Budget = dto.Budget,
-            Currency = string.IsNullOrWhiteSpace(dto.Currency) ? "USD" : dto.Currency.Trim(),
+            Currency = inputCurrency,
+            ExchangeRate = exchangeRate,
             StartDate = dto.StartDate,
             EndDate = dto.EndDate,
             Location = dto.Location?.Trim(),
@@ -234,6 +260,9 @@ public class ProjectService : IProjectService
             ProjectName = project.Name,
             CustomerName = project.Customer.FullName,
             ContractAmount = totalContractAmount,
+            ContractAmountUzs = project.ContractAmountUzs.HasValue
+                ? project.ContractAmountUzs.Value + extraWorkIncome  // extraWorkIncome ham qo'shamiz (u UZS bo'lmasa ham)
+                : null,
             Currency = project.Currency,
             TotalPaid = totalPaid,
             RemainingPayment = remainingPayment,
@@ -467,6 +496,7 @@ public class ProjectService : IProjectService
         IntermediatePercent = p.IntermediatePercent,
         FinalPercent = p.FinalPercent,
         ExchangeRate = p.ExchangeRate,
+        ContractAmountUzs = p.ContractAmountUzs,
         AgreementId = p.AgreementId
     };
 

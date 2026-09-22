@@ -92,8 +92,10 @@ export interface Project {
   customerName: string;
   customerPhone?: string;
   contractAmount: number;
+  contractAmountUzs?: number; // UZS da kiritilgan asl shartnoma summasi
   budget: number;
   currency: string;
+  exchangeRate?: number; // Loyiha yaratilgan paytdagi CBU kursi
   startDate: string;
   endDate?: string;
   actualEndDate?: string;
@@ -131,6 +133,7 @@ export interface ProjectSummary {
   projectName: string;
   customerName: string;
   contractAmount: number;
+  contractAmountUzs?: number; // UZS da kiritilgan asl shartnoma summasi
   currency: string;
   totalPaid: number;
   remainingPayment: number;

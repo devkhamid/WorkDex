@@ -638,9 +638,28 @@ export const ProjectDetailPage: React.FC = () => {
 
       {/* 4 Finance Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* SHARTNOMA CARD */}
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-3.5 shadow-xs">
           <small className="block text-[9px] font-bold text-[#8e95a0] uppercase tracking-wider">SHARTNOMA</small>
-          <b className="text-xl font-extrabold text-[#171b25] block mt-1.5">${summary?.contractAmount.toLocaleString() ?? project.contractAmount.toLocaleString()}</b>
+          {(() => {
+            const isUzs = (project.currency || 'USD').toUpperCase() === 'UZS';
+            const uzsAmount = summary?.contractAmountUzs ?? project.contractAmountUzs;
+            const usdAmount = summary?.contractAmount ?? project.contractAmount;
+            if (isUzs && uzsAmount) {
+              return (
+                <>
+                  <b className="text-xl font-extrabold text-[#171b25] block mt-1.5">
+                    {uzsAmount.toLocaleString()} so'm
+                  </b>
+                  <span className="text-[11px] text-gray-400 mt-0.5 block">
+                    ≈ ${usdAmount.toLocaleString()}
+                    {project.exchangeRate && <span className="ml-1 text-[10px]">(kurs: {project.exchangeRate.toLocaleString()})</span>}
+                  </span>
+                </>
+              );
+            }
+            return <b className="text-xl font-extrabold text-[#171b25] block mt-1.5">${usdAmount.toLocaleString()}</b>;
+          })()}
         </div>
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-3.5 shadow-xs">
           <small className="block text-[9px] font-bold text-[#8e95a0] uppercase tracking-wider">OLINGAN TO'LOV</small>
@@ -648,7 +667,7 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-3.5 shadow-xs">
           <small className="block text-[9px] font-bold text-[#8e95a0] uppercase tracking-wider">QOLGAN TO'LOV (QARZ)</small>
-          <b className="text-xl font-extrabold text-[#ff7a16] block mt-1.5">${summary?.remainingPayment.toLocaleString() ?? project.contractAmount.toLocaleString()}</b>
+          <b className="text-xl font-extrabold text-[#ff7a16] block mt-1.5">${(summary?.remainingPayment ?? project.contractAmount).toLocaleString()}</b>
         </div>
         {(() => {
           const netBal = summary?.netBalance ?? ((summary?.totalPaid ?? 0) - (summary?.totalExpenses ?? 0));

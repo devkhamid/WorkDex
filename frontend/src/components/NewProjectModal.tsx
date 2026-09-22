@@ -214,6 +214,14 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
               </select>
             </div>
           </div>
+          {currency === 'UZS' && (
+            <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 text-[11px] text-blue-700 flex items-start gap-2">
+              <span className="mt-0.5">💱</span>
+              <span>
+                <b>Markaziy Bank kursi bilan avtomatik hisoblash:</b> So'm summasi kiritilganda tizim bugungi CBU kursi bilan dollar ekvivalentini ham hisoblab saqlaydi.
+              </span>
+            </div>
+          )}
 
           {/* Dates in Day.Month.Year format */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
