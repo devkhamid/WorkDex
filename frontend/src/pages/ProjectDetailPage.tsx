@@ -1003,37 +1003,48 @@ export const ProjectDetailPage: React.FC = () => {
             </div>
 
             <div className="divide-y divide-gray-100 max-h-[450px] overflow-y-auto custom-scrollbar">
-              {expenses.map((exp) => (
-                <div key={exp.id} className="p-4 flex justify-between items-center text-xs hover:bg-gray-50/50 transition-colors">
-                  <div className="space-y-0.5">
-                    <div className="font-bold text-sm text-gray-900 flex items-center gap-2">
-                      <span>{exp.amount.toLocaleString()} so'm</span>
-                      {exp.currency === 'USD' && exp.originalAmount && (
-                        <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                          ${exp.originalAmount.toLocaleString()} (kurs: {exp.exchangeRateToUzs?.toLocaleString() || '-'})
+              {expenses.map((exp) => {
+                const isUsd = exp.currency === 'USD' && exp.originalAmount !== undefined && exp.originalAmount !== null && exp.originalAmount > 0;
+                return (
+                  <div key={exp.id} className="p-4 flex justify-between items-center text-xs hover:bg-gray-50/50 transition-colors">
+                    <div className="space-y-0.5">
+                      <div className="font-bold text-sm text-gray-900 flex items-center gap-2">
+                        {isUsd ? (
+                          <>
+                            <span className="text-emerald-700 font-bold text-base">${exp.originalAmount!.toLocaleString()}</span>
+                            <span className="text-[11px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
+                              {exp.amount.toLocaleString()} so'm (kurs: {exp.exchangeRateToUzs?.toLocaleString() || '-'})
+                            </span>
+                          </>
+                        ) : (
+                          <span className="font-bold text-base text-gray-900">{exp.amount.toLocaleString()} so'm</span>
+                        )}
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-800 font-medium">
+                          {expenseCategoryLabels[exp.category] || exp.categoryName}
                         </span>
+                      </div>
+                      <div className="text-[11px] text-gray-700 font-medium">
+                        {exp.description}
+                      </div>
+                      <div className="text-[11px] text-gray-400">
+                        Sana: {formatDateUz(exp.expenseDate)} · Kiritdi: <b className="text-gray-700">{exp.createdByName}</b>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {isUsd ? (
+                        <>
+                          <span className="text-red-600 font-extrabold text-base block">-${exp.originalAmount!.toLocaleString()}</span>
+                          <span className="text-xs text-gray-400 font-medium block">
+                            (-{exp.amount.toLocaleString()} so'm)
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-red-600 font-extrabold text-base block">-{exp.amount.toLocaleString()} so'm</span>
                       )}
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-800 font-medium">
-                        {expenseCategoryLabels[exp.category] || exp.categoryName}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-gray-700 font-medium">
-                      {exp.description}
-                    </div>
-                    <div className="text-[11px] text-gray-400">
-                      Sana: {formatDateUz(exp.expenseDate)} · Kiritdi: <b className="text-gray-700">{exp.createdByName}</b>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-red-600 font-extrabold text-base block">-{exp.amount.toLocaleString()} so'm</span>
-                    {exp.currency === 'USD' && exp.originalAmount && (
-                      <span className="text-xs text-gray-500 font-medium block">
-                        -${exp.originalAmount.toLocaleString()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
               {expenses.length === 0 && (
                 <div className="py-12 text-center text-xs text-gray-400">
                   Qo'shimcha xarajatlar hali kiritilmagan. Yuqoridagi "+ Qo'shimcha xarajat kiritish" orqali gipskarton ko'tarish, tozalash va boshqa xarajatlarni kiritishingiz mumkin.
