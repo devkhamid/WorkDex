@@ -11,12 +11,15 @@ public class ProjectSummaryDto
     public decimal ContractAmount { get; set; }
     public decimal? ContractAmountUzs { get; set; } // UZS da kiritilgan asl shartnoma summasi
     public string Currency { get; set; } = "USD";
+    public decimal? ExchangeRate { get; set; }
 
-    // To'lovlar (Phase 8 da real ma'lumotlar bilan to'ldiriladi)
+    // To'lovlar (USD va UZS)
     public decimal TotalPaid { get; set; }
+    public decimal TotalPaidUzs { get; set; }
     public decimal RemainingPayment { get; set; }
+    public decimal RemainingPaymentUzs { get; set; }
 
-    // Xarajatlar va Qo'shimcha ishlar
+    // Xarajatlar va Qo'shimcha ishlar (USD da)
     public decimal MaterialExpenses { get; set; }
     public decimal LaborExpenses { get; set; }
     public decimal OtherExpenses { get; set; }
@@ -24,11 +27,21 @@ public class ProjectSummaryDto
     public decimal ExtraWorkCost { get; set; } // PDF §7: Qo'shimcha ishlar tannarxi
     public decimal TotalExpenses { get; set; }
 
-    // Hisoblangan ko'rsatkichlar
+    // Xarajatlar va Qo'shimcha ishlar (UZS da)
+    public decimal MaterialExpensesUzs { get; set; }
+    public decimal LaborExpensesUzs { get; set; }
+    public decimal OtherExpensesUzs { get; set; }
+    public decimal TotalExpensesUzs { get; set; }
+
+    // Hisoblangan ko'rsatkichlar (USD da)
     public decimal BudgetUtilizationPercent { get; set; }
     public decimal GrossProfit { get; set; }
-    public decimal NetBalance { get; set; } // Olingan to'lov - Jami xarajatlar (Qo'ldagi real summa)
+    public decimal NetBalance { get; set; } // Olingan to'lov - Jami xarajatlar (USD)
     public decimal RemainingBudget { get; set; }
+
+    // Hisoblangan ko'rsatkichlar (UZS da)
+    public decimal GrossProfitUzs { get; set; }
+    public decimal NetBalanceUzs { get; set; } // Olingan to'lov - Jami xarajatlar (UZS)
 
     public decimal ProgressPercent { get; set; }
     public ProjectStatus Status { get; set; }

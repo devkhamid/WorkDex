@@ -8,10 +8,12 @@ namespace WorkDex.Api.Services;
 public class DashboardService : IDashboardService
 {
     private readonly AppDbContext _context;
+    private readonly ICurrencyService _currencyService;
 
-    public DashboardService(AppDbContext context)
+    public DashboardService(AppDbContext context, ICurrencyService currencyService)
     {
         _context = context;
+        _currencyService = currencyService;
     }
 
     private async Task<List<Guid>> GetAccessibleProjectIdsAsync(Guid requestingUserId, UserRole requestingUserRole)
@@ -45,6 +47,8 @@ public class DashboardService : IDashboardService
     public async Task<DashboardStatsDto> GetStatsAsync(Guid requestingUserId, UserRole requestingUserRole)
     {
         var accessibleIds = await GetAccessibleProjectIdsAsync(requestingUserId, requestingUserRole);
+        var defaultRate = await _currencyService.GetUsdToUzsRateAsync();
+        if (defaultRate <= 0) defaultRate = 12700m;
 
         var projects = await _context.Projects
             .Where(p => accessibleIds.Contains(p.Id))
@@ -58,44 +62,98 @@ public class DashboardService : IDashboardService
         var completedProjects = projects.Count(p => p.Status == ProjectStatus.Completed);
         var onHoldProjects = projects.Count(p => p.Status == ProjectStatus.OnHold);
 
-        // Shartnomalar + tasdiqlangan qo'shimcha ishlar
+        // Shartnomalar + tasdiqlangan qo'shimcha ishlar (USD)
         var baseContractValue = projects.Sum(p => p.ContractAmount);
         var approvedExtraWorksValue = await _context.ExtraWorks
             .Where(ew => accessibleIds.Contains(ew.ProjectId) && ew.IsApprovedByCustomer)
             .SumAsync(ew => (decimal?)ew.CustomerAmount) ?? 0;
         var totalContractValue = baseContractValue + approvedExtraWorksValue;
 
-        // Olingan tushumlar
+        // Olingan tushumlar (USD)
         var totalRevenue = await _context.Payments
             .Where(p => accessibleIds.Contains(p.ProjectId))
             .SumAsync(p => (decimal?)p.Amount) ?? 0;
         var totalPendingReceivables = totalContractValue - totalRevenue;
 
-        // Jami xarajatlar
-        var totalMaterialExpenses = (await _context.MaterialPurchases
+        // Material xaridlari
+        var allPurchases = await _context.MaterialPurchases
             .Where(mp => accessibleIds.Contains(mp.ProjectId))
-            .SumAsync(mp => (decimal?)mp.TotalCost) ?? 0)
-            + (await _context.Expenses
-            .Where(e => e.ProjectId != null && accessibleIds.Contains(e.ProjectId.Value) && e.Category == ExpenseCategory.Material)
-            .SumAsync(e => (decimal?)e.Amount) ?? 0);
+            .ToListAsync();
 
-        var totalLaborExpenses = (await _context.WorkerPayments
+        decimal totalMaterialExpensesUsd = 0;
+        decimal totalMaterialExpensesUzs = 0;
+        foreach (var mp in allPurchases)
+        {
+            var mpRate = mp.ExchangeRateToUzs.HasValue && mp.ExchangeRateToUzs > 0 ? mp.ExchangeRateToUzs.Value : defaultRate;
+            totalMaterialExpensesUzs += mp.TotalCost;
+            if (mp.Currency == "USD" && mp.OriginalUnitPrice.HasValue && mp.OriginalUnitPrice > 0)
+                totalMaterialExpensesUsd += Math.Round(mp.Quantity * mp.OriginalUnitPrice.Value, 2);
+            else
+                totalMaterialExpensesUsd += mpRate > 0 ? Math.Round(mp.TotalCost / mpRate, 2) : mp.TotalCost;
+        }
+
+        // Xarajatlar
+        var allExpenses = await _context.Expenses
+            .Where(e => e.ProjectId != null && accessibleIds.Contains(e.ProjectId.Value))
+            .ToListAsync();
+
+        decimal totalLaborExpensesUsd = 0;
+        decimal totalLaborExpensesUzs = 0;
+        decimal totalOtherExpensesUsd = 0;
+        decimal totalOtherExpensesUzs = 0;
+
+        foreach (var e in allExpenses)
+        {
+            var eRate = e.ExchangeRateToUzs.HasValue && e.ExchangeRateToUzs > 0 ? e.ExchangeRateToUzs.Value : defaultRate;
+            decimal uzs = e.Amount;
+            decimal usd = (e.Currency == "USD" && e.OriginalAmount.HasValue && e.OriginalAmount > 0)
+                ? e.OriginalAmount.Value
+                : (eRate > 0 ? Math.Round(e.Amount / eRate, 2) : e.Amount);
+
+            if (e.Category == ExpenseCategory.Material)
+            {
+                totalMaterialExpensesUzs += uzs;
+                totalMaterialExpensesUsd += usd;
+            }
+            else if (e.Category == ExpenseCategory.Labor)
+            {
+                totalLaborExpensesUzs += uzs;
+                totalLaborExpensesUsd += usd;
+            }
+            else
+            {
+                totalOtherExpensesUzs += uzs;
+                totalOtherExpensesUsd += usd;
+            }
+        }
+
+        // Usta to'lovlari
+        var allWorkerPayments = await _context.WorkerPayments
             .Where(wp => accessibleIds.Contains(wp.ProjectId))
-            .SumAsync(wp => (decimal?)wp.PaidAmount) ?? 0)
-            + (await _context.Expenses
-            .Where(e => e.ProjectId != null && accessibleIds.Contains(e.ProjectId.Value) && e.Category == ExpenseCategory.Labor)
-            .SumAsync(e => (decimal?)e.Amount) ?? 0);
+            .ToListAsync();
 
-        var totalOtherExpenses = await _context.Expenses
-            .Where(e => e.ProjectId != null && accessibleIds.Contains(e.ProjectId.Value) && e.Category != ExpenseCategory.Material && e.Category != ExpenseCategory.Labor)
-            .SumAsync(e => (decimal?)e.Amount) ?? 0;
+        foreach (var wp in allWorkerPayments)
+        {
+            var wpRate = wp.ExchangeRateToUzs.HasValue && wp.ExchangeRateToUzs > 0 ? wp.ExchangeRateToUzs.Value : defaultRate;
+            totalLaborExpensesUzs += wp.PaidAmount;
+            totalLaborExpensesUsd += wpRate > 0 ? Math.Round(wp.PaidAmount / wpRate, 2) : wp.PaidAmount;
+        }
 
-        var totalExtraWorkCost = await _context.ExtraWorks
+        // Qo'shimcha ishlar tannarxi
+        var allExtraWorks = await _context.ExtraWorks
             .Where(ew => accessibleIds.Contains(ew.ProjectId) && ew.IsApprovedByCustomer)
-            .SumAsync(ew => (decimal?)ew.ActualCost) ?? 0;
+            .ToListAsync();
+        decimal totalExtraWorkCostUsd = allExtraWorks.Sum(ew => ew.ActualCost);
+        decimal totalExtraWorkCostUzs = Math.Round(totalExtraWorkCostUsd * defaultRate, 2);
 
-        var totalExpenses = totalMaterialExpenses + totalLaborExpenses + totalOtherExpenses + totalExtraWorkCost;
-        var totalNetProfit = totalContractValue - totalExpenses;
+        var totalExpensesUsd = totalMaterialExpensesUsd + totalLaborExpensesUsd + totalOtherExpensesUsd + totalExtraWorkCostUsd;
+        var totalExpensesUzs = totalMaterialExpensesUzs + totalLaborExpensesUzs + totalOtherExpensesUzs + totalExtraWorkCostUzs;
+
+        var totalNetProfitUsd = totalContractValue - totalExpensesUsd;
+        var totalNetProfitUzs = (totalContractValue * defaultRate) - totalExpensesUzs;
+
+        var netBalanceUsd = totalRevenue - totalExpensesUsd;
+        var netBalanceUzs = (totalRevenue * defaultRate) - totalExpensesUzs;
 
         // Byudjetdan oshish xavfi bor loyihalar
         var atRiskCount = 0;
@@ -103,29 +161,44 @@ public class DashboardService : IDashboardService
 
         foreach (var p in projects)
         {
-            var pMat = (p.MaterialPurchases?.Sum(mp => mp.TotalCost) ?? 0)
-                + (await _context.Expenses.Where(e => e.ProjectId == p.Id && e.Category == ExpenseCategory.Material).SumAsync(e => (decimal?)e.Amount) ?? 0);
-
-            var pLab = (p.WorkerPayments?.Sum(wp => wp.PaidAmount) ?? 0)
-                + (await _context.Expenses.Where(e => e.ProjectId == p.Id && e.Category == ExpenseCategory.Labor).SumAsync(e => (decimal?)e.Amount) ?? 0);
-
-            var pOth = await _context.Expenses
-                .Where(e => e.ProjectId == p.Id && e.Category != ExpenseCategory.Material && e.Category != ExpenseCategory.Labor)
-                .SumAsync(e => (decimal?)e.Amount) ?? 0;
-
-            var pExtra = p.ExtraWorks?.Where(ew => ew.IsApprovedByCustomer).Sum(ew => ew.ActualCost) ?? 0;
-            var pExp = pMat + pLab + pOth + pExtra;
+            decimal pExpUsd = 0;
+            if (p.MaterialPurchases != null)
+            {
+                foreach (var mp in p.MaterialPurchases)
+                {
+                    var mpRate = mp.ExchangeRateToUzs.HasValue && mp.ExchangeRateToUzs > 0 ? mp.ExchangeRateToUzs.Value : defaultRate;
+                    pExpUsd += (mp.Currency == "USD" && mp.OriginalUnitPrice.HasValue && mp.OriginalUnitPrice > 0)
+                        ? Math.Round(mp.Quantity * mp.OriginalUnitPrice.Value, 2)
+                        : (mpRate > 0 ? Math.Round(mp.TotalCost / mpRate, 2) : mp.TotalCost);
+                }
+            }
+            if (p.WorkerPayments != null)
+            {
+                foreach (var wp in p.WorkerPayments)
+                {
+                    var wpRate = wp.ExchangeRateToUzs.HasValue && wp.ExchangeRateToUzs > 0 ? wp.ExchangeRateToUzs.Value : defaultRate;
+                    pExpUsd += wpRate > 0 ? Math.Round(wp.PaidAmount / wpRate, 2) : wp.PaidAmount;
+                }
+            }
+            var pDirectExpenses = allExpenses.Where(e => e.ProjectId == p.Id);
+            foreach (var e in pDirectExpenses)
+            {
+                var eRate = e.ExchangeRateToUzs.HasValue && e.ExchangeRateToUzs > 0 ? e.ExchangeRateToUzs.Value : defaultRate;
+                pExpUsd += (e.Currency == "USD" && e.OriginalAmount.HasValue && e.OriginalAmount > 0)
+                    ? e.OriginalAmount.Value
+                    : (eRate > 0 ? Math.Round(e.Amount / eRate, 2) : e.Amount);
+            }
+            pExpUsd += p.ExtraWorks?.Where(ew => ew.IsApprovedByCustomer).Sum(ew => ew.ActualCost) ?? 0;
 
             if (p.Budget > 0)
             {
-                var util = pExp / p.Budget * 100;
+                var util = pExpUsd / p.Budget * 100;
                 totalBudgetUtilization += util;
                 if (util >= 90) atRiskCount++;
             }
         }
 
         var avgUtilization = totalProjects > 0 ? Math.Round(totalBudgetUtilization / totalProjects, 2) : 0;
-        var netBalance = totalRevenue - totalExpenses;
 
         return new DashboardStatsDto
         {
@@ -136,9 +209,17 @@ public class DashboardService : IDashboardService
             TotalContractValue = totalContractValue,
             TotalRevenueReceived = totalRevenue,
             TotalPendingReceivables = totalPendingReceivables,
-            TotalExpenses = totalExpenses,
-            TotalNetProfit = totalNetProfit,
-            NetBalance = netBalance,
+            TotalExpenses = totalExpensesUsd,
+            TotalNetProfit = totalNetProfitUsd,
+            NetBalance = netBalanceUsd,
+
+            TotalContractValueUzs = Math.Round(totalContractValue * defaultRate, 2),
+            TotalRevenueReceivedUzs = Math.Round(totalRevenue * defaultRate, 2),
+            TotalPendingReceivablesUzs = Math.Round(totalPendingReceivables * defaultRate, 2),
+            TotalExpensesUzs = totalExpensesUzs,
+            TotalNetProfitUzs = totalNetProfitUzs,
+            NetBalanceUzs = netBalanceUzs,
+
             AverageBudgetUtilizationPercent = avgUtilization,
             AtRiskProjectsCount = atRiskCount
         };

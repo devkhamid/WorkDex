@@ -135,17 +135,26 @@ export interface ProjectSummary {
   contractAmount: number;
   contractAmountUzs?: number; // UZS da kiritilgan asl shartnoma summasi
   currency: string;
+  exchangeRate?: number;
   totalPaid: number;
+  totalPaidUzs?: number;
   remainingPayment: number;
+  remainingPaymentUzs?: number;
   materialExpenses: number;
+  materialExpensesUzs?: number;
   laborExpenses: number;
+  laborExpensesUzs?: number;
   otherExpenses: number;
+  otherExpensesUzs?: number;
   extraWorkIncome: number;
   extraWorkCost: number;
   totalExpenses: number;
+  totalExpensesUzs?: number;
   budgetUtilizationPercent: number;
   grossProfit: number;
+  grossProfitUzs?: number;
   netBalance?: number;
+  netBalanceUzs?: number;
   remainingBudget: number;
   progressPercent: number;
   status: ProjectStatus;
@@ -350,6 +359,12 @@ export interface DashboardStats {
   totalExpenses: number;
   totalNetProfit: number;
   netBalance?: number;
+  totalContractValueUzs?: number;
+  totalRevenueReceivedUzs?: number;
+  totalPendingReceivablesUzs?: number;
+  totalExpensesUzs?: number;
+  totalNetProfitUzs?: number;
+  netBalanceUzs?: number;
   averageBudgetUtilizationPercent: number;
   atRiskProjectsCount: number;
 }

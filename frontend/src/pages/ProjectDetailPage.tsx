@@ -658,20 +658,76 @@ export const ProjectDetailPage: React.FC = () => {
                 </>
               );
             }
-            return <b className="text-xl font-extrabold text-[#171b25] block mt-1.5">${usdAmount.toLocaleString()}</b>;
+            return (
+              <>
+                <b className="text-xl font-extrabold text-[#171b25] block mt-1.5">${usdAmount.toLocaleString()}</b>
+                {uzsAmount && uzsAmount > 0 && (
+                  <span className="text-[11px] text-gray-400 mt-0.5 block">
+                    ≈ {uzsAmount.toLocaleString()} so'm
+                  </span>
+                )}
+              </>
+            );
           })()}
         </div>
+
+        {/* OLINGAN TO'LOV */}
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-3.5 shadow-xs">
           <small className="block text-[9px] font-bold text-[#8e95a0] uppercase tracking-wider">OLINGAN TO'LOV</small>
-          <b className="text-xl font-extrabold text-[#21bd68] block mt-1.5">${summary?.totalPaid.toLocaleString() ?? 0}</b>
+          {(() => {
+            const isUzs = (project.currency || 'USD').toUpperCase() === 'UZS';
+            const paidUsd = summary?.totalPaid ?? 0;
+            const paidUzs = summary?.totalPaidUzs ?? 0;
+            if (isUzs && paidUzs > 0) {
+              return (
+                <>
+                  <b className="text-xl font-extrabold text-[#21bd68] block mt-1.5">{paidUzs.toLocaleString()} so'm</b>
+                  <span className="text-[11px] text-gray-400 mt-0.5 block">≈ ${paidUsd.toLocaleString()}</span>
+                </>
+              );
+            }
+            return (
+              <>
+                <b className="text-xl font-extrabold text-[#21bd68] block mt-1.5">${paidUsd.toLocaleString()}</b>
+                {paidUzs > 0 && <span className="text-[11px] text-gray-400 mt-0.5 block">≈ {paidUzs.toLocaleString()} so'm</span>}
+              </>
+            );
+          })()}
         </div>
+
+        {/* QOLGAN TO'LOV (QARZ) */}
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-3.5 shadow-xs">
           <small className="block text-[9px] font-bold text-[#8e95a0] uppercase tracking-wider">QOLGAN TO'LOV (QARZ)</small>
-          <b className="text-xl font-extrabold text-[#ff7a16] block mt-1.5">${(summary?.remainingPayment ?? project.contractAmount).toLocaleString()}</b>
+          {(() => {
+            const isUzs = (project.currency || 'USD').toUpperCase() === 'UZS';
+            const remUsd = summary?.remainingPayment ?? project.contractAmount;
+            const remUzs = summary?.remainingPaymentUzs ?? (project.contractAmountUzs ?? 0);
+            if (isUzs && remUzs > 0) {
+              return (
+                <>
+                  <b className="text-xl font-extrabold text-[#ff7a16] block mt-1.5">{remUzs.toLocaleString()} so'm</b>
+                  <span className="text-[11px] text-gray-400 mt-0.5 block">≈ ${remUsd.toLocaleString()}</span>
+                </>
+              );
+            }
+            return (
+              <>
+                <b className="text-xl font-extrabold text-[#ff7a16] block mt-1.5">${remUsd.toLocaleString()}</b>
+                {remUzs > 0 && <span className="text-[11px] text-gray-400 mt-0.5 block">≈ {remUzs.toLocaleString()} so'm</span>}
+              </>
+            );
+          })()}
         </div>
+
+        {/* NET BALANS (QO'LDAGI SUMMA) */}
         {(() => {
-          const netBal = summary?.netBalance ?? ((summary?.totalPaid ?? 0) - (summary?.totalExpenses ?? 0));
-          const isNegative = netBal < 0;
+          const isUzs = (project.currency || 'USD').toUpperCase() === 'UZS';
+          const netUsd = summary?.netBalance ?? ((summary?.totalPaid ?? 0) - (summary?.totalExpenses ?? 0));
+          const netUzs = summary?.netBalanceUzs ?? ((summary?.totalPaidUzs ?? 0) - (summary?.totalExpensesUzs ?? 0));
+          const isNegative = isUzs ? netUzs < 0 : netUsd < 0;
+          const grossUsd = summary?.grossProfit ?? 0;
+          const grossUzs = summary?.grossProfitUzs ?? 0;
+
           return (
             <div className="bg-white border border-[#e4e7ec] rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
               <div>
@@ -681,15 +737,35 @@ export const ProjectDetailPage: React.FC = () => {
                     {isNegative ? 'Kamomad' : 'Kassa ijobiy'}
                   </span>
                 </div>
-                <b className={`text-xl font-extrabold block mt-1.5 ${isNegative ? 'text-red-600' : 'text-[#21bd68]'}`}>
-                  {isNegative ? `-$${Math.abs(netBal).toLocaleString()}` : `$${netBal.toLocaleString()}`}
-                </b>
+                {isUzs ? (
+                  <>
+                    <b className={`text-xl font-extrabold block mt-1.5 ${isNegative ? 'text-red-600' : 'text-[#21bd68]'}`}>
+                      {isNegative ? `-${Math.abs(netUzs).toLocaleString()} so'm` : `${netUzs.toLocaleString()} so'm`}
+                    </b>
+                    <span className="text-[11px] text-gray-400 mt-0.5 block">
+                      ≈ {isNegative ? `-$${Math.abs(netUsd).toLocaleString()}` : `$${netUsd.toLocaleString()}`}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <b className={`text-xl font-extrabold block mt-1.5 ${isNegative ? 'text-red-600' : 'text-[#21bd68]'}`}>
+                      {isNegative ? `-$${Math.abs(netUsd).toLocaleString()}` : `$${netUsd.toLocaleString()}`}
+                    </b>
+                    <span className="text-[11px] text-gray-400 mt-0.5 block">
+                      ≈ {isNegative ? `-${Math.abs(netUzs).toLocaleString()} so'm` : `${netUzs.toLocaleString()} so'm`}
+                    </span>
+                  </>
+                )}
               </div>
               <div className="text-[10px] text-gray-400 mt-1 flex items-center justify-between">
                 <span>Olingan to'lov − Xarajatlar</span>
-                {summary?.grossProfit !== undefined && (
+                {isUzs ? (
                   <span className="text-[9px] text-purple-600 font-medium" title="Kutilayotgan sof foyda">
-                    Kutilayotgan: ${summary.grossProfit.toLocaleString()}
+                    Kutilayotgan: {grossUzs.toLocaleString()} so'm
+                  </span>
+                ) : (
+                  <span className="text-[9px] text-purple-600 font-medium" title="Kutilayotgan sof foyda">
+                    Kutilayotgan: ${grossUsd.toLocaleString()}
                   </span>
                 )}
               </div>
@@ -949,7 +1025,7 @@ export const ProjectDetailPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="text-red-600 font-extrabold text-base block">-${exp.amount.toLocaleString()} so'm</span>
+                    <span className="text-red-600 font-extrabold text-base block">-{exp.amount.toLocaleString()} so'm</span>
                     {exp.currency === 'USD' && exp.originalAmount && (
                       <span className="text-xs text-gray-500 font-medium block">
                         -${exp.originalAmount.toLocaleString()}

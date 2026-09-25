@@ -290,11 +290,14 @@ export const DashboardPage: React.FC = () => {
           <div>
             <small className="block text-[11px] font-medium text-[#697180] mb-1.5">Olingan Tushum</small>
             <strong className="text-2xl font-bold tracking-tight text-[#171b25]">
-              {formatUzs(stats?.totalRevenueReceived ?? 0)}
+              ${(stats?.totalRevenueReceived ?? 0).toLocaleString()}
             </strong>
+            <span className="text-[11px] text-gray-400 block mt-0.5">
+              ≈ {(stats?.totalRevenueReceivedUzs ?? 0).toLocaleString()} so'm
+            </span>
           </div>
           <div className="text-[11px] font-medium mt-2 text-[#3b82f6] flex items-center gap-1">
-            <span>Qoldiq tushum: {formatUzs(stats?.totalPendingReceivables ?? 0)}</span>
+            <span>Qoldiq: ${(stats?.totalPendingReceivables ?? 0).toLocaleString()} (≈ {(stats?.totalPendingReceivablesUzs ?? 0).toLocaleString()} so'm)</span>
           </div>
         </div>
 
@@ -304,8 +307,11 @@ export const DashboardPage: React.FC = () => {
           <div>
             <small className="block text-[11px] font-medium text-[#697180] mb-1.5">Jami Xarajatlar</small>
             <strong className="text-2xl font-bold tracking-tight text-[#171b25]">
-              {formatUzs(stats?.totalExpenses ?? 0)}
+              ${(stats?.totalExpenses ?? 0).toLocaleString()}
             </strong>
+            <span className="text-[11px] text-gray-400 block mt-0.5">
+              ≈ {(stats?.totalExpensesUzs ?? 0).toLocaleString()} so'm
+            </span>
           </div>
           <div className="text-[11px] font-medium mt-2 text-[#ef5350] flex items-center gap-1">
             <TrendingDown className="w-3.5 h-3.5" />
@@ -316,6 +322,7 @@ export const DashboardPage: React.FC = () => {
         {/* KPI 4: Net Balans */}
         {(() => {
           const netBal = stats?.netBalance ?? ((stats?.totalRevenueReceived ?? 0) - (stats?.totalExpenses ?? 0));
+          const netBalUzs = stats?.netBalanceUzs ?? ((stats?.totalRevenueReceivedUzs ?? 0) - (stats?.totalExpensesUzs ?? 0));
           const isNegative = netBal < 0;
           return (
             <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between">
@@ -328,14 +335,17 @@ export const DashboardPage: React.FC = () => {
                   </span>
                 </div>
                 <strong className={`text-2xl font-extrabold tracking-tight block ${isNegative ? 'text-rose-600' : 'text-emerald-600'}`}>
-                  {isNegative ? `-${formatUzs(Math.abs(netBal))}` : formatUzs(netBal)}
+                  {isNegative ? `-$${Math.abs(netBal).toLocaleString()}` : `$${netBal.toLocaleString()}`}
                 </strong>
+                <span className="text-[11px] text-gray-400 block mt-0.5">
+                  ≈ {isNegative ? `-${Math.abs(netBalUzs).toLocaleString()} so'm` : `${netBalUzs.toLocaleString()} so'm`}
+                </span>
               </div>
               <div className="text-[11px] font-medium mt-2 text-gray-500 flex items-center justify-between">
                 <span>Tushum − Xarajatlar</span>
                 {stats?.totalNetProfit !== undefined && (
                   <span className="text-[10px] text-purple-600 font-semibold" title="Kutilayotgan sof foyda">
-                    Kutilayotgan: {formatUzs(stats.totalNetProfit)}
+                    Kutilayotgan: ${stats.totalNetProfit.toLocaleString()}
                   </span>
                 )}
               </div>

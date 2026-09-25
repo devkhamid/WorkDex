@@ -10,12 +10,21 @@ public class DashboardStatsDto
     public int CompletedProjects { get; set; }
     public int OnHoldProjects { get; set; }
 
-    public decimal TotalContractValue { get; set; } // Shartnoma + tasdiqlangan qo'shimcha ishlar
-    public decimal TotalRevenueReceived { get; set; } // Olingan jami tushum
-    public decimal TotalPendingReceivables { get; set; } // Mijozlardan kutilayotgan qoldiq tushum
-    public decimal TotalExpenses { get; set; } // Jami xarajatlar (Material + Usta + Boshqa + Qo'shimcha tannarx)
-    public decimal TotalNetProfit { get; set; } // Kutilayotgan umumiy sof foyda (Shartnoma - Jami xarajatlar)
-    public decimal NetBalance { get; set; } // Olingan tushum - Jami xarajatlar (Qo'ldagi naqd summa)
+    // Asosiy summalar (USD da)
+    public decimal TotalContractValue { get; set; } // Shartnoma + tasdiqlangan qo'shimcha ishlar (USD)
+    public decimal TotalRevenueReceived { get; set; } // Olingan jami tushum (USD)
+    public decimal TotalPendingReceivables { get; set; } // Mijozlardan kutilayotgan qoldiq tushum (USD)
+    public decimal TotalExpenses { get; set; } // Jami xarajatlar (USD)
+    public decimal TotalNetProfit { get; set; } // Kutilayotgan umumiy sof foyda (USD)
+    public decimal NetBalance { get; set; } // Olingan tushum - Jami xarajatlar (USD)
+
+    // Ekvivalent summalar (UZS da)
+    public decimal TotalContractValueUzs { get; set; }
+    public decimal TotalRevenueReceivedUzs { get; set; }
+    public decimal TotalPendingReceivablesUzs { get; set; }
+    public decimal TotalExpensesUzs { get; set; }
+    public decimal TotalNetProfitUzs { get; set; }
+    public decimal NetBalanceUzs { get; set; }
 
     public decimal AverageBudgetUtilizationPercent { get; set; }
     public int AtRiskProjectsCount { get; set; } // Byudjetdan 90% dan ko'prog'i sarflangan yoki oshib ketgan loyihalar

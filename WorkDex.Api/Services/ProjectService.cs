@@ -207,74 +207,138 @@ public class ProjectService : IProjectService
         if (project is null)
             throw new KeyNotFoundException("Loyiha topilmadi.");
 
-        var totalPaid = await _context.Payments
+        var defaultRate = project.ExchangeRate.HasValue && project.ExchangeRate.Value > 0
+            ? project.ExchangeRate.Value
+            : await _currencyService.GetUsdToUzsRateAsync();
+        if (defaultRate <= 0) defaultRate = 12700m;
+
+        var payments = await _context.Payments
             .Where(p => p.ProjectId == id)
-            .SumAsync(p => (decimal?)p.Amount) ?? 0;
+            .ToListAsync();
+        decimal totalPaidUsd = payments.Sum(p => p.Amount);
+        decimal totalPaidUzs = Math.Round(totalPaidUsd * defaultRate, 2);
 
-        var directMaterialPurchases = await _context.MaterialPurchases
+        var materialPurchases = await _context.MaterialPurchases
             .Where(mp => mp.ProjectId == id)
-            .SumAsync(mp => (decimal?)mp.TotalCost) ?? 0;
+            .ToListAsync();
 
-        var directMaterialExpenses = await _context.Expenses
-            .Where(e => e.ProjectId == id && e.Category == ExpenseCategory.Material)
-            .SumAsync(e => (decimal?)e.Amount) ?? 0;
+        decimal materialExpensesUzs = 0;
+        decimal materialExpensesUsd = 0;
+        foreach (var mp in materialPurchases)
+        {
+            var mpRate = mp.ExchangeRateToUzs.HasValue && mp.ExchangeRateToUzs.Value > 0 ? mp.ExchangeRateToUzs.Value : defaultRate;
+            materialExpensesUzs += mp.TotalCost;
+            if (mp.Currency == "USD" && mp.OriginalUnitPrice.HasValue && mp.OriginalUnitPrice.Value > 0)
+                materialExpensesUsd += Math.Round(mp.Quantity * mp.OriginalUnitPrice.Value, 2);
+            else
+                materialExpensesUsd += mpRate > 0 ? Math.Round(mp.TotalCost / mpRate, 2) : mp.TotalCost;
+        }
 
-        var materialExpenses = directMaterialPurchases + directMaterialExpenses;
+        var expenses = await _context.Expenses
+            .Where(e => e.ProjectId == id)
+            .ToListAsync();
 
-        var directWorkerPayments = await _context.WorkerPayments
+        decimal laborExpensesUzs = 0;
+        decimal laborExpensesUsd = 0;
+        decimal otherExpensesUzs = 0;
+        decimal otherExpensesUsd = 0;
+
+        foreach (var e in expenses)
+        {
+            var eRate = e.ExchangeRateToUzs.HasValue && e.ExchangeRateToUzs.Value > 0 ? e.ExchangeRateToUzs.Value : defaultRate;
+            decimal uzs = e.Amount;
+            decimal usd = (e.Currency == "USD" && e.OriginalAmount.HasValue && e.OriginalAmount.Value > 0)
+                ? e.OriginalAmount.Value
+                : (eRate > 0 ? Math.Round(e.Amount / eRate, 2) : e.Amount);
+
+            if (e.Category == ExpenseCategory.Material)
+            {
+                materialExpensesUzs += uzs;
+                materialExpensesUsd += usd;
+            }
+            else if (e.Category == ExpenseCategory.Labor)
+            {
+                laborExpensesUzs += uzs;
+                laborExpensesUsd += usd;
+            }
+            else
+            {
+                otherExpensesUzs += uzs;
+                otherExpensesUsd += usd;
+            }
+        }
+
+        var workerPayments = await _context.WorkerPayments
             .Where(wp => wp.ProjectId == id)
-            .SumAsync(wp => (decimal?)wp.PaidAmount) ?? 0;
+            .ToListAsync();
 
-        var directLaborExpenses = await _context.Expenses
-            .Where(e => e.ProjectId == id && e.Category == ExpenseCategory.Labor)
-            .SumAsync(e => (decimal?)e.Amount) ?? 0;
+        foreach (var wp in workerPayments)
+        {
+            var wpRate = wp.ExchangeRateToUzs.HasValue && wp.ExchangeRateToUzs.Value > 0 ? wp.ExchangeRateToUzs.Value : defaultRate;
+            laborExpensesUzs += wp.PaidAmount;
+            laborExpensesUsd += wpRate > 0 ? Math.Round(wp.PaidAmount / wpRate, 2) : wp.PaidAmount;
+        }
 
-        var laborExpenses = directWorkerPayments + directLaborExpenses;
-
-        var otherExpenses = await _context.Expenses
-            .Where(e => e.ProjectId == id && e.Category != ExpenseCategory.Material && e.Category != ExpenseCategory.Labor)
-            .SumAsync(e => (decimal?)e.Amount) ?? 0;
-
-        var extraWorkIncome = await _context.ExtraWorks
+        var extraWorks = await _context.ExtraWorks
             .Where(ew => ew.ProjectId == id && ew.IsApprovedByCustomer)
-            .SumAsync(ew => (decimal?)ew.CustomerAmount) ?? 0;
+            .ToListAsync();
 
-        var extraWorkCost = await _context.ExtraWorks
-            .Where(ew => ew.ProjectId == id && ew.IsApprovedByCustomer)
-            .SumAsync(ew => (decimal?)ew.ActualCost) ?? 0;
+        decimal extraWorkIncomeUsd = extraWorks.Sum(ew => ew.CustomerAmount);
+        decimal extraWorkIncomeUzs = Math.Round(extraWorkIncomeUsd * defaultRate, 2);
 
-        var totalContractAmount = project.ContractAmount + extraWorkIncome;
-        var totalExpenses = materialExpenses + laborExpenses + otherExpenses + extraWorkCost;
+        decimal extraWorkCostUsd = extraWorks.Sum(ew => ew.ActualCost);
+        decimal extraWorkCostUzs = Math.Round(extraWorkCostUsd * defaultRate, 2);
 
-        var remainingPayment = totalContractAmount - totalPaid;
-        var budgetUtilization = project.Budget > 0
-            ? Math.Round(totalExpenses / project.Budget * 100, 2)
+        decimal totalContractAmountUsd = project.ContractAmount + extraWorkIncomeUsd;
+        decimal totalContractAmountUzs = project.ContractAmountUzs.HasValue && project.ContractAmountUzs.Value > 0
+            ? project.ContractAmountUzs.Value + extraWorkIncomeUzs
+            : Math.Round(totalContractAmountUsd * defaultRate, 2);
+
+        decimal totalExpensesUsd = materialExpensesUsd + laborExpensesUsd + otherExpensesUsd + extraWorkCostUsd;
+        decimal totalExpensesUzs = materialExpensesUzs + laborExpensesUzs + otherExpensesUzs + extraWorkCostUzs;
+
+        decimal remainingPaymentUsd = totalContractAmountUsd - totalPaidUsd;
+        decimal remainingPaymentUzs = totalContractAmountUzs - totalPaidUzs;
+
+        decimal grossProfitUsd = totalContractAmountUsd - totalExpensesUsd;
+        decimal grossProfitUzs = totalContractAmountUzs - totalExpensesUzs;
+
+        decimal netBalanceUsd = totalPaidUsd - totalExpensesUsd;
+        decimal netBalanceUzs = totalPaidUzs - totalExpensesUzs;
+
+        decimal budgetUtilization = project.Budget > 0
+            ? Math.Round(totalExpensesUsd / project.Budget * 100, 2)
             : 0;
-        var grossProfit = totalContractAmount - totalExpenses;
-        var netBalance = totalPaid - totalExpenses;
-        var remainingBudget = project.Budget - totalExpenses;
+        decimal remainingBudget = project.Budget - totalExpensesUsd;
 
         return new ProjectSummaryDto
         {
             ProjectId = project.Id,
             ProjectName = project.Name,
             CustomerName = project.Customer.FullName,
-            ContractAmount = totalContractAmount,
-            ContractAmountUzs = project.ContractAmountUzs.HasValue
-                ? project.ContractAmountUzs.Value + extraWorkIncome  // extraWorkIncome ham qo'shamiz (u UZS bo'lmasa ham)
-                : null,
+            ContractAmount = totalContractAmountUsd,
+            ContractAmountUzs = totalContractAmountUzs,
             Currency = project.Currency,
-            TotalPaid = totalPaid,
-            RemainingPayment = remainingPayment,
-            MaterialExpenses = materialExpenses,
-            LaborExpenses = laborExpenses,
-            OtherExpenses = otherExpenses,
-            ExtraWorkIncome = extraWorkIncome,
-            ExtraWorkCost = extraWorkCost,
-            TotalExpenses = totalExpenses,
+            ExchangeRate = defaultRate,
+            TotalPaid = totalPaidUsd,
+            TotalPaidUzs = totalPaidUzs,
+            RemainingPayment = remainingPaymentUsd,
+            RemainingPaymentUzs = remainingPaymentUzs,
+            MaterialExpenses = materialExpensesUsd,
+            MaterialExpensesUzs = materialExpensesUzs,
+            LaborExpenses = laborExpensesUsd,
+            LaborExpensesUzs = laborExpensesUzs,
+            OtherExpenses = otherExpensesUsd,
+            OtherExpensesUzs = otherExpensesUzs,
+            ExtraWorkIncome = extraWorkIncomeUsd,
+            ExtraWorkCost = extraWorkCostUsd,
+            TotalExpenses = totalExpensesUsd,
+            TotalExpensesUzs = totalExpensesUzs,
             BudgetUtilizationPercent = budgetUtilization,
-            GrossProfit = grossProfit,
-            NetBalance = netBalance,
+            GrossProfit = grossProfitUsd,
+            GrossProfitUzs = grossProfitUzs,
+            NetBalance = netBalanceUsd,
+            NetBalanceUzs = netBalanceUzs,
             RemainingBudget = remainingBudget,
             ProgressPercent = project.ProgressPercent,
             Status = project.Status

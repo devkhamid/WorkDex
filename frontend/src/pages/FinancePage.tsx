@@ -44,11 +44,14 @@ export const FinancePage: React.FC = () => {
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#ff7a16]" />
           <div>
             <small className="block text-[11px] font-medium text-[#697180] mb-1">Loyiha Daromadi (Shartnoma)</small>
-            <b className="text-2xl font-extrabold text-[#171b25] block mt-1">{formatUzs(stats?.totalContractValue ?? 0)}</b>
+            <b className="text-2xl font-extrabold text-[#171b25] block mt-1">${(stats?.totalContractValue ?? 0).toLocaleString()}</b>
+            <span className="text-[11px] text-gray-400 block mt-0.5">
+              ≈ {(stats?.totalContractValueUzs ?? 0).toLocaleString()} so'm
+            </span>
           </div>
           <div className="text-[11px] font-semibold text-emerald-600 mt-2 flex items-center gap-1">
             <ArrowUpRight className="w-3.5 h-3.5" />
-            <span>Olingan tushum: {formatUzs(stats?.totalRevenueReceived ?? 0)}</span>
+            <span>Olingan: ${(stats?.totalRevenueReceived ?? 0).toLocaleString()} (≈ {(stats?.totalRevenueReceivedUzs ?? 0).toLocaleString()} so'm)</span>
           </div>
         </div>
 
@@ -57,7 +60,10 @@ export const FinancePage: React.FC = () => {
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#3b82f6]" />
           <div>
             <small className="block text-[11px] font-medium text-[#697180] mb-1">Kutilayotgan Qoldiq Tushum</small>
-            <b className="text-2xl font-extrabold text-[#3b82f6] block mt-1">{formatUzs(stats?.totalPendingReceivables ?? 0)}</b>
+            <b className="text-2xl font-extrabold text-[#3b82f6] block mt-1">${(stats?.totalPendingReceivables ?? 0).toLocaleString()}</b>
+            <span className="text-[11px] text-gray-400 block mt-0.5">
+              ≈ {(stats?.totalPendingReceivablesUzs ?? 0).toLocaleString()} so'm
+            </span>
           </div>
           <div className="text-[11px] font-medium text-gray-500 mt-2">
             <span>Mijozlar tomonidan to'lanishi kutilmoqda</span>
@@ -69,7 +75,10 @@ export const FinancePage: React.FC = () => {
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#ef5350]" />
           <div>
             <small className="block text-[11px] font-medium text-[#697180] mb-1">Jami Loyiha Xarajatlari</small>
-            <b className="text-2xl font-extrabold text-[#ef5350] block mt-1">{formatUzs(stats?.totalExpenses ?? 0)}</b>
+            <b className="text-2xl font-extrabold text-[#ef5350] block mt-1">${(stats?.totalExpenses ?? 0).toLocaleString()}</b>
+            <span className="text-[11px] text-gray-400 block mt-0.5">
+              ≈ {(stats?.totalExpensesUzs ?? 0).toLocaleString()} so'm
+            </span>
           </div>
           <div className="text-[11px] font-medium text-red-600 mt-2 flex items-center gap-1">
             <ArrowDownRight className="w-3.5 h-3.5" />
@@ -80,6 +89,7 @@ export const FinancePage: React.FC = () => {
         {/* Net Balans */}
         {(() => {
           const netBal = stats?.netBalance ?? ((stats?.totalRevenueReceived ?? 0) - (stats?.totalExpenses ?? 0));
+          const netBalUzs = stats?.netBalanceUzs ?? ((stats?.totalRevenueReceivedUzs ?? 0) - (stats?.totalExpensesUzs ?? 0));
           const isNegative = netBal < 0;
           return (
             <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between min-h-[110px]">
@@ -87,14 +97,17 @@ export const FinancePage: React.FC = () => {
               <div>
                 <small className="block text-[11px] font-bold text-[#697180] mb-1 uppercase tracking-wider">Net Balans (Qo'ldagi summa)</small>
                 <b className={`text-2xl font-extrabold block mt-1 ${isNegative ? 'text-rose-600' : 'text-emerald-600'}`}>
-                  {isNegative ? `-${formatUzs(Math.abs(netBal))}` : formatUzs(netBal)}
+                  {isNegative ? `-$${Math.abs(netBal).toLocaleString()}` : `$${netBal.toLocaleString()}`}
                 </b>
+                <span className="text-[11px] text-gray-400 block mt-0.5">
+                  ≈ {isNegative ? `-${Math.abs(netBalUzs).toLocaleString()} so'm` : `${netBalUzs.toLocaleString()} so'm`}
+                </span>
               </div>
               <div className="text-[11px] font-medium text-gray-500 mt-2 flex items-center justify-between">
                 <span>Tushum − Xarajatlar</span>
                 {stats?.totalNetProfit !== undefined && (
                   <span className="text-[10px] text-purple-600 font-semibold" title="Kutilayotgan sof foyda">
-                    Kutilayotgan: {formatUzs(stats.totalNetProfit)}
+                    Kutilayotgan: ${stats.totalNetProfit.toLocaleString()}
                   </span>
                 )}
               </div>
@@ -114,15 +127,24 @@ export const FinancePage: React.FC = () => {
           <div className="divide-y divide-gray-100 text-xs space-y-1">
             <div className="py-3 flex justify-between items-center">
               <span className="font-semibold text-gray-700">Loyiha tushumlari (Mijoz to'lovlari)</span>
-              <b className="text-emerald-600 font-bold text-sm">+{formatUzs(stats?.totalRevenueReceived ?? 0)}</b>
+              <div className="text-right">
+                <b className="text-emerald-600 font-bold text-sm">+${(stats?.totalRevenueReceived ?? 0).toLocaleString()}</b>
+                <span className="text-[10px] text-gray-400 block font-normal">≈ +{(stats?.totalRevenueReceivedUzs ?? 0).toLocaleString()} so'm</span>
+              </div>
             </div>
             <div className="py-3 flex justify-between items-center">
               <span className="font-semibold text-gray-700">Loyiha xarajatlari (Material, usta, xizmatlar)</span>
-              <b className="text-red-600 font-bold text-sm">-{formatUzs(stats?.totalExpenses ?? 0)}</b>
+              <div className="text-right">
+                <b className="text-red-600 font-bold text-sm">-${(stats?.totalExpenses ?? 0).toLocaleString()}</b>
+                <span className="text-[10px] text-gray-400 block font-normal">≈ -{(stats?.totalExpensesUzs ?? 0).toLocaleString()} so'm</span>
+              </div>
             </div>
             <div className="py-3 flex justify-between items-center">
               <span className="font-semibold text-gray-700">Kutilayotgan qarzdorliklar tushumi</span>
-              <b className="text-blue-600 font-bold text-sm">+{formatUzs(stats?.totalPendingReceivables ?? 0)}</b>
+              <div className="text-right">
+                <b className="text-blue-600 font-bold text-sm">+${(stats?.totalPendingReceivables ?? 0).toLocaleString()}</b>
+                <span className="text-[10px] text-gray-400 block font-normal">≈ +{(stats?.totalPendingReceivablesUzs ?? 0).toLocaleString()} so'm</span>
+              </div>
             </div>
             <div className="p-3.5 flex justify-between items-center bg-gray-50 border border-gray-200 rounded-xl mt-3">
               <div>
@@ -131,11 +153,17 @@ export const FinancePage: React.FC = () => {
               </div>
               {(() => {
                 const nb = stats?.netBalance ?? ((stats?.totalRevenueReceived ?? 0) - (stats?.totalExpenses ?? 0));
+                const nbUzs = stats?.netBalanceUzs ?? ((stats?.totalRevenueReceivedUzs ?? 0) - (stats?.totalExpensesUzs ?? 0));
                 const isNeg = nb < 0;
                 return (
-                  <b className={`font-extrabold text-base ${isNeg ? 'text-rose-600' : 'text-emerald-600'}`}>
-                    {isNeg ? `-${formatUzs(Math.abs(nb))}` : `+${formatUzs(nb)}`}
-                  </b>
+                  <div className="text-right">
+                    <b className={`font-extrabold text-base ${isNeg ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      {isNeg ? `-$${Math.abs(nb).toLocaleString()}` : `+$${nb.toLocaleString()}`}
+                    </b>
+                    <span className="text-[10px] text-gray-400 block font-medium">
+                      ≈ {nbUzs < 0 ? `-${Math.abs(nbUzs).toLocaleString()} so'm` : `+${nbUzs.toLocaleString()} so'm`}
+                    </span>
+                  </div>
                 );
               })()}
             </div>
@@ -144,7 +172,12 @@ export const FinancePage: React.FC = () => {
                 <span className="font-bold text-emerald-950 text-xs uppercase tracking-wide block">KUTILAYOTGAN YAKUNIY SOF FOYDA:</span>
                 <span className="text-[10px] text-emerald-700 font-medium">Barcha shartnoma qarzlari to'liq yopilgandan so'ng</span>
               </div>
-              <b className="text-emerald-700 font-extrabold text-lg">{formatUzs(stats?.totalNetProfit ?? 0)}</b>
+              <div className="text-right">
+                <b className="text-emerald-700 font-extrabold text-lg">${(stats?.totalNetProfit ?? 0).toLocaleString()}</b>
+                <span className="text-[10px] text-emerald-600 block font-medium">
+                  ≈ {(stats?.totalNetProfitUzs ?? 0).toLocaleString()} so'm
+                </span>
+              </div>
             </div>
           </div>
         </div>
