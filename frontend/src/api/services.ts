@@ -473,3 +473,10 @@ export const agreementsApi = {
     await apiClient.delete(`/agreements/${id}`);
   }
 };
+
+export const currencyApi = {
+  getRate: async (): Promise<{ rate: number; currency: string; toCurrency: string; date: string }> => {
+    const res = await apiClient.get<{ rate: number; currency: string; toCurrency: string; date: string }>('/currency/rate');
+    return res.data;
+  }
+};

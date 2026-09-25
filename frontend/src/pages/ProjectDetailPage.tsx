@@ -15,7 +15,7 @@ import {
   Upload,
   Trash2
 } from 'lucide-react';
-import { projectsApi, reportsApi, materialsApi, workersApi } from '../api/services';
+import { projectsApi, reportsApi, materialsApi, workersApi, currencyApi } from '../api/services';
 import { getFileUrl } from '../api/client';
 import {
   Project,
@@ -174,6 +174,49 @@ export const ProjectDetailPage: React.FC = () => {
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
   const [newPhotoCaption, setNewPhotoCaption] = useState('');
   const [newPhotoVisible, setNewPhotoVisible] = useState(true);
+
+  const [cbuRate, setCbuRate] = useState<number>(12800);
+
+  useEffect(() => {
+    currencyApi.getRate().then((res) => {
+      if (res?.rate > 0) setCbuRate(res.rate);
+    }).catch(() => {});
+  }, []);
+
+  const handleOpenExpenseModal = () => {
+    const isProjUsd = (project?.currency || 'USD').toUpperCase() === 'USD';
+    setNewExpCurrency(isProjUsd ? 'USD' : 'UZS');
+    const defaultRate = Math.round(project?.exchangeRate || cbuRate || 12800);
+    setNewExpRate(defaultRate);
+    setNewExpAmount('');
+    setNewExpAmountUsd('');
+    setNewExpDesc('');
+    setNewExpDate(new Date().toISOString().split('T')[0]);
+    setIsExpenseModalOpen(true);
+  };
+
+  const handleOpenPurchaseModal = () => {
+    const isProjUsd = (project?.currency || 'USD').toUpperCase() === 'USD';
+    setNewPurCurrency(isProjUsd ? 'USD' : 'UZS');
+    const defaultRate = Math.round(project?.exchangeRate || cbuRate || 12800);
+    setNewPurRate(defaultRate);
+    setNewPurPrice('');
+    setNewPurPriceUsd('');
+    setNewPurQty(1);
+    setNewPurSupplier('');
+    setIsPurchaseModalOpen(true);
+  };
+
+  const handleOpenWorkerModal = () => {
+    const isProjUsd = (project?.currency || 'USD').toUpperCase() === 'USD';
+    setNewWorkCurrency(isProjUsd ? 'USD' : 'UZS');
+    const defaultRate = Math.round(project?.exchangeRate || cbuRate || 12800);
+    setNewWorkRate(defaultRate);
+    setNewWorkAgreed('');
+    setNewWorkAgreedUsd('');
+    setNewWorkDesc('');
+    setIsWorkerModalOpen(true);
+  };
 
   useEffect(() => {
     if (id) {
@@ -441,8 +484,9 @@ export const ProjectDetailPage: React.FC = () => {
     const maxAllowed = Math.max(0, wp.remainingAllowedToPay ?? wp.agreedAmount - wp.paidAmount);
     setPayWorkerAmount(maxAllowed > 0 ? maxAllowed : '');
     setPayWorkerAmountUsd('');
-    setPayWorkerRate('');
-    setPayWorkerCurrency('UZS');
+    const defaultRate = Math.round(wp.exchangeRateToUzs || project?.exchangeRate || cbuRate || 12800);
+    setPayWorkerRate(defaultRate);
+    setPayWorkerCurrency(wp.currency === 'USD' ? 'USD' : 'UZS');
     setPayWorkerDate(new Date().toISOString().split('T')[0]);
     setPayWorkerNotes('');
     setIsPayWorkerModalOpen(true);
@@ -661,11 +705,6 @@ export const ProjectDetailPage: React.FC = () => {
             return (
               <>
                 <b className="text-xl font-extrabold text-[#171b25] block mt-1.5">${usdAmount.toLocaleString()}</b>
-                {uzsAmount && uzsAmount > 0 && (
-                  <span className="text-[11px] text-gray-400 mt-0.5 block">
-                    ≈ {uzsAmount.toLocaleString()} so'm
-                  </span>
-                )}
               </>
             );
           })()}
@@ -678,18 +717,17 @@ export const ProjectDetailPage: React.FC = () => {
             const isUzs = (project.currency || 'USD').toUpperCase() === 'UZS';
             const paidUsd = summary?.totalPaid ?? 0;
             const paidUzs = summary?.totalPaidUzs ?? 0;
-            if (isUzs && paidUzs > 0) {
+            if (isUzs) {
               return (
                 <>
                   <b className="text-xl font-extrabold text-[#21bd68] block mt-1.5">{paidUzs.toLocaleString()} so'm</b>
-                  <span className="text-[11px] text-gray-400 mt-0.5 block">≈ ${paidUsd.toLocaleString()}</span>
+                  {paidUsd > 0 && <span className="text-[11px] text-gray-400 mt-0.5 block">≈ ${paidUsd.toLocaleString()}</span>}
                 </>
               );
             }
             return (
               <>
                 <b className="text-xl font-extrabold text-[#21bd68] block mt-1.5">${paidUsd.toLocaleString()}</b>
-                {paidUzs > 0 && <span className="text-[11px] text-gray-400 mt-0.5 block">≈ {paidUzs.toLocaleString()} so'm</span>}
               </>
             );
           })()}
@@ -713,7 +751,6 @@ export const ProjectDetailPage: React.FC = () => {
             return (
               <>
                 <b className="text-xl font-extrabold text-[#ff7a16] block mt-1.5">${remUsd.toLocaleString()}</b>
-                {remUzs > 0 && <span className="text-[11px] text-gray-400 mt-0.5 block">≈ {remUzs.toLocaleString()} so'm</span>}
               </>
             );
           })()}
@@ -751,9 +788,6 @@ export const ProjectDetailPage: React.FC = () => {
                     <b className={`text-xl font-extrabold block mt-1.5 ${isNegative ? 'text-red-600' : 'text-[#21bd68]'}`}>
                       {isNegative ? `-$${Math.abs(netUsd).toLocaleString()}` : `$${netUsd.toLocaleString()}`}
                     </b>
-                    <span className="text-[11px] text-gray-400 mt-0.5 block">
-                      ≈ {isNegative ? `-${Math.abs(netUzs).toLocaleString()} so'm` : `${netUzs.toLocaleString()} so'm`}
-                    </span>
                   </>
                 )}
               </div>
@@ -994,7 +1028,7 @@ export const ProjectDetailPage: React.FC = () => {
                 </div>
               </div>
               <button
-                onClick={() => setIsExpenseModalOpen(true)}
+                onClick={handleOpenExpenseModal}
                 className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg flex items-center gap-1 shadow-xs transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -1032,12 +1066,7 @@ export const ProjectDetailPage: React.FC = () => {
                     </div>
                     <div className="text-right">
                       {isUsd ? (
-                        <>
-                          <span className="text-red-600 font-extrabold text-base block">-${exp.originalAmount!.toLocaleString()}</span>
-                          <span className="text-xs text-gray-400 font-medium block">
-                            (-{exp.amount.toLocaleString()} so'm)
-                          </span>
-                        </>
+                        <span className="text-red-600 font-extrabold text-base block">-${exp.originalAmount!.toLocaleString()}</span>
                       ) : (
                         <span className="text-red-600 font-extrabold text-base block">-{exp.amount.toLocaleString()} so'm</span>
                       )}
@@ -1113,7 +1142,7 @@ export const ProjectDetailPage: React.FC = () => {
                 <div className="text-[10px] text-[#9399a4]">Qaysi materialdan qancha olingani va jami summasi</div>
               </div>
               <button
-                onClick={() => setIsPurchaseModalOpen(true)}
+                onClick={handleOpenPurchaseModal}
                 className="bg-[#ff7a16] hover:bg-[#e86807] text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-xs"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -1228,7 +1257,7 @@ export const ProjectDetailPage: React.FC = () => {
                 <div className="text-[10px] text-[#9399a4]">Usta qancha ishladi, qancha to'landi, qancha qarzmiz</div>
               </div>
               <button
-                onClick={() => setIsWorkerModalOpen(true)}
+                onClick={handleOpenWorkerModal}
                 className="bg-[#ff7a16] hover:bg-[#e86807] text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-xs transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -1899,12 +1928,12 @@ export const ProjectDetailPage: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-semibold text-emerald-900 mb-1">Dollar kursi (manual) *</label>
+                      <label className="block text-[11px] font-semibold text-emerald-900 mb-1">Dollar kursi (kurs) *</label>
                       <input
                         type="number"
                         required
                         min="1"
-                        placeholder="11750"
+                        placeholder={String(Math.round(project?.exchangeRate || cbuRate || 12800))}
                         value={newExpRate}
                         onChange={(e) => setNewExpRate(e.target.value === '' ? '' : Number(e.target.value))}
                         className="w-full h-8 px-2.5 border border-emerald-300 rounded text-xs bg-white outline-none focus:border-emerald-600"
@@ -2129,7 +2158,7 @@ export const ProjectDetailPage: React.FC = () => {
                         type="number"
                         required
                         min="1"
-                        placeholder="11750"
+                        placeholder={String(Math.round(project?.exchangeRate || cbuRate || 12800))}
                         value={newPurRate}
                         onChange={(e) => setNewPurRate(e.target.value === '' ? '' : Number(e.target.value))}
                         className="w-full h-8 px-2.5 border border-emerald-300 rounded text-xs bg-white outline-none focus:border-emerald-600"
@@ -2302,7 +2331,7 @@ export const ProjectDetailPage: React.FC = () => {
                         type="number"
                         required
                         min="1"
-                        placeholder="11750"
+                        placeholder={String(Math.round(project?.exchangeRate || cbuRate || 12800))}
                         value={newWorkRate}
                         onChange={(e) => setNewWorkRate(e.target.value === '' ? '' : Number(e.target.value))}
                         className="w-full h-8 px-2.5 border border-emerald-300 rounded text-xs bg-white outline-none focus:border-emerald-600"
@@ -2521,7 +2550,7 @@ export const ProjectDetailPage: React.FC = () => {
                         type="number"
                         required
                         min="1"
-                        placeholder="11750"
+                        placeholder={String(Math.round(project?.exchangeRate || cbuRate || 12800))}
                         value={payWorkerRate}
                         onChange={(e) => setPayWorkerRate(e.target.value === '' ? '' : Number(e.target.value))}
                         className="w-full h-8 px-2.5 border border-emerald-300 rounded text-xs bg-white outline-none focus:border-emerald-600"
