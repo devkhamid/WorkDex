@@ -225,8 +225,19 @@ export const DashboardPage: React.FC = () => {
     return 'bg-[#3b82f6]';
   };
 
-  const formatMoney = (amount: number, currency = '$') => {
-    return `${currency}${amount.toLocaleString()}`;
+  // UZS (so'm) formatida ko'rsatish — barcha xarajatlar va tushum so'mda saqlanadi
+  const formatUzs = (amount: number) => {
+    return `${amount.toLocaleString()} so'm`;
+  };
+  // USD (dollar) formatida ko'rsatish
+  const formatUsd = (amount: number) => {
+    return `$${amount.toLocaleString()}`;
+  };
+  // Loyiha valyutasiga qarab formatlash
+  const formatProjectAmount = (amount: number, uzsAmount?: number, currency?: string) => {
+    const curr = (currency || 'USD').toUpperCase();
+    if (curr === 'UZS' && uzsAmount) return `${uzsAmount.toLocaleString()} so'm`;
+    return `$${amount.toLocaleString()}`;
   };
 
   return (
@@ -273,17 +284,17 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* KPI 2: Jami Shartnoma / Daromad */}
+        {/* KPI 2: Olingan Tushum */}
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between">
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#3b82f6]" />
           <div>
             <small className="block text-[11px] font-medium text-[#697180] mb-1.5">Olingan Tushum</small>
             <strong className="text-2xl font-bold tracking-tight text-[#171b25]">
-              {formatMoney(stats?.totalRevenueReceived ?? 0)}
+              {formatUzs(stats?.totalRevenueReceived ?? 0)}
             </strong>
           </div>
           <div className="text-[11px] font-medium mt-2 text-[#3b82f6] flex items-center gap-1">
-            <span>Qoldiq tushum: {formatMoney(stats?.totalPendingReceivables ?? 0)}</span>
+            <span>Qoldiq tushum: {formatUzs(stats?.totalPendingReceivables ?? 0)}</span>
           </div>
         </div>
 
@@ -293,7 +304,7 @@ export const DashboardPage: React.FC = () => {
           <div>
             <small className="block text-[11px] font-medium text-[#697180] mb-1.5">Jami Xarajatlar</small>
             <strong className="text-2xl font-bold tracking-tight text-[#171b25]">
-              {formatMoney(stats?.totalExpenses ?? 0)}
+              {formatUzs(stats?.totalExpenses ?? 0)}
             </strong>
           </div>
           <div className="text-[11px] font-medium mt-2 text-[#ef5350] flex items-center gap-1">
@@ -317,14 +328,14 @@ export const DashboardPage: React.FC = () => {
                   </span>
                 </div>
                 <strong className={`text-2xl font-extrabold tracking-tight block ${isNegative ? 'text-rose-600' : 'text-emerald-600'}`}>
-                  {isNegative ? `-${formatMoney(Math.abs(netBal))}` : formatMoney(netBal)}
+                  {isNegative ? `-${formatUzs(Math.abs(netBal))}` : formatUzs(netBal)}
                 </strong>
               </div>
               <div className="text-[11px] font-medium mt-2 text-gray-500 flex items-center justify-between">
                 <span>Tushum − Xarajatlar</span>
                 {stats?.totalNetProfit !== undefined && (
                   <span className="text-[10px] text-purple-600 font-semibold" title="Kutilayotgan sof foyda">
-                    Kutilayotgan: {formatMoney(stats.totalNetProfit)}
+                    Kutilayotgan: {formatUzs(stats.totalNetProfit)}
                   </span>
                 )}
               </div>
@@ -496,8 +507,10 @@ export const DashboardPage: React.FC = () => {
                     </div>
                   </td>
                   <td className="py-3.5 px-5">
-                    <span className="font-bold text-gray-900">${p.contractAmount.toLocaleString()}</span>
-                    <span className="text-gray-400 font-normal"> / ${p.budget.toLocaleString()}</span>
+                    <span className="font-bold text-gray-900">
+                      {formatProjectAmount(p.contractAmount, p.contractAmountUzs, p.currency)}
+                    </span>
+                    <span className="text-gray-400 font-normal"> / {formatUsd(p.budget)}</span>
                   </td>
                   <td className="py-3.5 px-5 text-gray-600 text-xs">
                     {new Date(p.startDate).toLocaleDateString('uz-UZ')} {p.endDate ? `— ${new Date(p.endDate).toLocaleDateString('uz-UZ')}` : ''}

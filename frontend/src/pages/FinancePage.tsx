@@ -1,7 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, Building2, Wallet, ArrowUpRight, ArrowDownRight, FileSpreadsheet } from 'lucide-react';
+import { TrendingUp, TrendingDown, Building2, Wallet, ArrowUpRight, ArrowDownRight, FileSpreadsheet } from 'lucide-react';
 import { dashboardApi, projectsApi, reportsApi } from '../api/services';
 import { DashboardStats, Project } from '../types';
+
+// Valyuta yordamchi funksiyalar
+const formatUzs = (amount: number) => `${amount.toLocaleString()} so'm`;
+const formatUsd = (amount: number) => `$${amount.toLocaleString()}`;
+const formatProjectContract = (p: Project) => {
+  const curr = (p.currency || 'USD').toUpperCase();
+  if (curr === 'UZS' && p.contractAmountUzs) return `${p.contractAmountUzs.toLocaleString()} so'm`;
+  return `$${p.contractAmount.toLocaleString()}`;
+};
 
 export const FinancePage: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -16,7 +25,7 @@ export const FinancePage: React.FC = () => {
     <div className="p-6 space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-[#171b25]">Moliya & Kompaniya Balansi</h2>
+          <h2 className="text-xl font-bold text-[#171b25]">Moliya &amp; Kompaniya Balansi</h2>
           <p className="text-xs text-[#7b8190] mt-0.5">Kompaniyaning umumiy moliyaviy ko'rinishi va loyiha xarajatlari tahlili</p>
         </div>
         <button
@@ -30,34 +39,37 @@ export const FinancePage: React.FC = () => {
 
       {/* 4 Financial KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Loyiha Daromadi (Shartnoma) */}
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between min-h-[110px]">
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#ff7a16]" />
           <div>
             <small className="block text-[11px] font-medium text-[#697180] mb-1">Loyiha Daromadi (Shartnoma)</small>
-            <b className="text-2xl font-extrabold text-[#171b25] block mt-1">${stats?.totalContractValue.toLocaleString() ?? 0}</b>
+            <b className="text-2xl font-extrabold text-[#171b25] block mt-1">{formatUzs(stats?.totalContractValue ?? 0)}</b>
           </div>
           <div className="text-[11px] font-semibold text-emerald-600 mt-2 flex items-center gap-1">
             <ArrowUpRight className="w-3.5 h-3.5" />
-            <span>Olingan tushum: ${stats?.totalRevenueReceived.toLocaleString() ?? 0}</span>
+            <span>Olingan tushum: {formatUzs(stats?.totalRevenueReceived ?? 0)}</span>
           </div>
         </div>
 
+        {/* Kutilayotgan Qoldiq Tushum */}
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between min-h-[110px]">
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#3b82f6]" />
           <div>
             <small className="block text-[11px] font-medium text-[#697180] mb-1">Kutilayotgan Qoldiq Tushum</small>
-            <b className="text-2xl font-extrabold text-[#3b82f6] block mt-1">${stats?.totalPendingReceivables.toLocaleString() ?? 0}</b>
+            <b className="text-2xl font-extrabold text-[#3b82f6] block mt-1">{formatUzs(stats?.totalPendingReceivables ?? 0)}</b>
           </div>
           <div className="text-[11px] font-medium text-gray-500 mt-2">
             <span>Mijozlar tomonidan to'lanishi kutilmoqda</span>
           </div>
         </div>
 
+        {/* Jami Loyiha Xarajatlari */}
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between min-h-[110px]">
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#ef5350]" />
           <div>
             <small className="block text-[11px] font-medium text-[#697180] mb-1">Jami Loyiha Xarajatlari</small>
-            <b className="text-2xl font-extrabold text-[#ef5350] block mt-1">${stats?.totalExpenses.toLocaleString() ?? 0}</b>
+            <b className="text-2xl font-extrabold text-[#ef5350] block mt-1">{formatUzs(stats?.totalExpenses ?? 0)}</b>
           </div>
           <div className="text-[11px] font-medium text-red-600 mt-2 flex items-center gap-1">
             <ArrowDownRight className="w-3.5 h-3.5" />
@@ -65,6 +77,7 @@ export const FinancePage: React.FC = () => {
           </div>
         </div>
 
+        {/* Net Balans */}
         {(() => {
           const netBal = stats?.netBalance ?? ((stats?.totalRevenueReceived ?? 0) - (stats?.totalExpenses ?? 0));
           const isNegative = netBal < 0;
@@ -74,14 +87,14 @@ export const FinancePage: React.FC = () => {
               <div>
                 <small className="block text-[11px] font-bold text-[#697180] mb-1 uppercase tracking-wider">Net Balans (Qo'ldagi summa)</small>
                 <b className={`text-2xl font-extrabold block mt-1 ${isNegative ? 'text-rose-600' : 'text-emerald-600'}`}>
-                  {isNegative ? `-$${Math.abs(netBal).toLocaleString()}` : `$${netBal.toLocaleString()}`}
+                  {isNegative ? `-${formatUzs(Math.abs(netBal))}` : formatUzs(netBal)}
                 </b>
               </div>
               <div className="text-[11px] font-medium text-gray-500 mt-2 flex items-center justify-between">
                 <span>Tushum − Xarajatlar</span>
                 {stats?.totalNetProfit !== undefined && (
                   <span className="text-[10px] text-purple-600 font-semibold" title="Kutilayotgan sof foyda">
-                    Kutilayotgan: ${stats.totalNetProfit.toLocaleString()}
+                    Kutilayotgan: {formatUzs(stats.totalNetProfit)}
                   </span>
                 )}
               </div>
@@ -101,15 +114,15 @@ export const FinancePage: React.FC = () => {
           <div className="divide-y divide-gray-100 text-xs space-y-1">
             <div className="py-3 flex justify-between items-center">
               <span className="font-semibold text-gray-700">Loyiha tushumlari (Mijoz to'lovlari)</span>
-              <b className="text-emerald-600 font-bold text-sm">+${stats?.totalRevenueReceived.toLocaleString() ?? 0}</b>
+              <b className="text-emerald-600 font-bold text-sm">+{formatUzs(stats?.totalRevenueReceived ?? 0)}</b>
             </div>
             <div className="py-3 flex justify-between items-center">
               <span className="font-semibold text-gray-700">Loyiha xarajatlari (Material, usta, xizmatlar)</span>
-              <b className="text-red-600 font-bold text-sm">-${stats?.totalExpenses.toLocaleString() ?? 0}</b>
+              <b className="text-red-600 font-bold text-sm">-{formatUzs(stats?.totalExpenses ?? 0)}</b>
             </div>
             <div className="py-3 flex justify-between items-center">
               <span className="font-semibold text-gray-700">Kutilayotgan qarzdorliklar tushumi</span>
-              <b className="text-blue-600 font-bold text-sm">+${stats?.totalPendingReceivables.toLocaleString() ?? 0}</b>
+              <b className="text-blue-600 font-bold text-sm">+{formatUzs(stats?.totalPendingReceivables ?? 0)}</b>
             </div>
             <div className="p-3.5 flex justify-between items-center bg-gray-50 border border-gray-200 rounded-xl mt-3">
               <div>
@@ -121,7 +134,7 @@ export const FinancePage: React.FC = () => {
                 const isNeg = nb < 0;
                 return (
                   <b className={`font-extrabold text-base ${isNeg ? 'text-rose-600' : 'text-emerald-600'}`}>
-                    {isNeg ? `-$${Math.abs(nb).toLocaleString()}` : `+$${nb.toLocaleString()}`}
+                    {isNeg ? `-${formatUzs(Math.abs(nb))}` : `+${formatUzs(nb)}`}
                   </b>
                 );
               })()}
@@ -131,7 +144,7 @@ export const FinancePage: React.FC = () => {
                 <span className="font-bold text-emerald-950 text-xs uppercase tracking-wide block">KUTILAYOTGAN YAKUNIY SOF FOYDA:</span>
                 <span className="text-[10px] text-emerald-700 font-medium">Barcha shartnoma qarzlari to'liq yopilgandan so'ng</span>
               </div>
-              <b className="text-emerald-700 font-extrabold text-lg">${stats?.totalNetProfit.toLocaleString() ?? 0}</b>
+              <b className="text-emerald-700 font-extrabold text-lg">{formatUzs(stats?.totalNetProfit ?? 0)}</b>
             </div>
           </div>
         </div>
@@ -146,15 +159,15 @@ export const FinancePage: React.FC = () => {
           <div className="divide-y divide-gray-100 text-xs">
             <div className="py-3 flex justify-between items-center">
               <span className="text-gray-600 font-medium">Ustalar haqi to'lovlari</span>
-              <b className="text-gray-900 font-semibold">$0</b>
+              <b className="text-gray-900 font-semibold">0 so'm</b>
             </div>
             <div className="py-3 flex justify-between items-center">
               <span className="text-gray-600 font-medium">Material xaridlari qoldig'i</span>
-              <b className="text-gray-900 font-semibold">$0</b>
+              <b className="text-gray-900 font-semibold">0 so'm</b>
             </div>
             <div className="py-3 flex justify-between items-center">
-              <span className="text-gray-600 font-medium">Transport & Logistika</span>
-              <b className="text-gray-900 font-semibold">$0</b>
+              <span className="text-gray-600 font-medium">Transport &amp; Logistika</span>
+              <b className="text-gray-900 font-semibold">0 so'm</b>
             </div>
           </div>
         </div>
@@ -184,11 +197,9 @@ export const FinancePage: React.FC = () => {
                   <td className="py-3.5 px-5 font-bold text-[#171b25]">{p.name}</td>
                   <td className="py-3.5 px-5 text-gray-700">{p.customerName || '-'}</td>
                   <td className="py-3.5 px-5 font-semibold text-gray-900">
-                    {p.currency?.toUpperCase() === 'UZS' && p.contractAmountUzs
-                      ? <span>{p.contractAmountUzs.toLocaleString()} so'm<span className="block text-[10px] text-gray-400 font-normal">≈ ${p.contractAmount.toLocaleString()}</span></span>
-                      : `$${p.contractAmount.toLocaleString()}`}
+                    {formatProjectContract(p)}
                   </td>
-                  <td className="py-3.5 px-5 text-gray-600">${p.budget.toLocaleString()}</td>
+                  <td className="py-3.5 px-5 text-gray-600">{formatUzs(p.budget)}</td>
                   <td className="py-3.5 px-5">
                     <span className="px-2.5 py-0.5 bg-gray-100 text-gray-700 rounded-full text-[10px] font-bold">
                       {p.statusName}
