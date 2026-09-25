@@ -555,7 +555,7 @@ export const ProjectDetailPage: React.FC = () => {
     }
 
     if (workAmt > selectedWorkerForWorkAmount.agreedAmount) {
-      alert(`⚠️ Ishlangan haq kelishilgan umumiy summadan ($${selectedWorkerForWorkAmount.agreedAmount.toLocaleString()}) ko'p bo'lishi mumkin emas.`);
+      alert(`⚠️ Ishlangan haq kelishilgan umumiy summadan (${selectedWorkerForWorkAmount.agreedAmount.toLocaleString()} so'm) ko'p bo'lishi mumkin emas.`);
       return;
     }
 
@@ -873,24 +873,36 @@ export const ProjectDetailPage: React.FC = () => {
             <div className="lg:col-span-5 bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs">
               <h3 className="font-bold text-xs text-[#171b25] mb-2.5">So'nggi Moliya Harakatlari</h3>
               <div className="divide-y divide-[#eef0f3] text-xs">
-                {payments.slice(0, 2).map((p) => (
-                  <div key={p.id} className="py-2 flex justify-between items-center">
-                    <div>
-                      <div className="font-semibold text-gray-800">Mijoz to‘lovi ({p.paymentMethodName})</div>
-                      <div className="text-[10px] text-gray-400">{formatDateUz(p.paymentDate)}</div>
+                {payments.slice(0, 2).map((p) => {
+                  const isUzsProj = (project?.currency || 'USD').toUpperCase() === 'UZS';
+                  return (
+                    <div key={p.id} className="py-2 flex justify-between items-center">
+                      <div>
+                        <div className="font-semibold text-gray-800">Mijoz to‘lovi ({p.paymentMethodName})</div>
+                        <div className="text-[10px] text-gray-400">{formatDateUz(p.paymentDate)}</div>
+                      </div>
+                      <span className="text-[#21bd68] font-bold">
+                        {isUzsProj ? `+${p.amount.toLocaleString()} so'm` : `+$${p.amount.toLocaleString()}`}
+                      </span>
                     </div>
-                    <span className="text-[#21bd68] font-bold">+${p.amount.toLocaleString()}</span>
-                  </div>
-                ))}
-                {expenses.slice(0, 2).map((e) => (
-                  <div key={e.id} className="py-2 flex justify-between items-center">
-                    <div>
-                      <div className="font-semibold text-gray-800">{e.categoryName}: {e.description}</div>
-                      <div className="text-[10px] text-gray-400">{formatDateUz(e.expenseDate)}</div>
+                  );
+                })}
+                {expenses.slice(0, 2).map((e) => {
+                  const isExpUsd = e.currency === 'USD' && e.originalAmount !== undefined && e.originalAmount !== null && e.originalAmount > 0;
+                  return (
+                    <div key={e.id} className="py-2 flex justify-between items-center">
+                      <div>
+                        <div className="font-semibold text-gray-800">{expenseCategoryLabels[e.category] || e.categoryName}: {e.description}</div>
+                        <div className="text-[10px] text-gray-400">{formatDateUz(e.expenseDate)}</div>
+                      </div>
+                      <span className="text-[#ef5350] font-bold">
+                        {isExpUsd
+                          ? `-$${e.originalAmount!.toLocaleString()}`
+                          : `-${e.amount.toLocaleString()} so'm`}
+                      </span>
                     </div>
-                    <span className="text-[#ef5350] font-bold">-${e.amount.toLocaleString()}</span>
-                  </div>
-                ))}
+                  );
+                })}
                 {payments.length === 0 && expenses.length === 0 && (
                   <div className="py-6 text-center text-gray-400 text-[11px]">Hali harakatlar mavjud emas</div>
                 )}
@@ -992,21 +1004,26 @@ export const ProjectDetailPage: React.FC = () => {
             </div>
 
             <div className="divide-y divide-gray-100 max-h-[450px] overflow-y-auto custom-scrollbar">
-              {payments.map((p) => (
-                <div key={p.id} className="p-4 flex justify-between items-center text-xs hover:bg-gray-50/50 transition-colors">
-                  <div className="space-y-0.5">
-                    <div className="font-bold text-sm text-gray-900 flex items-center gap-2">
-                      <span>${p.amount.toLocaleString()}</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">{p.paymentMethodName}</span>
+              {payments.map((p) => {
+                const isUzsProj = (project?.currency || 'USD').toUpperCase() === 'UZS';
+                return (
+                  <div key={p.id} className="p-4 flex justify-between items-center text-xs hover:bg-gray-50/50 transition-colors">
+                    <div className="space-y-0.5">
+                      <div className="font-bold text-sm text-gray-900 flex items-center gap-2">
+                        <span>{isUzsProj ? `${p.amount.toLocaleString()} so'm` : `$${p.amount.toLocaleString()}`}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">{p.paymentMethodName}</span>
+                      </div>
+                      <div className="text-[11px] text-gray-400">
+                        Sana: {formatDateUz(p.paymentDate)} · Qabul qildi: <b className="text-gray-700">{p.receivedByName}</b>
+                      </div>
+                      {p.notes && <div className="text-[11px] text-gray-600 bg-gray-50 px-2 py-1 rounded mt-1 border border-gray-100">Izoh: {p.notes}</div>}
                     </div>
-                    <div className="text-[11px] text-gray-400">
-                      Sana: {formatDateUz(p.paymentDate)} · Qabul qildi: <b className="text-gray-700">{p.receivedByName}</b>
-                    </div>
-                    {p.notes && <div className="text-[11px] text-gray-600 bg-gray-50 px-2 py-1 rounded mt-1 border border-gray-100">Izoh: {p.notes}</div>}
+                    <span className="text-emerald-700 font-extrabold text-base">
+                      {isUzsProj ? `+${p.amount.toLocaleString()} so'm` : `+$${p.amount.toLocaleString()}`}
+                    </span>
                   </div>
-                  <span className="text-emerald-700 font-extrabold text-base">+${p.amount.toLocaleString()}</span>
-                </div>
-              ))}
+                );
+              })}
               {payments.length === 0 && (
                 <div className="py-12 text-center text-xs text-gray-400">
                   Mijozdan to'lovlar hali qabul qilinmagan. Yuqoridagi "+ To'lov qabul qilish" orqali kiritishingiz mumkin.
@@ -1167,7 +1184,7 @@ export const ProjectDetailPage: React.FC = () => {
                   </div>
                   <div className="flex justify-between text-xs text-gray-600 pt-1 border-t border-gray-50">
                     <span className="text-gray-500">Jami xarajat:</span>
-                    <b className="text-[#ff7a16] font-bold">${m.totalCost.toLocaleString()}</b>
+                    <b className="text-[#ff7a16] font-bold">{m.totalCost.toLocaleString()} so'm</b>
                   </div>
                 </div>
               ))}
@@ -1282,20 +1299,20 @@ export const ProjectDetailPage: React.FC = () => {
                     <div className="space-y-1 text-xs">
                       <div className="flex justify-between text-gray-600">
                         <span>Kelishilgan:</span>
-                        <b className="text-gray-900">${w.totalAgreedAmount.toLocaleString()}</b>
+                        <b className="text-gray-900">{w.totalAgreedAmount.toLocaleString()} so'm</b>
                       </div>
                       <div className="flex justify-between text-gray-600">
                         <span>Ishlangan haq:</span>
-                        <b className="text-purple-700">${w.totalWorkAmount.toLocaleString()}</b>
+                        <b className="text-purple-700">{w.totalWorkAmount.toLocaleString()} so'm</b>
                       </div>
                       <div className="flex justify-between text-emerald-700">
                         <span>To'langan:</span>
-                        <b>${w.totalPaidAmount.toLocaleString()}</b>
+                        <b>{w.totalPaidAmount.toLocaleString()} so'm</b>
                       </div>
                       <div className="flex justify-between items-center pt-1.5 border-t border-gray-100">
                         <span className="text-gray-600 font-medium">Qoldiq qarzimiz:</span>
                         <b className={isOverpaid ? 'text-red-600' : isFullyPaid ? 'text-emerald-700' : 'text-gray-900'}>
-                          {isOverpaid ? `-$${Math.abs(debt).toLocaleString()}` : `$${debt.toLocaleString()}`}
+                          {isOverpaid ? `-${Math.abs(debt).toLocaleString()} so'm` : `${debt.toLocaleString()} so'm`}
                         </b>
                       </div>
                     </div>
@@ -1307,11 +1324,11 @@ export const ProjectDetailPage: React.FC = () => {
                         </span>
                       ) : w.totalPaidAmount > 0 ? (
                         <span className="w-full inline-flex justify-center items-center gap-1 py-1 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                          ⏳ Qisman to'langan (Qoldiq: ${debt.toLocaleString()})
+                          ⏳ Qisman to'langan (Qoldiq: {debt.toLocaleString()} so'm)
                         </span>
                       ) : (
                         <span className="w-full inline-flex justify-center items-center gap-1 py-1 rounded-md text-[10px] font-bold bg-gray-50 text-gray-600 border border-gray-200">
-                          To'lanmagan (Qoldiq: ${debt.toLocaleString()})
+                          To'lanmagan (Qoldiq: {debt.toLocaleString()} so'm)
                         </span>
                       )}
                     </div>
