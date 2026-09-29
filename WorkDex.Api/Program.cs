@@ -25,6 +25,8 @@ if (string.IsNullOrWhiteSpace(secretKey) || Encoding.UTF8.GetByteCount(secretKey
         "JwtSettings:SecretKey sozlanmagan yoki juda qisqa (kamida 32 bayt kerak). " +
         "Uni user-secrets yoki JWTSETTINGS__SECRETKEY environment variable orqali bering.");
 }
+// JwtSettings tekshiruvi tugadi.
+configuration = configuration.GetSection("JwtSettings")["SecretKey"];
 
 // =============================================
 // DATABASE
