@@ -8,7 +8,9 @@ using WorkDex.Api.Filters;
 using WorkDex.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.WebHost.UseUrls("http://0.0.0.0:5082");
+// Hosting platformlari (Railway, Render, Heroku...) portni PORT env orqali beradi.
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5082";
+builder.WebHost.UseUrls($"http://*:{port}");
 
 // =============================================
 // CONFIGURATION
@@ -25,8 +27,6 @@ if (string.IsNullOrWhiteSpace(secretKey) || Encoding.UTF8.GetByteCount(secretKey
         "JwtSettings:SecretKey sozlanmagan yoki juda qisqa (kamida 32 bayt kerak). " +
         "Uni user-secrets yoki JWTSETTINGS__SECRETKEY environment variable orqali bering.");
 }
-// JwtSettings tekshiruvi tugadi.
-configuration = configuration.GetSection("JwtSettings")["SecretKey"];
 
 // =============================================
 // DATABASE
