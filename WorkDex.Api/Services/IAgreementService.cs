@@ -11,5 +11,5 @@ public interface IAgreementService
     Task<AgreementDto> UpdateAsync(Guid id, UpdateAgreementDto dto);
     Task<AgreementDto> FinalizeAsync(Guid id, FinalizeAgreementDto dto, Guid createdByUserId);
     Task DeleteAsync(Guid id);
-    Task<int> GetNextContractNumberAsync(Guid? companyAdminId);
+    Task<int> GetNextContractNumberAsync(Guid userId, UserRole role);
 }

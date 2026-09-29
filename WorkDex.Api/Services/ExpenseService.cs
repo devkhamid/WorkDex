@@ -127,11 +127,6 @@ public class ExpenseService : IExpenseService
             return null;
         }
 
-        if (requestingUserRole == UserRole.Admin)
-        {
-            return requestingUserId;
-        }
-
         var user = await _context.Users.FindAsync(requestingUserId);
         return user?.CompanyAdminId ?? requestingUserId;
     }
@@ -139,9 +134,7 @@ public class ExpenseService : IExpenseService
     public async Task<ExpenseDto> CreateOfficeExpenseAsync(CreateExpenseDto dto, Guid createdByUserId)
     {
         var requestingUser = await _context.Users.FindAsync(createdByUserId);
-        var companyAdminId = requestingUser?.Role == UserRole.Admin
-            ? createdByUserId
-            : (requestingUser?.CompanyAdminId ?? createdByUserId);
+        var companyAdminId = requestingUser?.CompanyAdminId ?? createdByUserId;
 
         var expense = new Expense
         {

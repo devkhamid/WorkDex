@@ -27,10 +27,6 @@ public class AgreementService : IAgreementService
         {
             // barchasi
         }
-        else if (requestingUserRole == UserRole.Admin)
-        {
-            query = query.Where(a => a.CompanyAdminId == requestingUserId);
-        }
         else
         {
             var user = await _context.Users.FindAsync(requestingUserId);
@@ -51,12 +47,12 @@ public class AgreementService : IAgreementService
     public async Task<AgreementDto> CreateAsync(CreateAgreementDto dto, Guid createdByUserId, UserRole role)
     {
         Guid? companyAdminId = null;
-        if (role == UserRole.Admin)
-            companyAdminId = createdByUserId;
-        else if (role != UserRole.SuperAdmin)
+        if (role != UserRole.SuperAdmin)
         {
             var user = await _context.Users.FindAsync(createdByUserId);
-            companyAdminId = user?.CompanyAdminId;
+            companyAdminId = role == UserRole.Admin
+                ? (user?.CompanyAdminId ?? createdByUserId)
+                : user?.CompanyAdminId;
         }
 
         Guid? customerId = dto.CustomerId;
@@ -344,8 +340,15 @@ public class AgreementService : IAgreementService
         await _context.SaveChangesAsync();
     }
 
-    public async Task<int> GetNextContractNumberAsync(Guid? companyAdminId)
+    public async Task<int> GetNextContractNumberAsync(Guid userId, UserRole role)
     {
+        Guid? companyAdminId = null;
+        if (role == UserRole.Admin)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            companyAdminId = user?.CompanyAdminId ?? userId;
+        }
+
         var query = _context.Agreements.AsQueryable();
         if (companyAdminId.HasValue)
             query = query.Where(a => a.CompanyAdminId == companyAdminId);

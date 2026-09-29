@@ -33,10 +33,13 @@ public class ProjectService : IProjectService
         // 2. Admin faqat o'z kompaniyasining loyihalarini ko'radi
         else if (requestingUserRole == UserRole.Admin)
         {
+            var admin = await _context.Users.FindAsync(requestingUserId);
+            var adminId = admin?.CompanyAdminId ?? requestingUserId;
             query = query.Where(p =>
                 p.CreatedByUserId == requestingUserId ||
-                p.CompanyAdminId == requestingUserId ||
-                (p.CreatedByUser != null && p.CreatedByUser.CompanyAdminId == requestingUserId));
+                p.CreatedByUserId == adminId ||
+                p.CompanyAdminId == adminId ||
+                (p.CreatedByUser != null && p.CreatedByUser.CompanyAdminId == adminId));
         }
         // 3. ProjectManager, FieldWorker, Finance faqat o'z kompaniyasi/a'zo bo'lgan loyihalarni ko'radi
         else
@@ -77,9 +80,7 @@ public class ProjectService : IProjectService
             throw new KeyNotFoundException("Tanlangan mijoz topilmadi.");
 
         var requestingUser = await _context.Users.FindAsync(createdByUserId);
-        var companyAdminId = requestingUser?.Role == UserRole.Admin 
-            ? createdByUserId 
-            : (requestingUser?.CompanyAdminId ?? createdByUserId);
+        var companyAdminId = requestingUser?.CompanyAdminId ?? createdByUserId;
 
         if (requestingUser?.Role != UserRole.SuperAdmin && customer.CompanyAdminId != null && customer.CompanyAdminId != companyAdminId)
             throw new InvalidOperationException("Tanlangan mijoz boshqa kompaniyaga tegishli.");

@@ -32,10 +32,6 @@ public class UserService : IUserService
         {
             // SuperAdmin barcha foydalanuvchilarni ko'radi
         }
-        else if (requestingUserRole == UserRole.Admin)
-        {
-            query = query.Where(u => u.CompanyAdminId == requestingUserId || u.Id == requestingUserId);
-        }
         else
         {
             var user = await _context.Users.FindAsync(requestingUserId);
@@ -62,6 +58,12 @@ public class UserService : IUserService
         if (user is null)
             throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
         await EnsureSameCompanyAsync(user, requestingUserId, requestingUserRole);
+        EnsureCanModify(user, requestingUserId, requestingUserRole);
+
+        if (dto.Role == UserRole.SuperAdmin)
+            throw new InvalidOperationException("SuperAdmin rolini berish taqiqlangan.");
+        if (IsCompanyOwner(user) && dto.Role != UserRole.Admin)
+            throw new InvalidOperationException("Kompaniya asosiy adminining rolini o'zgartirib bo'lmaydi.");
 
         user.FirstName = dto.FirstName.Trim();
         user.LastName = dto.LastName.Trim();
@@ -79,6 +81,7 @@ public class UserService : IUserService
         if (user is null)
             throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
         await EnsureSameCompanyAsync(user, requestingUserId, requestingUserRole);
+        EnsureCanModify(user, requestingUserId, requestingUserRole);
 
         if (user.Role == UserRole.SuperAdmin)
             throw new InvalidOperationException("Asosiy SuperAdmin hisobini o'chirib yoki bloklab bo'lmaydi.");
@@ -99,7 +102,7 @@ public class UserService : IUserService
         if (user.Role == UserRole.SuperAdmin)
             throw new InvalidOperationException("Asosiy SuperAdmin hisobini o'chirib bo'lmaydi.");
 
-        if (user.Role == UserRole.Admin)
+        if (IsCompanyOwner(user))
         {
             // Kompaniya admini va unga tegishli barcha loyihalar va xodimlarni to'liq tozalash
             var companyUserIds = await _context.Users
@@ -186,9 +189,18 @@ public class UserService : IUserService
 
     private async Task<Guid> ResolveCompanyAdminIdAsync(Guid requestingUserId, UserRole requestingUserRole)
     {
-        if (requestingUserRole == UserRole.Admin) return requestingUserId;
         var user = await _context.Users.FindAsync(requestingUserId);
         return user?.CompanyAdminId ?? requestingUserId;
+    }
+
+    // Asosiy (kompaniya egasi) admin — CompanyAdminId bo'sh; yordamchi adminlarda u to'ldirilgan.
+    private static bool IsCompanyOwner(User user) =>
+        user.Role == UserRole.Admin && user.CompanyAdminId == null;
+
+    private static void EnsureCanModify(User targetUser, Guid requestingUserId, UserRole requestingUserRole)
+    {
+        if (requestingUserRole != UserRole.SuperAdmin && IsCompanyOwner(targetUser) && targetUser.Id != requestingUserId)
+            throw new InvalidOperationException("Kompaniya asosiy adminini faqat uning o'zi o'zgartira oladi.");
     }
 
     private async Task EnsureSameCompanyAsync(User targetUser, Guid requestingUserId, UserRole requestingUserRole)

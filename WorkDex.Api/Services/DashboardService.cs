@@ -25,10 +25,13 @@ public class DashboardService : IDashboardService
 
         if (requestingUserRole == UserRole.Admin)
         {
+            var admin = await _context.Users.FindAsync(requestingUserId);
+            var adminId = admin?.CompanyAdminId ?? requestingUserId;
             return await _context.Projects
                 .Where(p => p.CreatedByUserId == requestingUserId ||
-                            p.CompanyAdminId == requestingUserId ||
-                            (p.CreatedByUser != null && p.CreatedByUser.CompanyAdminId == requestingUserId))
+                            p.CreatedByUserId == adminId ||
+                            p.CompanyAdminId == adminId ||
+                            (p.CreatedByUser != null && p.CreatedByUser.CompanyAdminId == adminId))
                 .Select(p => p.Id)
                 .ToListAsync();
         }

@@ -20,12 +20,17 @@ public class ExcelExportService : IExcelExportService
             return await _context.Projects.Select(p => p.Id).ToListAsync();
 
         if (requestingUserRole == UserRole.Admin)
+        {
+            var admin = await _context.Users.FindAsync(requestingUserId);
+            var adminId = admin?.CompanyAdminId ?? requestingUserId;
             return await _context.Projects
                 .Where(p => p.CreatedByUserId == requestingUserId ||
-                            p.CompanyAdminId == requestingUserId ||
-                            (p.CreatedByUser != null && p.CreatedByUser.CompanyAdminId == requestingUserId))
+                            p.CreatedByUserId == adminId ||
+                            p.CompanyAdminId == adminId ||
+                            (p.CreatedByUser != null && p.CreatedByUser.CompanyAdminId == adminId))
                 .Select(p => p.Id)
                 .ToListAsync();
+        }
 
         var user = await _context.Users.FindAsync(requestingUserId);
         var targetCompanyAdminId = user?.CompanyAdminId ?? requestingUserId;

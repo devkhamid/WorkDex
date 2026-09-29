@@ -141,6 +141,7 @@ const AddUserModal: React.FC<{ onClose: () => void; onSuccess: () => void }> = (
               value={role} onChange={(e) => setRole(Number(e.target.value))}
               className="w-full h-9 px-3 border border-[#e4e7ec] rounded-lg text-xs bg-white outline-none focus:border-[#ff7a16]"
             >
+              <option value={1}>Admin — Yordamchi admin / Direktor o'rinbosari</option>
               <option value={2}>ProjectManager — Prorab / Menejer</option>
               <option value={3}>FieldWorker — Saha xodimi</option>
               <option value={4}>Finance — Moliyachi / Buxgalter</option>

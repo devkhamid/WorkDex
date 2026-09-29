@@ -24,10 +24,6 @@ public class CustomerService : ICustomerService
         {
             // SuperAdmin barcha mijozlarni ko'radi
         }
-        else if (requestingUserRole == UserRole.Admin)
-        {
-            query = query.Where(c => c.CompanyAdminId == requestingUserId);
-        }
         else
         {
             var user = await _context.Users.FindAsync(requestingUserId);
@@ -58,9 +54,7 @@ public class CustomerService : ICustomerService
     public async Task<CustomerDto> CreateAsync(CreateCustomerDto dto, Guid createdByUserId)
     {
         var requestingUser = await _context.Users.FindAsync(createdByUserId);
-        var companyAdminId = requestingUser?.Role == UserRole.Admin
-            ? createdByUserId
-            : (requestingUser?.CompanyAdminId ?? createdByUserId);
+        var companyAdminId = requestingUser?.CompanyAdminId ?? createdByUserId;
 
         var customer = new Customer
         {
@@ -124,7 +118,6 @@ public class CustomerService : ICustomerService
 
     private async Task<Guid> ResolveCompanyAdminIdAsync(Guid requestingUserId, UserRole requestingUserRole)
     {
-        if (requestingUserRole == UserRole.Admin) return requestingUserId;
         var user = await _context.Users.FindAsync(requestingUserId);
         return user?.CompanyAdminId ?? requestingUserId;
     }

@@ -22,10 +22,6 @@ public class WorkerService : IWorkerService
         {
             // SuperAdmin barcha ustalarni ko'radi
         }
-        else if (requestingUserRole == UserRole.Admin)
-        {
-            query = query.Where(w => w.CompanyAdminId == requestingUserId);
-        }
         else
         {
             var user = await _context.Users.FindAsync(requestingUserId);
@@ -70,9 +66,7 @@ public class WorkerService : IWorkerService
     public async Task<WorkerDto> CreateWorkerAsync(CreateWorkerDto dto, Guid createdByUserId)
     {
         var requestingUser = await _context.Users.FindAsync(createdByUserId);
-        var companyAdminId = requestingUser?.Role == UserRole.Admin
-            ? createdByUserId
-            : (requestingUser?.CompanyAdminId ?? createdByUserId);
+        var companyAdminId = requestingUser?.CompanyAdminId ?? createdByUserId;
 
         var worker = new Worker
         {
@@ -144,7 +138,6 @@ public class WorkerService : IWorkerService
 
     private async Task<Guid> ResolveCompanyAdminIdAsync(Guid requestingUserId, UserRole requestingUserRole)
     {
-        if (requestingUserRole == UserRole.Admin) return requestingUserId;
         var user = await _context.Users.FindAsync(requestingUserId);
         return user?.CompanyAdminId ?? requestingUserId;
     }

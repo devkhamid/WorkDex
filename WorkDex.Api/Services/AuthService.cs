@@ -20,12 +20,13 @@ public class AuthService : IAuthService
     {
         // Kim kimni yaratishi mumkin:
         //   SuperAdmin -> Admin (yangi kompaniya)
-        //   Admin      -> ProjectManager, FieldWorker, Finance, Customer (o'z kompaniyasida)
+        //   Admin      -> Admin (yordamchi admin / direktor o'rinbosari), ProjectManager, FieldWorker, Finance, Customer (o'z kompaniyasida)
         // SuperAdmin rolini hech kim yaratib bo'lmaydi.
         if (dto.Role == UserRole.SuperAdmin)
             throw new UnauthorizedAccessException("SuperAdmin rolini yaratish taqiqlangan! Tizimda faqat yagona SuperAdmin mavjud bo'ladi.");
 
         Guid? companyAdminId;
+        var companyName = dto.CompanyName?.Trim();
 
         switch (callerRole)
         {
@@ -37,9 +38,11 @@ public class AuthService : IAuthService
                 break;
 
             case UserRole.Admin:
-                if (dto.Role == UserRole.Admin)
-                    throw new UnauthorizedAccessException("Admin boshqa Admin yarata olmaydi. Buni SuperAdmin bajaradi.");
-                companyAdminId = callerId;
+                // Yordamchi admin yaratgan xodimlar ham asosiy admin kompaniyasiga bog'lanadi.
+                var caller = await _context.Users.FindAsync(callerId);
+                companyAdminId = caller?.CompanyAdminId ?? callerId;
+                if (dto.Role == UserRole.Admin && string.IsNullOrWhiteSpace(companyName))
+                    companyName = (await _context.Users.FindAsync(companyAdminId))?.CompanyName;
                 break;
 
             default:
@@ -60,7 +63,7 @@ public class AuthService : IAuthService
             Email = dto.Email.Trim().ToLower(),
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
             PhoneNumber = dto.PhoneNumber?.Trim(),
-            CompanyName = dto.CompanyName?.Trim(),
+            CompanyName = companyName,
             CompanyAdminId = companyAdminId,
             Role = dto.Role,
             IsActive = true,

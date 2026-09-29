@@ -53,9 +53,15 @@ public class ProjectAccessGuard : IProjectAccessGuard
         // Admin — o'z kompaniyasining loyihalari.
         if (role == UserRole.Admin)
         {
+            var admin = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == userId);
+            var adminId = admin?.CompanyAdminId ?? userId;
+
             return project.CreatedByUserId == userId ||
-                   project.CompanyAdminId == userId ||
-                   (project.CreatedByUser != null && project.CreatedByUser.CompanyAdminId == userId);
+                   project.CreatedByUserId == adminId ||
+                   project.CompanyAdminId == adminId ||
+                   (project.CreatedByUser != null && project.CreatedByUser.CompanyAdminId == adminId);
         }
 
         // ProjectManager, FieldWorker, Finance — kompaniya bo'yicha yoki loyiha a'zosi bo'lsa.

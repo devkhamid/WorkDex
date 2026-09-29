@@ -40,11 +40,7 @@ public class AgreementsController : ControllerBase
     [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
     public async Task<IActionResult> GetNextNumber()
     {
-        var userId = User.GetUserId();
-        var role = User.GetUserRole();
-        Guid? companyAdminId = null;
-        if (role == UserRole.Admin) companyAdminId = userId;
-        var num = await _agreementService.GetNextContractNumberAsync(companyAdminId);
+        var num = await _agreementService.GetNextContractNumberAsync(User.GetUserId(), User.GetUserRole());
         return Ok(new { nextNumber = num });
     }
 

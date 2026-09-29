@@ -22,10 +22,6 @@ public class MaterialService : IMaterialService
         {
             // SuperAdmin barcha materiallarni ko'radi
         }
-        else if (requestingUserRole == UserRole.Admin)
-        {
-            query = query.Where(m => m.CompanyAdminId == requestingUserId);
-        }
         else
         {
             var user = await _context.Users.FindAsync(requestingUserId);
@@ -70,9 +66,7 @@ public class MaterialService : IMaterialService
     public async Task<MaterialDto> CreateMaterialAsync(CreateMaterialDto dto, Guid createdByUserId)
     {
         var requestingUser = await _context.Users.FindAsync(createdByUserId);
-        var companyAdminId = requestingUser?.Role == UserRole.Admin
-            ? createdByUserId
-            : (requestingUser?.CompanyAdminId ?? createdByUserId);
+        var companyAdminId = requestingUser?.CompanyAdminId ?? createdByUserId;
 
         var material = new Material
         {
@@ -144,7 +138,6 @@ public class MaterialService : IMaterialService
 
     private async Task<Guid> ResolveCompanyAdminIdAsync(Guid requestingUserId, UserRole requestingUserRole)
     {
-        if (requestingUserRole == UserRole.Admin) return requestingUserId;
         var user = await _context.Users.FindAsync(requestingUserId);
         return user?.CompanyAdminId ?? requestingUserId;
     }
