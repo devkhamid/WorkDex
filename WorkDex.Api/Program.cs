@@ -31,8 +31,37 @@ if (string.IsNullOrWhiteSpace(secretKey) || Encoding.UTF8.GetByteCount(secretKey
 // =============================================
 // DATABASE
 // =============================================
+var connectionString = configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    connectionString = Environment.GetEnvironmentVariable("DATABASE_URL");
+}
+
+// Railway Postgres URL ni postgresql://user:pass@host:port/db ko'rinishida beradi.
+if (!string.IsNullOrWhiteSpace(connectionString) &&
+    (connectionString.StartsWith("postgres://") || connectionString.StartsWith("postgresql://")))
+{
+    var uri = new Uri(connectionString);
+    var userInfo = uri.UserInfo.Split(':', 2);
+    connectionString = new Npgsql.NpgsqlConnectionStringBuilder
+    {
+        Host = uri.Host,
+        Port = uri.Port > 0 ? uri.Port : 5432,
+        Username = Uri.UnescapeDataString(userInfo[0]),
+        Password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : null,
+        Database = uri.AbsolutePath.TrimStart('/'),
+    }.ConnectionString;
+}
+
+if (string.IsNullOrWhiteSpace(connectionString) ||
+    string.IsNullOrWhiteSpace(new Npgsql.NpgsqlConnectionStringBuilder(connectionString).Host))
+{
+    throw new InvalidOperationException(
+        "Database ulanishi sozlanmagan (Host yo'q). DATABASE_URL yoki CONNECTIONSTRINGS__DEFAULTCONNECTION environment variable bering.");
+}
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(connectionString));
 
 // =============================================
 // AUTHENTICATION — JWT
