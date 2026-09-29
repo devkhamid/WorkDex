@@ -5,13 +5,15 @@ using WorkDex.Api.Models;
 
 namespace WorkDex.Api.Services;
 
-public class ExcelExportService : IExcelExportService
+public partial class ExcelExportService : IExcelExportService
 {
     private readonly AppDbContext _context;
+    private readonly ICurrencyService _currencyService;
 
-    public ExcelExportService(AppDbContext context)
+    public ExcelExportService(AppDbContext context, ICurrencyService currencyService)
     {
         _context = context;
+        _currencyService = currencyService;
     }
 
     private async Task<List<Guid>> GetAccessibleProjectIdsAsync(Guid requestingUserId, UserRole requestingUserRole)

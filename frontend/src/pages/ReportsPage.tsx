@@ -1,14 +1,37 @@
 import React, { useEffect, useState } from 'react';
-import { FileSpreadsheet, Download, Building2, DollarSign, Package, Users } from 'lucide-react';
+import { FileSpreadsheet, Download, Building2, CalendarRange, Loader2 } from 'lucide-react';
 import { projectsApi, reportsApi } from '../api/services';
 import { Project } from '../types';
 
+const ANNUAL_SHEETS = [
+  { name: 'Xulosa', desc: "Tushum, xarajat, yalpi va sof foyda, marja, o'tgan yil bilan solishtirish" },
+  { name: 'Oylik', desc: "12 oy: tushum, material, ish haqi, ofis, sof va kumulyativ foyda" },
+  { name: 'Loyihalar', desc: "Har bir loyiha rentabelligi, qarz, byudjet ishlatilishi" },
+  { name: 'Kategoriyalar', desc: "Xarajat turlari bo'yicha taqsimot va ulushlar" },
+  { name: 'Mijozlar', desc: "Mijoz bo'yicha daromad, to'lov va qarzdorlik" },
+  { name: 'Ustalar', desc: "Usta bo'yicha kelishilgan, to'langan va qoldiq" },
+  { name: 'Materiallar', desc: "Material va yetkazib beruvchilar tahlili, o'rtacha narx" },
+  { name: 'Ofis', desc: "Ofis xarajatlari kategoriya × oy matritsasi" },
+];
+
 export const ReportsPage: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(currentYear);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     projectsApi.getAll().then(setProjects);
   }, []);
+
+  const downloadAnnual = async () => {
+    setDownloading(true);
+    try {
+      await reportsApi.downloadAnnualExcel(year);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <div className="p-6 space-y-4">
@@ -24,6 +47,52 @@ export const ReportsPage: React.FC = () => {
           <Download className="w-4 h-4" />
           <span>Barcha loyihalarni Excelga yuklash</span>
         </button>
+      </div>
+
+      {/* Yillik to'liq moliyaviy hisobot */}
+      <div className="bg-gradient-to-br from-[#1e293b] to-[#334155] rounded-xl p-6 shadow-sm text-white">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-xl">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center">
+                <CalendarRange className="w-5 h-5 text-[#ffb070]" />
+              </div>
+              <h3 className="font-bold text-base">Yillik to'liq moliyaviy hisobot</h3>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Ofis va barcha loyihalarning butun yil bo'yicha kirim-chiqimi bitta Excel faylda. Barcha tahlil
+              jadvallari Excel ichidagi formulalar bilan hisoblanadi — faylda yil yoki dollar kursini
+              o'zgartirsangiz, hammasi avtomatik qayta hisoblanadi.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+              className="h-9 px-3 rounded-lg text-xs font-semibold text-[#171b25] bg-white outline-none"
+            >
+              {Array.from({ length: 6 }, (_, i) => currentYear - i).map((y) => (
+                <option key={y} value={y}>{y}-yil</option>
+              ))}
+            </select>
+            <button
+              onClick={downloadAnnual}
+              disabled={downloading}
+              className="h-9 px-4 bg-[#ff7a16] hover:bg-[#e86807] disabled:opacity-60 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors"
+            >
+              {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              <span>{downloading ? 'Tayyorlanmoqda...' : 'Yillik hisobotni yuklash'}</span>
+            </button>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-5">
+          {ANNUAL_SHEETS.map((s) => (
+            <div key={s.name} className="bg-white/5 border border-white/10 rounded-lg p-2.5">
+              <div className="text-[11px] font-bold text-[#ffb070]">{s.name}</div>
+              <div className="text-[10px] text-slate-300 mt-0.5 leading-snug">{s.desc}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">

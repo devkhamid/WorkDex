@@ -41,4 +41,17 @@ public class ReportsController : ControllerBase
         var fileName = $"WorkDex_All_Projects_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx";
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
     }
+
+    // Yillik to'liq moliyaviy tahlil: ofis + loyihalar, barcha tahlil varaqlari Excel formulalari bilan.
+    [HttpGet("annual/excel")]
+    public async Task<IActionResult> ExportAnnualExcel([FromQuery] int? year)
+    {
+        var y = year ?? DateTime.UtcNow.Year;
+        if (y < 2000 || y > 2100)
+            return BadRequest(new { message = "Yil noto'g'ri kiritilgan." });
+
+        var bytes = await _excelService.ExportAnnualReportAsync(y, User.GetUserId(), User.GetUserRole());
+        var fileName = $"WorkDex_Yillik_Hisobot_{y}.xlsx";
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+    }
 }
