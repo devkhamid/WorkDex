@@ -13,6 +13,11 @@ export const getApiBaseUrl = (): string => {
     return String(fromEnv).replace(/\/+$/, '');
   }
 
+  // Production build backend bilan bir domen ostida ishlaydi (backend frontendni o'zi beradi).
+  if (import.meta.env.PROD) {
+    return '/api';
+  }
+
   // 2) Aks holda brauzer manzilidan aniqlanadi. Protokol qattiq "http" emas,
   //    window.location.protocol dan olinadi: sayt https orqali ochilganda
   //    http so'rovni brauzer mixed-content sababli bloklaydi.

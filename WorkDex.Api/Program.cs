@@ -211,6 +211,8 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+// Frontend (React) build wwwroot ichida — React Router sahifalari uchun index.html qaytariladi.
+app.MapFallbackToFile("index.html");
 
 // =============================================
 // DATABASE SEEDING

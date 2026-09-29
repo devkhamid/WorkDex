@@ -1,0 +1,9 @@
+.git/
+**/node_modules/
+**/bin/
+**/obj/
+frontend/dist/
+**/.env
+**/appsettings.Development.json
+**/appsettings.Local.json
+database_backup.sql
