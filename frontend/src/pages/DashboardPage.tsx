@@ -356,53 +356,116 @@ export const DashboardPage: React.FC = () => {
 
       {/* Dashboard Grid (2 Columns) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* Left: Loyiha rivojlanish xulosasi */}
-        <div className="lg:col-span-7 bg-white border border-[#e4e7ec] rounded-xl shadow-xs p-5 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between pb-3 border-b border-[#f0f2f5]">
-              <div>
-                <h3 className="font-bold text-xs text-[#171b25]">Loyiha rivojlanish xulosasi</h3>
-                <div className="text-[10px] text-[#9399a4]">Obyektlarning oylik bajarilish darajasi</div>
-              </div>
-              <div className="flex items-center gap-3 text-[10px] text-[#727987]">
-                <span className="flex items-center gap-1.5">
-                  <i className="w-2.5 h-2.5 rounded-xs bg-[#ff7a16] inline-block" /> Bajarilgan
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <i className="w-2.5 h-2.5 rounded-xs bg-[#bdd9f7] inline-block" /> Rejalashtirilgan
-                </span>
-              </div>
-            </div>
+        {/* Left: Loyihalar holati grafigi (real ma'lumot) */}
+        {(() => {
+          const statusMeta = [
+            { status: ProjectStatus.InProgress, label: 'Faol', color: '#21bd68' },
+            { status: ProjectStatus.Planning, label: 'Rejalashtirish', color: '#7650d7' },
+            { status: ProjectStatus.OnHold, label: 'Kechikkan', color: '#ff7a16' },
+            { status: ProjectStatus.Completed, label: 'Yakunlangan', color: '#3b82f6' },
+            { status: ProjectStatus.Cancelled, label: 'Bekor qilingan', color: '#a0a6b1' },
+          ].map(s => ({ ...s, count: projects.filter(p => p.status === s.status).length }));
+          const total = projects.length;
 
-            {/* Custom Bar Chart */}
-            <div className="pt-6 pb-2 px-2 h-52 flex items-end justify-between border-b border-[#e8ebef]">
-              {[
-                { m: 'Yan', d: 54, r: 72 },
-                { m: 'Fev', d: 62, r: 78 },
-                { m: 'Mar', d: 71, r: 85 },
-                { m: 'Apr', d: 45, r: 82 },
-                { m: 'May', d: 30, r: 74 },
-                { m: 'Iyun', d: 15, r: 62 },
-              ].map((item, idx) => (
-                <div key={idx} className="flex flex-col items-center gap-1.5 flex-1">
-                  <div className="flex items-end gap-1.5 h-36">
-                    <div
-                      style={{ height: `${item.d}%` }}
-                      className="w-4 bg-[#ff7a16] rounded-t-sm transition-all hover:brightness-95"
-                      title={`Bajarilgan: ${item.d}%`}
-                    />
-                    <div
-                      style={{ height: `${item.r}%` }}
-                      className="w-4 bg-[#bdd9f7] rounded-t-sm transition-all hover:brightness-95"
-                      title={`Rejalashtirilgan: ${item.r}%`}
-                    />
-                  </div>
-                  <span className="text-[10px] text-gray-400 font-medium">{item.m}</span>
+          // Muddatga ko'ra kutilgan bajarilish: boshlanish va tugash sanasi orasidagi o'tgan vaqt ulushi.
+          const expectedPercent = (p: Project): number | null => {
+            if (!p.startDate || !p.endDate) return null;
+            const start = new Date(p.startDate).getTime();
+            const end = new Date(p.endDate).getTime();
+            if (!(end > start)) return null;
+            return Math.round(Math.min(100, Math.max(0, ((Date.now() - start) / (end - start)) * 100)));
+          };
+
+          const order = [ProjectStatus.InProgress, ProjectStatus.OnHold, ProjectStatus.Planning, ProjectStatus.Completed];
+          const chartProjects = projects
+            .filter(p => p.status !== ProjectStatus.Cancelled)
+            .sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status))
+            .slice(0, 8)
+            .map(p => {
+              const expected = expectedPercent(p);
+              const behind = expected !== null && p.status !== ProjectStatus.Completed && expected - p.progressPercent > 10;
+              return { p, expected, behind };
+            });
+          const behindCount = chartProjects.filter(c => c.behind).length;
+
+          return (
+            <div className="lg:col-span-7 bg-white border border-[#e4e7ec] rounded-xl shadow-xs p-5 flex flex-col">
+              <div className="flex items-center justify-between pb-3 border-b border-[#f0f2f5]">
+                <div>
+                  <h3 className="font-bold text-xs text-[#171b25]">Loyihalar holati</h3>
+                  <div className="text-[10px] text-[#9399a4]">Bajarilgan va muddat bo'yicha kutilgan foiz</div>
                 </div>
-              ))}
+                <div className="flex items-center gap-3 text-[10px] text-[#727987]">
+                  <span className="flex items-center gap-1.5">
+                    <i className="w-2.5 h-2.5 rounded-xs bg-[#ff7a16] inline-block" /> Bajarilgan
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <i className="w-2.5 h-2.5 rounded-xs bg-[#bdd9f7] inline-block" /> Kutilgan
+                  </span>
+                </div>
+              </div>
+
+              {/* Status taqsimoti */}
+              <div className="pt-4">
+                <div className="flex h-2.5 rounded-full overflow-hidden bg-[#edf0f3]">
+                  {total > 0 && statusMeta.filter(s => s.count > 0).map(s => (
+                    <div
+                      key={s.status}
+                      style={{ width: `${(s.count / total) * 100}%`, backgroundColor: s.color }}
+                      title={`${s.label}: ${s.count}`}
+                    />
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-2.5">
+                  {statusMeta.map(s => (
+                    <span key={s.status} className="flex items-center gap-1.5 text-[10px] text-[#727987]">
+                      <i className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: s.color }} />
+                      {s.label}: <strong className="text-[#171b25]">{s.count}</strong>
+                    </span>
+                  ))}
+                  {behindCount > 0 && (
+                    <span className="text-[10px] font-semibold text-rose-600">⚠ {behindCount} ta loyiha muddatdan orqada</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Loyihalar bo'yicha bajarilish grafigi */}
+              {chartProjects.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center text-xs text-gray-400 py-12">
+                  Hali loyihalar mavjud emas
+                </div>
+              ) : (
+                <div className="pt-5 px-1 flex-1 flex items-end justify-around gap-2 border-b border-[#e8ebef]">
+                  {chartProjects.map(({ p, expected, behind }) => (
+                    <div
+                      key={p.id}
+                      className="flex flex-col items-center gap-1.5 flex-1 min-w-0 cursor-pointer group"
+                      onClick={() => navigate(`/projects/${p.id}`)}
+                      title={`${p.name}\nBajarilgan: ${p.progressPercent}%${expected !== null ? `\nKutilgan: ${expected}%` : ''}\nHolat: ${p.statusName}`}
+                    >
+                      <span className={`text-[10px] font-bold ${behind ? 'text-rose-600' : 'text-[#171b25]'}`}>
+                        {p.progressPercent}%
+                      </span>
+                      <div className="flex items-end gap-1 h-32">
+                        <div
+                          style={{ height: `${Math.max(p.progressPercent, 2)}%` }}
+                          className={`w-4 rounded-t-sm transition-all group-hover:brightness-95 ${behind ? 'bg-rose-500' : 'bg-[#ff7a16]'}`}
+                        />
+                        <div
+                          style={{ height: `${Math.max(expected ?? 0, 2)}%` }}
+                          className={`w-4 rounded-t-sm transition-all group-hover:brightness-95 ${expected === null ? 'bg-[#edf0f3]' : 'bg-[#bdd9f7]'}`}
+                        />
+                      </div>
+                      <span className="text-[10px] text-gray-500 font-medium truncate w-full text-center group-hover:text-[#ff7a16]">
+                        {p.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        </div>
+          );
+        })()}
 
         {/* Right: Loyiha holati */}
         <div className="lg:col-span-5 bg-white border border-[#e4e7ec] rounded-xl shadow-xs p-5 flex flex-col justify-between space-y-3">
