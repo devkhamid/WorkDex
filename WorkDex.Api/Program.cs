@@ -26,7 +26,6 @@ if (string.IsNullOrWhiteSpace(secretKey) || Encoding.UTF8.GetByteCount(secretKey
         "Uni user-secrets yoki JWTSETTINGS__SECRETKEY environment variable orqali bering.");
 }
 // JwtSettings tekshiruvi tugadi.
-configuration = configuration.GetSection("JwtSettings")["SecretKey"];
 
 // =============================================
 // DATABASE
