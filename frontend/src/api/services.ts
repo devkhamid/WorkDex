@@ -134,6 +134,13 @@ export const projectsApi = {
     const res = await apiClient.get<ProjectSummary>(`/projects/${id}/summary`);
     return res.data;
   },
+  aiAnalyze: async (
+    id: string,
+    question?: string
+  ): Promise<{ analysis: string; model: string; generatedAt: string }> => {
+    const res = await apiClient.post(`/projects/${id}/ai-analysis`, { question: question || null }, { timeout: 150000 });
+    return res.data;
+  },
   delete: async (id: string): Promise<any> => {
     const res = await apiClient.delete(`/projects/${id}`);
     return res.data;

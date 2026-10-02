@@ -20,6 +20,7 @@ import { uploadAgreementPdfToProject, isAgreementPdfDoc } from '../utils/agreeme
 import { MoneyInput, UsdWithUzs } from '../components/Money';
 import { MaterialPicker } from '../components/MaterialPicker';
 import { RenameProjectModal } from '../components/RenameProjectModal';
+import { AiAnalysisPanel } from '../components/AiAnalysisPanel';
 import { useAuth } from '../context/AuthContext';
 import { formatUsd, formatUzs, useCbuRate } from '../utils/money';
 import { getFileUrl } from '../api/client';
@@ -82,8 +83,9 @@ export const ProjectDetailPage: React.FC = () => {
   const { user } = useAuth();
   const canRename = user?.role === UserRole.SuperAdmin || user?.role === UserRole.Admin || user?.role === UserRole.ProjectManager;
   const canAttachAgreementPdf = canRename || user?.role === UserRole.Finance;
+  const canUseAi = canAttachAgreementPdf;
   const [summary, setSummary] = useState<ProjectSummary | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'finance' | 'tasks' | 'materials' | 'workers' | 'expenses' | 'extraworks' | 'photos' | 'documents'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'finance' | 'tasks' | 'materials' | 'workers' | 'expenses' | 'extraworks' | 'photos' | 'documents' | 'ai'>('overview');
   const [loading, setLoading] = useState(true);
 
   // Tab Data States
@@ -632,6 +634,7 @@ export const ProjectDetailPage: React.FC = () => {
           { id: 'extraworks', label: 'Qo\'shimcha ishlar' },
           { id: 'photos', label: 'Fotosuratlar' },
           { id: 'documents', label: 'Hujjatlar' },
+          ...(canUseAi ? [{ id: 'ai', label: '✨ AI tahlil' }] : []),
         ].map((tab) => (
           <button
             key={tab.id}
@@ -1423,6 +1426,8 @@ export const ProjectDetailPage: React.FC = () => {
       )}
 
       {/* TAB 8: DOCUMENTS & SHARTNOMALAR */}
+      {activeTab === 'ai' && id && canUseAi && <AiAnalysisPanel key={id} projectId={id} />}
+
       {activeTab === 'documents' && (
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pb-3 border-b border-[#e4e7ec]">
