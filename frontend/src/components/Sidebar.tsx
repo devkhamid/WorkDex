@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   Briefcase,
   FileText,
+  Settings,
   X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -64,6 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onClose })
   const navItems = isSuperAdmin
     ? [
         { to: '/superadmin', label: 'Adminlar & Kompaniyalar', icon: ShieldCheck },
+        { to: '/settings', label: 'Sozlamalar', icon: Settings },
       ]
     : [
         { to: '/', label: 'Boshqaruv paneli', icon: LayoutDashboard },
@@ -76,6 +78,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onClose })
         { to: '/reports', label: 'Hisobotlar (Excel)', icon: FileSpreadsheet },
         { to: '/agreements', label: 'Shartnomalar', icon: FileText },
         { to: '/office', label: 'Mening Ofisim', icon: Briefcase },
+        { to: '/settings', label: 'Sozlamalar', icon: Settings },
       ];
 
   const getStatusDot = (status: ProjectStatus) => {

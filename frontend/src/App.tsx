@@ -21,6 +21,8 @@ import { OfficeExpensesPage } from './pages/OfficeExpensesPage';
 import { AgreementsPage } from './pages/AgreementsPage';
 import { AgreementFormPage } from './pages/AgreementFormPage';
 import { FinalizeAgreementPage } from './pages/FinalizeAgreementPage';
+import { SettingsPage } from './pages/SettingsPage';
+import { ThemeProvider } from './context/ThemeContext';
 import { UserRole } from './types';
 import { ShieldAlert, FileQuestion } from 'lucide-react';
 
@@ -135,6 +137,7 @@ const ProtectedLayout: React.FC = () => {
     if (pathname.startsWith('/agreements/') && pathname.endsWith('/edit')) return 'Shartnomani tahrirlash';
     if (pathname.startsWith('/agreements/') && pathname.endsWith('/preview')) return 'Shartnomani ko\'rish';
     if (pathname.startsWith('/agreements/') && pathname.endsWith('/finalize')) return 'Loyihani yakunlash';
+    if (pathname === '/settings') return 'Sozlamalar';
     return 'Boshqaruv paneli';
   };
 
@@ -250,6 +253,7 @@ const ProtectedLayout: React.FC = () => {
             <Route path="/agreements/:id/finalize" element={
               <RoleRoute allow={ROUTE_ROLES['/agreements']}><FinalizeAgreementPage /></RoleRoute>
             } />
+            <Route path="/settings" element={<SettingsPage />} />
             {/* Noma'lum manzil — ilgari bo'sh oq sahifa chiqardi */}
             <Route path="*" element={
               <EmptyState
@@ -275,14 +279,16 @@ const ProtectedLayout: React.FC = () => {
 
 export const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/*" element={<ProtectedLayout />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/*" element={<ProtectedLayout />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   );
 };
 

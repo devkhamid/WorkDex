@@ -8,6 +8,16 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet" />
     <title>frontend</title>
+    <script>
+      // Sahifa yuklanayotganda oq "chaqnash" bo'lmasligi uchun mavzuni oldindan qo'llash
+      (function () {
+        try {
+          var m = localStorage.getItem('workdex_theme');
+          var dark = m === 'dark' || (m === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

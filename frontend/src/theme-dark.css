@@ -1,0 +1,182 @@
+/*
+ * WorkDex â€” qorong'i (dark) mavzu.
+ * <html class="dark"> bo'lganda mavjud Tailwind rang klasslarini qorong'i
+ * muqobillariga almashtiradi. Shartnoma hujjati (.contract-preview) va chop
+ * etish (print) ta'sirlanmaydi. Yangi komponentlarda `dark:` variantidan ham
+ * foydalanish mumkin (tailwind.config.js: darkMode: 'class').
+ * Yangi komponentlarda qo'shimcha rang klassi ishlatilsa, shu yerga muqobilini qo'shing.
+ */
+@media screen {
+  html.dark { color-scheme: dark; background-color: #0f1218; }
+  html.dark body { background-color: #0f1218; color: #e6e9ef; }
+  :where(html.dark) *:not(:where(.contract-preview, .contract-preview *)), :where(html.dark) ::before, :where(html.dark) ::after { border-color: #2a303c; }
+  html.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #3a4150; }
+  html.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #4a5262; }
+  html.dark input[type='date']::-webkit-calendar-picker-indicator { filter: invert(.8); }
+
+  /* Asosiy ranglar */
+  :where(html.dark) .bg-white:not(:where(.contract-preview, .contract-preview *)) { background-color: #171b24; }
+  :where(html.dark) .border-\[\#e4e7ec\]:not(:where(.contract-preview, .contract-preview *)) { border-color: #2a303c; }
+  :where(html.dark) .text-gray-800:not(:where(.contract-preview, .contract-preview *)) { color: #e6e9ef; }
+  :where(html.dark) .text-gray-500:not(:where(.contract-preview, .contract-preview *)) { color: #8f97a5; }
+  :where(html.dark) .border-\[\#f0f2f5\]:not(:where(.contract-preview, .contract-preview *)) { border-color: #2a303c; }
+  :where(html.dark) .text-\[\#111827\]:not(:where(.contract-preview, .contract-preview *)) { color: #e6e9ef; }
+  :where(html.dark) .text-\[\#64748b\]:not(:where(.contract-preview, .contract-preview *)) { color: #8f97a5; }
+  :where(html.dark) .text-gray-300:not(:where(.contract-preview, .contract-preview *)) { color: #5a6270; }
+  :where(html.dark) .text-gray-900:not(:where(.contract-preview, .contract-preview *)) { color: #e6e9ef; }
+  :where(html.dark) .bg-gray-100:not(:where(.contract-preview, .contract-preview *)) { background-color: #232935; }
+  :where(html.dark) .border-gray-100:not(:where(.contract-preview, .contract-preview *)) { border-color: #2a303c; }
+  :where(html.dark) .border-gray-200:not(:where(.contract-preview, .contract-preview *)) { border-color: #2a303c; }
+  :where(html.dark) .bg-gray-50:not(:where(.contract-preview, .contract-preview *)) { background-color: #1d222c; }
+  :where(html.dark) .text-gray-600:not(:where(.contract-preview, .contract-preview *)) { color: #a9b0bd; }
+  :where(html.dark) .divide-gray-100:not(:where(.contract-preview, .contract-preview *)) > :not([hidden]) ~ :not([hidden]) { border-color: #2a303c; }
+  :where(html.dark) .text-gray-700:not(:where(.contract-preview, .contract-preview *)) { color: #c9ced8; }
+  :where(html.dark) .bg-gray-900:not(:where(.contract-preview, .contract-preview *)) { background-color: #2f3644; }
+  :where(html.dark) .border-purple-200:not(:where(.contract-preview, .contract-preview *)) { border-color: rgba(168,85,247,.3); }
+  :where(html.dark) .bg-purple-50:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(168,85,247,.12); }
+  :where(html.dark) .text-purple-700:not(:where(.contract-preview, .contract-preview *)) { color: #d8b4fe; }
+  :where(html.dark) .bg-red-50:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(239,68,68,.12); }
+  :where(html.dark) .border-red-200:not(:where(.contract-preview, .contract-preview *)) { border-color: rgba(239,68,68,.3); }
+  :where(html.dark) .text-red-700:not(:where(.contract-preview, .contract-preview *)) { color: #fca5a5; }
+  :where(html.dark) .text-\[\#7c3aed\]:not(:where(.contract-preview, .contract-preview *)) { color: #a78bfa; }
+  :where(html.dark) .text-green-600:not(:where(.contract-preview, .contract-preview *)) { color: #4ade80; }
+  :where(html.dark) .text-gray-400:not(:where(.contract-preview, .contract-preview *)) { color: #737b8a; }
+  :where(html.dark) .border-gray-300:not(:where(.contract-preview, .contract-preview *)) { border-color: #3a4150; }
+  :where(html.dark) .bg-orange-50:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(249,115,22,.12); }
+  :where(html.dark) .bg-yellow-50:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(234,179,8,.12); }
+  :where(html.dark) .text-yellow-700:not(:where(.contract-preview, .contract-preview *)) { color: #fde047; }
+  :where(html.dark) .border-yellow-200:not(:where(.contract-preview, .contract-preview *)) { border-color: rgba(234,179,8,.3); }
+  :where(html.dark) .text-\[\#a0a5af\]:not(:where(.contract-preview, .contract-preview *)) { color: #737b8a; }
+  :where(html.dark) .text-\[\#242936\]:not(:where(.contract-preview, .contract-preview *)) { color: #e6e9ef; }
+  :where(html.dark) .text-\[\#4f5663\]:not(:where(.contract-preview, .contract-preview *)) { color: #c9ced8; }
+  :where(html.dark) .ring-white:not(:where(.contract-preview, .contract-preview *)) { --tw-ring-color: #171b24; }
+  :where(html.dark) .text-green-700:not(:where(.contract-preview, .contract-preview *)) { color: #86efac; }
+  :where(html.dark) .bg-green-50:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(34,197,94,.12); }
+  :where(html.dark) .border-green-200:not(:where(.contract-preview, .contract-preview *)) { border-color: rgba(34,197,94,.3); }
+  :where(html.dark) .text-yellow-800:not(:where(.contract-preview, .contract-preview *)) { color: #fde047; }
+  :where(html.dark) .border-orange-200:not(:where(.contract-preview, .contract-preview *)) { border-color: rgba(249,115,22,.3); }
+  :where(html.dark) .text-emerald-700:not(:where(.contract-preview, .contract-preview *)) { color: #6ee7b7; }
+  :where(html.dark) .bg-gray-50\/50:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(255,255,255,.03); }
+  :where(html.dark) .text-\[\#171b25\]:not(:where(.contract-preview, .contract-preview *)) { color: #e6e9ef; }
+  :where(html.dark) .bg-gray-50\/70:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(255,255,255,.03); }
+  :where(html.dark) .text-red-600:not(:where(.contract-preview, .contract-preview *)) { color: #f87171; }
+  :where(html.dark) .bg-\[\#f4f5f7\]:not(:where(.contract-preview, .contract-preview *)) { background-color: #1d222c; }
+  :where(html.dark) .text-\[\#7a8190\]:not(:where(.contract-preview, .contract-preview *)) { color: #8f97a5; }
+  :where(html.dark) .bg-\[\#eef5ff\]:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(59,130,246,.16); }
+  :where(html.dark) .text-\[\#2563c7\]:not(:where(.contract-preview, .contract-preview *)) { color: #60a5fa; }
+  :where(html.dark) .text-\[\#626a78\]:not(:where(.contract-preview, .contract-preview *)) { color: #a9b0bd; }
+  :where(html.dark) .bg-\[\#f8f9fb\]:not(:where(.contract-preview, .contract-preview *)) { background-color: #1d222c; }
+  :where(html.dark) .bg-purple-50\/60:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(168,85,247,.06); }
+  :where(html.dark) .border-purple-100:not(:where(.contract-preview, .contract-preview *)) { border-color: rgba(168,85,247,.22); }
+  :where(html.dark) .text-purple-600:not(:where(.contract-preview, .contract-preview *)) { color: #c084fc; }
+  :where(html.dark) .text-purple-900:not(:where(.contract-preview, .contract-preview *)) { color: #d8b4fe; }
+  :where(html.dark) .text-purple-800:not(:where(.contract-preview, .contract-preview *)) { color: #d8b4fe; }
+  :where(html.dark) .bg-blue-50:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(59,130,246,.12); }
+  :where(html.dark) .border-blue-100:not(:where(.contract-preview, .contract-preview *)) { border-color: rgba(59,130,246,.22); }
+  :where(html.dark) .text-blue-600:not(:where(.contract-preview, .contract-preview *)) { color: #60a5fa; }
+  :where(html.dark) .text-blue-800:not(:where(.contract-preview, .contract-preview *)) { color: #93c5fd; }
+  :where(html.dark) .border-green-100:not(:where(.contract-preview, .contract-preview *)) { border-color: rgba(34,197,94,.22); }
+  :where(html.dark) .text-green-800:not(:where(.contract-preview, .contract-preview *)) { color: #86efac; }
+  :where(html.dark) .border-gray-200\/80:not(:where(.contract-preview, .contract-preview *)) { border-color: #2a303c; }
+  :where(html.dark) .bg-\[\#171b25\]:not(:where(.contract-preview, .contract-preview *)) { background-color: #2f3644; }
+  :where(html.dark) .bg-green-100:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(34,197,94,.2); }
+  :where(html.dark) .bg-blue-100:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(59,130,246,.2); }
+  :where(html.dark) .text-blue-700:not(:where(.contract-preview, .contract-preview *)) { color: #93c5fd; }
+  :where(html.dark) .text-\[\#a0a5b5\]:not(:where(.contract-preview, .contract-preview *)) { color: #737b8a; }
+  :where(html.dark) .text-\[\#7b8190\]:not(:where(.contract-preview, .contract-preview *)) { color: #8f97a5; }
+  :where(html.dark) .bg-orange-100:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(249,115,22,.2); }
+  :where(html.dark) .bg-\[\#fff3e8\]:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(249,115,22,.14); }
+  :where(html.dark) .bg-\[\#e6f8ee\]:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(34,197,94,.14); }
+  :where(html.dark) .text-\[\#159452\]:not(:where(.contract-preview, .contract-preview *)) { color: #34d399; }
+  :where(html.dark) .bg-\[\#fff1df\]:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(249,115,22,.14); }
+  :where(html.dark) .text-\[\#c96b08\]:not(:where(.contract-preview, .contract-preview *)) { color: #fb923c; }
+  :where(html.dark) .bg-\[\#f0eaff\]:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(168,85,247,.16); }
+  :where(html.dark) .text-\[\#7650d7\]:not(:where(.contract-preview, .contract-preview *)) { color: #a78bfa; }
+  :where(html.dark) .bg-\[\#edf5ff\]:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(59,130,246,.16); }
+  :where(html.dark) .text-\[\#697180\]:not(:where(.contract-preview, .contract-preview *)) { color: #a9b0bd; }
+  :where(html.dark) .text-\[\#3b82f6\]:not(:where(.contract-preview, .contract-preview *)) { color: #60a5fa; }
+  :where(html.dark) .bg-rose-50:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(244,63,94,.12); }
+  :where(html.dark) .text-rose-700:not(:where(.contract-preview, .contract-preview *)) { color: #fda4af; }
+  :where(html.dark) .border-rose-200:not(:where(.contract-preview, .contract-preview *)) { border-color: rgba(244,63,94,.3); }
+  :where(html.dark) .bg-emerald-50:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(16,185,129,.12); }
+  :where(html.dark) .border-emerald-200:not(:where(.contract-preview, .contract-preview *)) { border-color: rgba(16,185,129,.3); }
+  :where(html.dark) .text-rose-600:not(:where(.contract-preview, .contract-preview *)) { color: #fb7185; }
+  :where(html.dark) .text-emerald-600:not(:where(.contract-preview, .contract-preview *)) { color: #34d399; }
+  :where(html.dark) .text-\[\#9399a4\]:not(:where(.contract-preview, .contract-preview *)) { color: #737b8a; }
+  :where(html.dark) .text-\[\#727987\]:not(:where(.contract-preview, .contract-preview *)) { color: #8f97a5; }
+  :where(html.dark) .bg-\[\#bdd9f7\]:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(59,130,246,.45); }
+  :where(html.dark) .bg-\[\#edf0f3\]:not(:where(.contract-preview, .contract-preview *)) { background-color: #2a303c; }
+  :where(html.dark) .border-\[\#e8ebef\]:not(:where(.contract-preview, .contract-preview *)) { border-color: #2a303c; }
+  :where(html.dark) .text-\[\#9a9faa\]:not(:where(.contract-preview, .contract-preview *)) { color: #737b8a; }
+  :where(html.dark) .text-\[\#969ca7\]:not(:where(.contract-preview, .contract-preview *)) { color: #737b8a; }
+  :where(html.dark) .text-\[\#7c838e\]:not(:where(.contract-preview, .contract-preview *)) { color: #8f97a5; }
+  :where(html.dark) .divide-\[\#eef0f3\]:not(:where(.contract-preview, .contract-preview *)) > :not([hidden]) ~ :not([hidden]) { border-color: #2a303c; }
+  :where(html.dark) .text-\[\#999faa\]:not(:where(.contract-preview, .contract-preview *)) { color: #737b8a; }
+  :where(html.dark) .bg-emerald-50\/60:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(16,185,129,.06); }
+  :where(html.dark) .text-emerald-950:not(:where(.contract-preview, .contract-preview *)) { color: #6ee7b7; }
+  :where(html.dark) .bg-\[\#f6f7f9\]:not(:where(.contract-preview, .contract-preview *)) { background-color: #1d222c; }
+  :where(html.dark) .border-orange-100:not(:where(.contract-preview, .contract-preview *)) { border-color: rgba(249,115,22,.22); }
+  :where(html.dark) .border-gray-50:not(:where(.contract-preview, .contract-preview *)) { border-color: #2a303c; }
+  :where(html.dark) .text-amber-600:not(:where(.contract-preview, .contract-preview *)) { color: #fbbf24; }
+  :where(html.dark) .bg-gray-50\/40:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(255,255,255,.03); }
+  :where(html.dark) .text-amber-700:not(:where(.contract-preview, .contract-preview *)) { color: #fcd34d; }
+  :where(html.dark) .bg-amber-50:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(245,158,11,.12); }
+  :where(html.dark) .border-amber-100:not(:where(.contract-preview, .contract-preview *)) { border-color: rgba(245,158,11,.22); }
+  :where(html.dark) .text-orange-700:not(:where(.contract-preview, .contract-preview *)) { color: #fdba74; }
+  :where(html.dark) .border-\[\#cfe0fb\]:not(:where(.contract-preview, .contract-preview *)) { border-color: rgba(59,130,246,.35); }
+  :where(html.dark) .text-\[\#6c7380\]:not(:where(.contract-preview, .contract-preview *)) { color: #a9b0bd; }
+  :where(html.dark) .text-\[\#8e95a0\]:not(:where(.contract-preview, .contract-preview *)) { color: #737b8a; }
+  :where(html.dark) .text-\[\#8c929d\]:not(:where(.contract-preview, .contract-preview *)) { color: #737b8a; }
+  :where(html.dark) .text-orange-600:not(:where(.contract-preview, .contract-preview *)) { color: #fb923c; }
+  :where(html.dark) .bg-emerald-50\/30:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(16,185,129,.06); }
+  :where(html.dark) .text-emerald-900:not(:where(.contract-preview, .contract-preview *)) { color: #6ee7b7; }
+  :where(html.dark) .bg-emerald-100:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(16,185,129,.2); }
+  :where(html.dark) .text-emerald-800:not(:where(.contract-preview, .contract-preview *)) { color: #6ee7b7; }
+  :where(html.dark) .bg-red-50\/30:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(239,68,68,.06); }
+  :where(html.dark) .text-red-900:not(:where(.contract-preview, .contract-preview *)) { color: #fca5a5; }
+  :where(html.dark) .bg-red-100:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(239,68,68,.2); }
+  :where(html.dark) .text-red-800:not(:where(.contract-preview, .contract-preview *)) { color: #fca5a5; }
+  :where(html.dark) .bg-emerald-50\/40:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(16,185,129,.06); }
+  :where(html.dark) .border-amber-200:not(:where(.contract-preview, .contract-preview *)) { border-color: rgba(245,158,11,.3); }
+  :where(html.dark) .bg-amber-100:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(245,158,11,.2); }
+  :where(html.dark) .text-amber-800:not(:where(.contract-preview, .contract-preview *)) { color: #fcd34d; }
+  :where(html.dark) .border-emerald-300:not(:where(.contract-preview, .contract-preview *)) { border-color: rgba(16,185,129,.45); }
+  :where(html.dark) .bg-yellow-100:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(234,179,8,.2); }
+  :where(html.dark) .border-yellow-300:not(:where(.contract-preview, .contract-preview *)) { border-color: rgba(234,179,8,.45); }
+  :where(html.dark) .bg-gray-200\/80:not(:where(.contract-preview, .contract-preview *)) { background-color: #2a303c; }
+  :where(html.dark) .bg-purple-50\/50:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(168,85,247,.06); }
+  :where(html.dark) .text-purple-950:not(:where(.contract-preview, .contract-preview *)) { color: #d8b4fe; }
+  :where(html.dark) .bg-gray-50\/80:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(255,255,255,.03); }
+  :where(html.dark) .bg-orange-50\/40:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(249,115,22,.06); }
+  :where(html.dark) .bg-purple-100:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(168,85,247,.2); }
+  :where(html.dark) .text-orange-800:not(:where(.contract-preview, .contract-preview *)) { color: #fdba74; }
+  :where(html.dark) .border-blue-200:not(:where(.contract-preview, .contract-preview *)) { border-color: rgba(59,130,246,.3); }
+
+  /* Holat variantlari (hover/focus/...) */
+  :where(html.dark) .hover\:text-gray-900:hover:not(:where(.contract-preview, .contract-preview *)) { color: #e6e9ef; }
+  :where(html.dark) .hover\:border-gray-300:hover:not(:where(.contract-preview, .contract-preview *)) { border-color: #3a4150; }
+  :where(html.dark) .hover\:bg-purple-100:hover:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(168,85,247,.2); }
+  :where(html.dark) .hover\:bg-gray-50:hover:not(:where(.contract-preview, .contract-preview *)) { background-color: #1d222c; }
+  :where(html.dark) .hover\:bg-gray-100:hover:not(:where(.contract-preview, .contract-preview *)) { background-color: #232935; }
+  :where(html.dark) .hover\:bg-\[\#f7f8fa\]:hover:not(:where(.contract-preview, .contract-preview *)) { background-color: #1d222c; }
+  :where(html.dark) .disabled\:bg-gray-50:disabled:not(:where(.contract-preview, .contract-preview *)) { background-color: #1d222c; }
+  :where(html.dark) .disabled\:text-gray-500:disabled:not(:where(.contract-preview, .contract-preview *)) { color: #8f97a5; }
+  :where(html.dark) .hover\:text-gray-800:hover:not(:where(.contract-preview, .contract-preview *)) { color: #e6e9ef; }
+  :where(html.dark) .hover\:text-gray-600:hover:not(:where(.contract-preview, .contract-preview *)) { color: #a9b0bd; }
+  :where(html.dark) .hover\:text-gray-700:hover:not(:where(.contract-preview, .contract-preview *)) { color: #c9ced8; }
+  :where(html.dark) .placeholder\:text-gray-400:not(:where(.contract-preview, .contract-preview *))::placeholder { color: #737b8a; }
+  :where(html.dark) .hover\:text-\[\#171b25\]:hover:not(:where(.contract-preview, .contract-preview *)) { color: #e6e9ef; }
+  :where(html.dark) .hover\:bg-red-50:hover:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(239,68,68,.12); }
+  :where(html.dark) .hover\:bg-gray-50\/70:hover:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(255,255,255,.03); }
+  :where(html.dark) .hover\:bg-\[\#fafbfc\]:hover:not(:where(.contract-preview, .contract-preview *)) { background-color: #1d222c; }
+  :where(html.dark) .hover\:bg-orange-50:hover:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(249,115,22,.12); }
+  :where(html.dark) .hover\:bg-gray-50\/50:hover:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(255,255,255,.03); }
+  :where(html.dark) .hover\:text-blue-800:hover:not(:where(.contract-preview, .contract-preview *)) { color: #93c5fd; }
+  :where(html.dark) .hover\:bg-emerald-50:hover:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(16,185,129,.12); }
+  :where(html.dark) .hover\:border-orange-300:hover:not(:where(.contract-preview, .contract-preview *)) { border-color: rgba(249,115,22,.45); }
+  :where(html.dark) .hover\:bg-orange-50\/40:hover:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(249,115,22,.06); }
+  :where(html.dark) .hover\:text-red-600:hover:not(:where(.contract-preview, .contract-preview *)) { color: #f87171; }
+  :where(html.dark) .hover\:border-orange-200:hover:not(:where(.contract-preview, .contract-preview *)) { border-color: rgba(249,115,22,.3); }
+  :where(html.dark) .hover\:bg-emerald-100:hover:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(16,185,129,.2); }
+  :where(html.dark) .hover\:bg-amber-100:hover:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(245,158,11,.2); }
+}
