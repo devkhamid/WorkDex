@@ -74,7 +74,7 @@ export const ProjectDetailPage: React.FC = () => {
 
   const [project, setProject] = useState<Project | null>(null);
   const [summary, setSummary] = useState<ProjectSummary | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'finance' | 'tasks' | 'materials' | 'workers' | 'extraworks' | 'photos' | 'documents'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'finance' | 'tasks' | 'materials' | 'workers' | 'expenses' | 'extraworks' | 'photos' | 'documents'>('overview');
   const [loading, setLoading] = useState(true);
 
   // Tab Data States
@@ -605,6 +605,7 @@ export const ProjectDetailPage: React.FC = () => {
           { id: 'tasks', label: 'Vazifalar' },
           { id: 'materials', label: 'Materiallar' },
           { id: 'workers', label: 'Ustalar & Ish haqi' },
+          { id: 'expenses', label: 'Qo\'shimcha xarajatlar' },
           { id: 'extraworks', label: 'Qo\'shimcha ishlar' },
           { id: 'photos', label: 'Fotosuratlar' },
           { id: 'documents', label: 'Hujjatlar' },
@@ -906,8 +907,12 @@ export const ProjectDetailPage: React.FC = () => {
               )}
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Loyiha Qo'shimcha Xarajatlari (Yuk tashish, Tozalash, Gipskarton va b.) */}
+      {/* Loyiha Qo'shimcha Xarajatlari — ustalar ishiga kirmaydigan qo'shimcha xarajatlar (Yuk tashish, Tozalash va b.) */}
+      {activeTab === 'expenses' && (
+        <div className="space-y-4">
           <div className="bg-white border border-[#e4e7ec] rounded-xl shadow-xs overflow-hidden">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border-b border-[#e4e7ec] bg-red-50/30">
               <div>
@@ -1734,8 +1739,6 @@ export const ProjectDetailPage: React.FC = () => {
                   <option value={17}>🏢 Umumiy kommunal xarajatlar</option>
                   <option value={3}>🚛 Transport (Transport)</option>
                   <option value={4}>⛽ Yoqilg'i (Fuel)</option>
-                  <option value={1}>👷 Mehnat va Usta (Labor)</option>
-                  <option value={2}>🧱 Material (Material)</option>
                   <option value={5}>🤝 Subpudrat (Subcontractor)</option>
                   <option value={6}>➕ Qo'shimcha (Extra)</option>
                   <option value={7}>📋 Boshqa (Other)</option>
