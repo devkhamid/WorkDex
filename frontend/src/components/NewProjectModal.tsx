@@ -79,10 +79,10 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-      <div className="bg-white rounded-xl shadow-2xl border border-[#e4e7ec] w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e4e7ec] bg-gray-50/50">
-          <div className="flex items-center gap-2 font-bold text-sm text-[#171b25]">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-xs p-0 sm:p-4">
+      <div className="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl border border-[#e4e7ec] w-full sm:max-w-xl max-h-[92vh] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 border-b border-[#e4e7ec] bg-gray-50/50">
+          <div className="flex items-center gap-2 font-bold text-sm text-[#171b25] min-w-0">
             <Building className="w-4 h-4 text-[#ff7a16]" />
             <span>Yangi Loyiha Yaratish</span>
           </div>
@@ -91,7 +91,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 max-h-[calc(92vh-65px)] overflow-y-auto custom-scrollbar">
           <div>
             <label className="block text-xs font-semibold text-gray-700 mb-1">Loyiha Nomi *</label>
             <input
@@ -104,7 +104,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">Loyiha Turi</label>
               <input
@@ -129,7 +129,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
 
           {/* Customer Selection / New Customer */}
           <div className="p-3 border border-gray-100 rounded-lg bg-gray-50/70">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
               <label className="text-xs font-semibold text-gray-700">Mijoz (Buyurtmachi) *</label>
               <button
                 type="button"
@@ -142,7 +142,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
             </div>
 
             {isNewCustomer ? (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <input
                   type="text"
                   required
@@ -177,7 +177,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
           </div>
 
           {/* Financials — summa so'm yoki USD da, bugungi CBU kursi bilan konvertatsiya qilinadi */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <MoneyInput
               label="Shartnoma Summasi"
               required
@@ -199,7 +199,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
           </div>
 
           {/* Dates in Day.Month.Year format */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">
                 Boshlanish Sanasi * <span className="text-[10px] text-gray-400 font-normal">(Kun / Oy / Yil)</span>
@@ -211,7 +211,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
                 onChange={(e) => setStartDate(e.target.value)}
                 className="w-full h-9 px-3 border border-[#e4e7ec] rounded-lg text-xs focus:border-[#ff7a16] outline-none bg-white"
               />
-              <div className="text-[10px] text-gray-500 mt-1 flex justify-between">
+              <div className="text-[10px] text-gray-500 mt-1 flex justify-between gap-2">
                 <span>Tanlangan: {startDate ? new Date(startDate).toLocaleDateString('uz-UZ') : '-'}</span>
                 <span className="text-[#ff7a16] font-medium">Kun.Oy.Yil</span>
               </div>
@@ -227,7 +227,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
                 onChange={(e) => setEndDate(e.target.value)}
                 className="w-full h-9 px-3 border border-[#e4e7ec] rounded-lg text-xs focus:border-[#ff7a16] outline-none bg-white"
               />
-              <div className="text-[10px] text-gray-500 mt-1 flex justify-between">
+              <div className="text-[10px] text-gray-500 mt-1 flex justify-between gap-2">
                 <span>Tanlangan: {endDate ? new Date(endDate).toLocaleDateString('uz-UZ') : '-'}</span>
                 <span className="text-[#ff7a16] font-medium">Kun.Oy.Yil</span>
               </div>
@@ -245,7 +245,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-2 border-t border-[#e4e7ec]">
+          <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-[#e4e7ec]">
             <button
               type="button"
               onClick={onClose}

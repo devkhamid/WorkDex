@@ -92,8 +92,8 @@ export const MaterialPicker: React.FC<MaterialPickerProps> = ({
           placeholder="Masalan: Gipsokarton (alchipan) panel"
         />
       </div>
-      <div className="grid grid-cols-3 gap-2">
-        <div className="col-span-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div className="sm:col-span-2">
           <label className="block text-xs font-semibold mb-1">Brend / Ishlab chiqaruvchi</label>
           <Autocomplete
             value={brand}
@@ -121,7 +121,7 @@ export const MaterialPicker: React.FC<MaterialPickerProps> = ({
 
       {nameKey && (
         exact ? (
-          <div className="flex items-center gap-1.5 text-[11px] text-green-700 bg-green-50 border border-green-200 rounded-lg px-2.5 py-1.5">
+          <div className="flex items-start gap-1.5 text-[11px] text-green-700 bg-green-50 border border-green-200 rounded-lg px-2.5 py-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
             <span>Katalogdagi material: <b>{exact.name}</b>{exact.brand ? <> [<b>{exact.brand}</b>]</> : null} ({exact.unit})</span>
           </div>
@@ -155,7 +155,7 @@ export const MaterialPicker: React.FC<MaterialPickerProps> = ({
                 </div>
               </div>
             )}
-            <div className="flex items-center gap-1.5 text-[11px] text-[#ff7a16] bg-orange-50 border border-orange-200 rounded-lg px-2.5 py-1.5">
+            <div className="flex items-start gap-1.5 text-[11px] text-[#ff7a16] bg-orange-50 border border-orange-200 rounded-lg px-2.5 py-1.5">
               <PackagePlus className="w-3.5 h-3.5 flex-shrink-0" />
               <span>Yangi material sifatida katalogga qo'shiladi</span>
             </div>

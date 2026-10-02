@@ -109,16 +109,16 @@ export const OfficeExpensesPage: React.FC = () => {
   };
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-4 sm:p-6 space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0">
           <h2 className="text-lg font-bold text-[#171b25]">Mening Ofisim</h2>
-          <p className="text-xs text-gray-400">Elektr, internet, ijara va boshqa ofis xarajatlarini boshqaring</p>
+          <p className="text-xs text-gray-400 break-words">Elektr, internet, ijara va boshqa ofis xarajatlarini boshqaring</p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="h-9 px-4 bg-[#ff7a16] hover:bg-[#e86807] text-white text-xs font-semibold rounded-lg flex items-center gap-2 shadow-sm transition-colors"
+          className="min-h-9 px-4 bg-[#ff7a16] hover:bg-[#e86807] text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors w-full sm:w-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Xarajat qo'shish</span>
@@ -126,32 +126,32 @@ export const OfficeExpensesPage: React.FC = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden">
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#ef5350]" />
           <small className="block text-[11px] font-medium text-[#697180] mb-1.5">Jami Ofis Xarajatlari</small>
-          <UsdWithUzs className="text-2xl font-bold text-[#171b25]" uzsClassName="text-xs" usd={totalAmount.usd} uzs={totalAmount.uzs} />
+          <UsdWithUzs className="text-xl sm:text-2xl font-bold text-[#171b25]" uzsClassName="text-xs" usd={totalAmount.usd} uzs={totalAmount.uzs} />
         </div>
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden">
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#ff7a16]" />
           <small className="block text-[11px] font-medium text-[#697180] mb-1.5">Oylik Xarajatlar</small>
-          <UsdWithUzs className="text-2xl font-bold text-[#171b25]" uzsClassName="text-xs" usd={monthlyAmount.usd} uzs={monthlyAmount.uzs} />
+          <UsdWithUzs className="text-xl sm:text-2xl font-bold text-[#171b25]" uzsClassName="text-xs" usd={monthlyAmount.usd} uzs={monthlyAmount.uzs} />
         </div>
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden">
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#3b82f6]" />
           <small className="block text-[11px] font-medium text-[#697180] mb-1.5">Kunlik Xarajatlar</small>
-          <UsdWithUzs className="text-2xl font-bold text-[#171b25]" uzsClassName="text-xs" usd={dailyAmount.usd} uzs={dailyAmount.uzs} />
+          <UsdWithUzs className="text-xl sm:text-2xl font-bold text-[#171b25]" uzsClassName="text-xs" usd={dailyAmount.usd} uzs={dailyAmount.uzs} />
         </div>
       </div>
 
       {/* Table */}
       <div className="bg-white border border-[#e4e7ec] rounded-xl shadow-xs overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-[#e4e7ec] flex items-center justify-between">
+        <div className="px-4 sm:px-5 py-3.5 border-b border-[#e4e7ec] flex items-center justify-between gap-3">
           <span className="text-xs font-bold text-[#171b25]">Ofis Xarajatlari Jadvali</span>
           <span className="text-[11px] text-[#969ca7] font-semibold">{expenses.length} ta yozuv</span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full min-w-[760px] text-left text-xs">
             <thead>
               <tr className="border-b border-[#e4e7ec] bg-gray-50/50">
                 <th className="py-3.5 px-5 font-bold text-[#7c838e] text-[10px] uppercase tracking-wider">Kategoriya</th>
@@ -183,7 +183,7 @@ export const OfficeExpensesPage: React.FC = () => {
                   <td className="py-3 px-5 text-right">
                     <button
                       onClick={() => handleDelete(exp.id)}
-                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      className="min-h-8 min-w-8 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-flex items-center justify-center"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -204,19 +204,19 @@ export const OfficeExpensesPage: React.FC = () => {
 
       {/* Add Expense Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-2">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[92vh] overflow-y-auto p-4 sm:p-6">
+            <div className="flex items-center justify-between gap-3 mb-5">
+              <div className="flex items-center gap-2 min-w-0">
                 <div className="w-8 h-8 bg-[#fff3e8] rounded-lg flex items-center justify-center">
                   <DollarSign className="w-4 h-4 text-[#ff7a16]" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h2 className="text-sm font-bold text-[#171b25]">Ofis Xarajati Qo'shish</h2>
-                  <p className="text-[10px] text-gray-400">Elektr, internet, ijara va boshqalar</p>
+                  <p className="text-[10px] text-gray-400 break-words">Elektr, internet, ijara va boshqalar</p>
                 </div>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-lg">
+              <button onClick={() => setIsModalOpen(false)} className="min-h-8 min-w-8 p-1.5 hover:bg-gray-100 rounded-lg inline-flex items-center justify-center">
                 <X className="w-4 h-4 text-gray-500" />
               </button>
             </div>
@@ -279,7 +279,7 @@ export const OfficeExpensesPage: React.FC = () => {
                   className="w-full h-16 px-3 py-2 border border-[#e4e7ec] rounded-lg text-xs outline-none focus:border-[#ff7a16] resize-none" />
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <button type="button" onClick={() => setIsModalOpen(false)}
                   className="flex-1 h-9 border border-[#e4e7ec] bg-white hover:bg-gray-50 text-gray-700 font-semibold text-xs rounded-lg transition-colors">
                   Bekor qilish

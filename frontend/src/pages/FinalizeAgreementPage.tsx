@@ -68,17 +68,17 @@ export const FinalizeAgreementPage: React.FC = () => {
   const fmt = (n: number) => new Intl.NumberFormat('uz-UZ').format(n);
 
   return (
-    <div className="flex-1 overflow-auto bg-[#f8f9fb] flex items-center justify-center p-6">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
+    <div className="flex-1 overflow-auto bg-[#f8f9fb] flex items-center justify-center p-4 sm:p-6">
+      <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-4 sm:p-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-5">
           <button
             onClick={() => navigate('/agreements')}
-            className="p-1 rounded hover:bg-gray-100"
+            className="p-2 rounded hover:bg-gray-100 flex-shrink-0"
           >
             <ArrowLeft className="w-4 h-4 text-gray-500" />
           </button>
-          <div>
+          <div className="min-w-0">
             <h2 className="font-bold text-[#171b25]">Loyihani sozlashni yakunlash</h2>
             <p className="text-xs text-gray-500 mt-0.5">
               Menejerlarni tayinlash va muddatni belgilash orqali loyihani sozlashni yakunlang.
@@ -89,8 +89,8 @@ export const FinalizeAgreementPage: React.FC = () => {
         {/* Agreement info */}
         {agreement && (
           <div className="bg-purple-50 rounded-lg p-3 mb-4">
-            <div className="text-xs font-semibold text-purple-700">{agreement.projectName}</div>
-            <div className="text-xs text-purple-500 mt-0.5">
+            <div className="text-xs font-semibold text-purple-700 break-words">{agreement.projectName}</div>
+            <div className="text-xs text-purple-500 mt-0.5 break-words">
               {agreement.customerFullName} • {fmt(agreement.totalAmountUZS)} UZS
             </div>
           </div>
@@ -118,7 +118,7 @@ export const FinalizeAgreementPage: React.FC = () => {
             {cbuRate > 0 ? `1 USD = ${fmt(cbuRate)} so'm (Markaziy bank)` : 'Kurs yuklanmoqda...'}
           </div>
           {cbuRate > 0 && agreement && (
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="text-xs text-gray-500 mt-1 break-words">
               Shartnoma: <UsdWithUzs inline className="font-semibold text-gray-700" uzs={agreement.totalAmountUZS} />
             </div>
           )}
@@ -136,7 +136,7 @@ export const FinalizeAgreementPage: React.FC = () => {
               managers.map(m => (
                 <label
                   key={m.id}
-                  className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer"
+                  className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer min-w-0"
                 >
                   <input
                     type="checkbox"
@@ -150,8 +150,8 @@ export const FinalizeAgreementPage: React.FC = () => {
                     }}
                     className="w-3.5 h-3.5"
                   />
-                  <div>
-                    <div className="text-xs font-medium text-gray-700">{m.fullName}</div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-medium text-gray-700 truncate">{m.fullName}</div>
                     <div className="text-[10px] text-gray-400">{m.roleName}</div>
                   </div>
                 </label>
@@ -162,7 +162,7 @@ export const FinalizeAgreementPage: React.FC = () => {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <button
             onClick={() => navigate('/agreements')}
             className="flex-1 border border-gray-200 text-gray-600 py-2 rounded-lg text-sm font-semibold hover:bg-gray-50"

@@ -176,7 +176,7 @@ export const MaterialsPage: React.FC = () => {
   const tabBtn = (t: Tab, label: string, Icon: React.ElementType) => (
     <button
       onClick={() => setTab(t)}
-      className={`flex items-center gap-1.5 px-3 h-[30px] rounded-md text-xs font-semibold transition-all ${tab === t ? 'bg-white text-[#171b25] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+      className={`flex items-center gap-1.5 px-3 h-[30px] rounded-md text-xs font-semibold transition-all whitespace-nowrap flex-shrink-0 ${tab === t ? 'bg-white text-[#171b25] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
     >
       <Icon className="w-3.5 h-3.5" />
       {label}
@@ -184,15 +184,15 @@ export const MaterialsPage: React.FC = () => {
   );
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
+    <div className="p-4 sm:p-6 space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0">
           <h2 className="text-xl font-bold text-[#171b25]">Materiallar</h2>
-          <p className="text-xs text-[#7b8190] mt-0.5">Katalog va qaysi loyihada qaysi brenddagi materialdan qancha ishlatilgani</p>
+          <p className="text-xs text-[#7b8190] mt-0.5 break-words">Katalog va qaysi loyihada qaysi brenddagi materialdan qancha ishlatilgani</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {canReport && (
-            <div className="bg-gray-100 p-0.5 rounded-lg flex">
+            <div className="bg-gray-100 p-0.5 rounded-lg flex overflow-x-auto scrollbar-none max-w-full">
               {tabBtn('catalog', 'Katalog', Package)}
               {tabBtn('usage', 'Sarf hisoboti', BarChart3)}
             </div>
@@ -200,7 +200,7 @@ export const MaterialsPage: React.FC = () => {
           {canReport && (
             <button
               onClick={() => setIsModalOpen(true)}
-              className="bg-[#ff7a16] hover:bg-[#e86807] text-white font-semibold text-xs h-[34px] px-3.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-all"
+              className="bg-[#ff7a16] hover:bg-[#e86807] text-white font-semibold text-xs h-[34px] px-3.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-all whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
               <span>Yangi material</span>
@@ -211,19 +211,19 @@ export const MaterialsPage: React.FC = () => {
 
       {tab === 'catalog' && (
         <>
-          <div className="bg-white border border-[#e4e7ec] rounded-xl p-3 flex items-center gap-2 shadow-xs">
+          <div className="bg-white border border-[#e4e7ec] rounded-xl p-3 flex items-center gap-2 shadow-xs min-w-0">
             <Search className="w-3.5 h-3.5 text-gray-400" />
             <input
               type="text"
               placeholder="Material nomi yoki brendi bo'yicha qidirish..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 text-xs outline-none"
+              className="flex-1 min-w-0 text-xs outline-none"
             />
-            <span className="text-xs text-gray-400">{filtered.length} ta material</span>
+            <span className="text-xs text-gray-400 whitespace-nowrap">{filtered.length} ta material</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
             {filtered.map((m) => (
               <div key={m.id} className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs space-y-2">
                 <div className="flex items-start gap-2.5">
@@ -245,17 +245,17 @@ export const MaterialsPage: React.FC = () => {
                   </div>
                 </div>
                 {m.description && <p className="text-[11px] text-gray-500 pt-1 border-t border-gray-50">{m.description}</p>}
-                <div className="flex items-center justify-between pt-1 border-t border-gray-50">
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-gray-50">
                   <span className="text-[10px] text-gray-400">{m.purchaseCount ?? 0} ta xarid</span>
                   {(dupMap.get(m.id)?.length ?? 0) > 0 && (
-                    <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-600" title="Nomi/brendi o'xshash material bor">
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-600 whitespace-nowrap" title="Nomi/brendi o'xshash material bor">
                       <AlertTriangle className="w-3 h-3" /> O'xshash bor
                     </span>
                   )}
                   {canMerge && materials.length > 1 && (
                     <button
                       onClick={() => openMerge(m)}
-                      className="flex items-center gap-1 text-[10px] font-semibold text-blue-600 hover:text-blue-800"
+                      className="flex items-center gap-1 text-[10px] font-semibold text-blue-600 hover:text-blue-800 min-h-8 whitespace-nowrap"
                     >
                       <GitMerge className="w-3 h-3" /> Birlashtirish
                     </button>
@@ -274,8 +274,8 @@ export const MaterialsPage: React.FC = () => {
 
       {tab === 'usage' && canReport && (
         <>
-          <div className="bg-white border border-[#e4e7ec] rounded-xl p-3 shadow-xs grid grid-cols-2 md:grid-cols-5 gap-2">
-            <div className="col-span-2 md:col-span-1 flex items-center gap-2 border border-gray-200 rounded-lg px-2.5 h-9">
+          <div className="bg-white border border-[#e4e7ec] rounded-xl p-3 shadow-xs flex flex-wrap gap-2">
+            <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-2.5 h-9 w-full sm:w-56 min-w-0">
               <Search className="w-3.5 h-3.5 text-gray-400" />
               <input
                 type="text"
@@ -285,22 +285,22 @@ export const MaterialsPage: React.FC = () => {
                 className="flex-1 min-w-0 text-xs outline-none"
               />
             </div>
-            <select value={uBrand} onChange={(e) => setUBrand(e.target.value)} className="h-9 px-2 border border-gray-200 rounded-lg text-xs bg-white outline-none">
+            <select value={uBrand} onChange={(e) => setUBrand(e.target.value)} className="h-9 px-2 border border-gray-200 rounded-lg text-xs bg-white outline-none w-full sm:w-auto">
               <option value="">Barcha brendlar</option>
               {brandOptions.map((b) => <option key={b} value={b}>{b}</option>)}
             </select>
-            <select value={uProject} onChange={(e) => setUProject(e.target.value)} className="h-9 px-2 border border-gray-200 rounded-lg text-xs bg-white outline-none">
+            <select value={uProject} onChange={(e) => setUProject(e.target.value)} className="h-9 px-2 border border-gray-200 rounded-lg text-xs bg-white outline-none w-full sm:w-auto">
               <option value="">Barcha loyihalar</option>
               {projectOptions.map(([id, n]) => <option key={id} value={id}>{n}</option>)}
             </select>
-            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} title="Dan" className="h-9 px-2 border border-gray-200 rounded-lg text-xs outline-none" />
-            <input type="date" value={to} onChange={(e) => setTo(e.target.value)} title="Gacha" className="h-9 px-2 border border-gray-200 rounded-lg text-xs outline-none" />
+            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} title="Dan" className="h-9 px-2 border border-gray-200 rounded-lg text-xs outline-none w-full sm:w-auto" />
+            <input type="date" value={to} onChange={(e) => setTo(e.target.value)} title="Gacha" className="h-9 px-2 border border-gray-200 rounded-lg text-xs outline-none w-full sm:w-auto" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs">
               <div className="text-[10px] font-bold text-gray-500 uppercase">Jami material xarajati</div>
-              <UsdWithUzs className="text-lg font-bold text-[#ff7a16] mt-1" usd={totals.usd} uzs={totals.cost} />
+              <UsdWithUzs className="text-base sm:text-lg font-bold text-[#ff7a16] mt-1 break-words" usd={totals.usd} uzs={totals.cost} />
             </div>
             <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs">
               <div className="text-[10px] font-bold text-gray-500 uppercase">Material × brend</div>
@@ -313,7 +313,7 @@ export const MaterialsPage: React.FC = () => {
           </div>
 
           <div className="bg-white border border-[#e4e7ec] rounded-xl shadow-xs overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full min-w-[760px] text-left text-xs">
               <thead>
                 <tr className="border-b border-[#e4e7ec] bg-gray-50/50">
                   <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">MATERIAL / LOYIHA</th>
@@ -380,8 +380,8 @@ export const MaterialsPage: React.FC = () => {
       )}
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl border border-gray-200 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-md max-h-[92vh] overflow-y-auto shadow-xl border border-gray-200 space-y-4">
             <div className="flex justify-between items-center border-b pb-3">
               <h3 className="font-bold text-sm text-[#171b25]">Katalogga Material Qo'shish</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-sm">✕</button>
@@ -409,7 +409,7 @@ export const MaterialsPage: React.FC = () => {
                   className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none"
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-2 border-t">
+              <div className="flex flex-wrap justify-end gap-2 pt-2 border-t">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-3 py-1.5 border rounded-lg text-xs text-gray-600">Bekor qilish</button>
                 <button
                   type="submit"
@@ -425,11 +425,11 @@ export const MaterialsPage: React.FC = () => {
       )}
 
       {mergeSource && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl border border-gray-200 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-md max-h-[92vh] overflow-y-auto shadow-xl border border-gray-200 space-y-4">
             <div className="flex justify-between items-center border-b pb-3">
               <h3 className="font-bold text-sm text-[#171b25] flex items-center gap-1.5"><GitMerge className="w-4 h-4" /> Materiallarni birlashtirish</h3>
-              <button onClick={() => setMergeSource(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+              <button onClick={() => setMergeSource(null)} className="text-gray-400 hover:text-gray-600 min-w-8 min-h-8 inline-flex items-center justify-center"><X className="w-4 h-4" /></button>
             </div>
             <div className="text-xs space-y-1">
               <div className="text-gray-500">Noto'g'ri / takroriy material (o'chiriladi):</div>
@@ -459,7 +459,7 @@ export const MaterialsPage: React.FC = () => {
                 "{label(mergeSource)}" dagi barcha xaridlar "{label(mergeTarget)}" ga o'tkaziladi va u katalogdan o'chiriladi. Bu amalni qaytarib bo'lmaydi.
               </div>
             )}
-            <div className="flex justify-end gap-2 pt-2 border-t">
+            <div className="flex flex-wrap justify-end gap-2 pt-2 border-t">
               <button type="button" onClick={() => setMergeSource(null)} className="px-3 py-1.5 border rounded-lg text-xs text-gray-600">Bekor qilish</button>
               <button
                 onClick={handleMerge}

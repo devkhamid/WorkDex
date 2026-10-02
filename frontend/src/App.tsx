@@ -64,8 +64,8 @@ const EmptyState: React.FC<{
 }> = ({ icon, title, text }) => {
   const navigate = useNavigate();
   return (
-    <div className="p-6">
-      <div className="max-w-md mx-auto mt-16 text-center bg-white border border-[#e4e7ec] rounded-xl p-8 shadow-xs">
+    <div className="p-4 sm:p-6">
+      <div className="max-w-md mx-auto mt-10 sm:mt-16 text-center bg-white border border-[#e4e7ec] rounded-xl p-6 sm:p-8 shadow-xs">
         <div className="flex justify-center mb-3">{icon}</div>
         <div className="text-sm font-bold text-gray-800">{title}</div>
         <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{text}</p>
@@ -104,6 +104,7 @@ const ProtectedLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -159,26 +160,31 @@ const ProtectedLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen max-w-[1500px] mx-auto bg-white border-x border-[#f0f2f5] shadow-xs">
+    <div className="flex min-h-screen max-w-[1500px] mx-auto bg-white lg:border-x border-[#f0f2f5] shadow-xs">
       {/* Sidebar matching prototype */}
-      <Sidebar onOpenNewProject={() => setIsNewProjectModalOpen(true)} />
+      <Sidebar
+        onOpenNewProject={() => setIsNewProjectModalOpen(true)}
+        mobileOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+      />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 bg-white">
         <Header
           title={getPageTitle(location.pathname)}
           onOpenNewProject={() => setIsNewProjectModalOpen(true)}
+          onOpenMenu={() => setIsMobileMenuOpen(true)}
         />
 
         {/* Persistent Sub-header Navigation Tabs (Never disappears) */}
-        <div className="no-print h-[48px] bg-white flex items-end px-6 border-b border-[#e4e7ec] gap-1 overflow-x-auto">
+        <div className="no-print h-[44px] lg:h-[48px] bg-white flex items-end px-2 sm:px-6 border-b border-[#e4e7ec] gap-1 overflow-x-auto scrollbar-none">
           {navTabs.map((tab) => {
             const active = isTabActive(tab.path);
             return (
               <button
                 key={tab.path}
                 onClick={() => navigate(tab.path)}
-                className={`h-11 px-3.5 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
+                className={`h-10 lg:h-11 px-3 lg:px-3.5 flex-shrink-0 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
                   active
                     ? 'text-[#111827] border-[#ff7a16] font-bold'
                     : 'text-[#64748b] border-transparent hover:text-gray-900 hover:border-gray-300'

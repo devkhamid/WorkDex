@@ -68,7 +68,7 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
   };
 
   return (
-    <div className="relative">
+    <div className="relative min-w-0">
       <input
         type="text"
         required={required}
@@ -82,23 +82,23 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
         className={className ?? 'w-full h-9 px-3 border border-gray-300 rounded-lg text-xs bg-white outline-none focus:border-[#ff7a16]'}
       />
       {open && items.length > 0 && (
-        <ul className="absolute z-20 mt-1 w-full max-h-52 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg py-1">
+        <ul className="absolute z-20 mt-1 w-full max-w-[calc(100vw-2rem)] max-h-52 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg py-1">
           {items.map((s, i) => (
             <li
               key={`${s.value}-${i}`}
               // onMouseDown — input blur bo'lishidan oldin tanlash uchun
               onMouseDown={(e) => { e.preventDefault(); select(s.value); }}
               onMouseEnter={() => setActive(i)}
-              className={`px-3 py-1.5 text-xs cursor-pointer flex items-center justify-between gap-2 ${i === active ? 'bg-orange-50' : ''}`}
+              className={`px-3 py-2 text-xs cursor-pointer flex items-center justify-between gap-2 min-w-0 ${i === active ? 'bg-orange-50' : ''}`}
             >
               <span className="flex items-center gap-1.5 min-w-0">
                 {s.exact && <Check className="w-3 h-3 text-green-600 flex-shrink-0" />}
                 <span className="truncate font-medium text-gray-800">{s.value}</span>
                 {s.similar && (
-                  <span className="text-[9px] px-1 rounded bg-yellow-50 text-yellow-700 border border-yellow-200">o'xshash</span>
+                  <span className="text-[9px] px-1 rounded bg-yellow-50 text-yellow-700 border border-yellow-200 flex-shrink-0">o'xshash</span>
                 )}
               </span>
-              {s.hint && <span className="text-[10px] text-gray-400 flex-shrink-0">{s.hint}</span>}
+              {s.hint && <span className="text-[10px] text-gray-400 flex-shrink-0 truncate max-w-[45%]">{s.hint}</span>}
             </li>
           ))}
         </ul>

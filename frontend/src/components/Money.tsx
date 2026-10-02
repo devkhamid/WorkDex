@@ -12,14 +12,14 @@ export const CurrencyToggle = ({ value, onChange, className = '' }: CurrencyTogg
     <button
       type="button"
       onClick={() => onChange('UZS')}
-      className={`py-1 text-xs font-semibold rounded-md transition-all ${value === 'UZS' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
+      className={`min-h-8 py-1 text-xs font-semibold rounded-md transition-all whitespace-nowrap ${value === 'UZS' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
     >
       🇺🇿 So'm
     </button>
     <button
       type="button"
       onClick={() => onChange('USD')}
-      className={`py-1 text-xs font-semibold rounded-md transition-all ${value === 'USD' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
+      className={`min-h-8 py-1 text-xs font-semibold rounded-md transition-all whitespace-nowrap ${value === 'USD' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
     >
       💵 USD
     </button>
@@ -59,11 +59,11 @@ export const MoneyInput = ({
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-2 mb-1">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-1">
         <label className="block text-xs font-semibold">
           {label} ({currency === 'USD' ? '$' : "so'm"}){required ? ' *' : ''}
         </label>
-        {!lockCurrency && <CurrencyToggle value={currency} onChange={onCurrencyChange} className="w-36" />}
+        {!lockCurrency && <CurrencyToggle value={currency} onChange={onCurrencyChange} className="w-full sm:w-36" />}
       </div>
       <input
         type="number"
@@ -75,10 +75,10 @@ export const MoneyInput = ({
         onChange={(e) => onChange(e.target.value === '' ? '' : Number(e.target.value))}
         className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none focus:border-[#ff7a16]"
       />
-      <div className="flex justify-between text-[10px] text-gray-500 mt-0.5">
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-0.5 text-[10px] text-gray-500 mt-0.5">
         <span>CBU kursi: {rate > 0 ? `1$ = ${rate.toLocaleString('ru-RU')} so'm` : 'yuklanmoqda...'}</span>
         {amount > 0 && rate > 0 && (
-          <span className="font-semibold text-emerald-700">
+          <span className="font-semibold text-emerald-700 break-words">
             ≈ {currency === 'USD' ? formatUzs(converted) : formatUsd(converted)}
           </span>
         )}
@@ -107,16 +107,16 @@ export const UsdWithUzs = ({ usd, uzs, className = '', uzsClassName = '', inline
 
   if (inline) {
     return (
-      <span className={className}>
+      <span className={`break-words ${className}`}>
         {formatUsd(usdVal)}
-        {showUzs && <span className={`ml-1 text-[10px] font-normal text-gray-400 ${uzsClassName}`}>({formatUzs(uzsVal)})</span>}
+        {showUzs && <span className={`ml-1 text-[10px] font-normal text-gray-400 break-words ${uzsClassName}`}>({formatUzs(uzsVal)})</span>}
       </span>
     );
   }
   return (
-    <span className={`inline-flex flex-col leading-tight ${className}`}>
-      <span>{formatUsd(usdVal)}</span>
-      {showUzs && <span className={`text-[10px] font-normal text-gray-400 ${uzsClassName}`}>{formatUzs(uzsVal)}</span>}
+    <span className={`inline-flex min-w-0 flex-col leading-tight break-words ${className}`}>
+      <span className="break-words">{formatUsd(usdVal)}</span>
+      {showUzs && <span className={`text-[10px] font-normal text-gray-400 break-words ${uzsClassName}`}>{formatUzs(uzsVal)}</span>}
     </span>
   );
 };

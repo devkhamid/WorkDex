@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, FileText, Printer, Trash2, ChevronRight, Building2, Phone, Calendar, DollarSign, Search } from 'lucide-react';
+import { Plus, FileText, Printer, Trash2, ChevronRight, Search } from 'lucide-react';
 import { agreementsApi } from '../api/services';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
@@ -76,16 +76,16 @@ export const AgreementsPage: React.FC = () => {
   });
 
   return (
-    <div className="flex-1 overflow-auto bg-[#f8f9fb] p-6">
+    <div className="flex-1 overflow-auto bg-[#f8f9fb] p-4 sm:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl font-bold text-[#171b25]">Shartnomalar</h1>
           <p className="text-sm text-gray-500 mt-0.5">{agreements.length} ta shartnoma</p>
         </div>
         <button
           onClick={() => navigate('/agreements/new')}
-          className="flex items-center gap-2 bg-[#7c3aed] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#6d28d9] transition-colors"
+          className="flex items-center justify-center gap-2 bg-[#7c3aed] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#6d28d9] transition-colors"
         >
           <Plus className="w-4 h-4" />
           Yangi shartnoma
@@ -94,8 +94,8 @@ export const AgreementsPage: React.FC = () => {
 
       {/* Tabs & Search */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
-        <div className="flex gap-1 border-b border-gray-200">
-          <button className="px-4 py-2 text-sm font-semibold text-[#7c3aed] border-b-2 border-[#7c3aed]">
+        <div className="flex gap-1 border-b border-gray-200 overflow-x-auto scrollbar-none max-w-full">
+          <button className="px-4 py-2 text-sm font-semibold text-[#7c3aed] border-b-2 border-[#7c3aed] whitespace-nowrap flex-shrink-0">
             Kutilayotgan shartnomalar
           </button>
         </div>
@@ -136,26 +136,26 @@ export const AgreementsPage: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredAgreements.map(agreement => (
-            <div key={agreement.id} className="bg-[#1a1d27] rounded-xl p-5 flex flex-col gap-3">
+            <div key={agreement.id} className="bg-[#1a1d27] rounded-xl p-4 sm:p-5 flex flex-col gap-3 min-w-0">
               {/* Card Header */}
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between gap-3 min-w-0">
                 <div>
-                  <div className="text-white font-semibold text-sm leading-tight">
+                  <div className="text-white font-semibold text-sm leading-tight break-words">
                     {agreement.projectName}
                   </div>
                   {agreement.clientType === 2 ? (
-                    <div className="text-[#a0a5b5] text-xs mt-1">
+                    <div className="text-[#a0a5b5] text-xs mt-1 break-words">
                       {agreement.companyName || agreement.customerFullName}
                       {agreement.directorName && agreement.companyName ? ` (${agreement.directorName})` : ''}
                     </div>
                   ) : (
                     agreement.customerFullName && (
-                      <div className="text-[#a0a5b5] text-xs mt-1">{agreement.customerFullName}</div>
+                      <div className="text-[#a0a5b5] text-xs mt-1 break-words">{agreement.customerFullName}</div>
                     )
                   )}
                 </div>
                 <span
-                  className={`text-[11px] px-2 py-0.5 rounded font-medium ${
+                  className={`text-[11px] px-2 py-0.5 rounded font-medium flex-shrink-0 ${
                     agreement.clientType === 2
                       ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                       : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
@@ -166,12 +166,12 @@ export const AgreementsPage: React.FC = () => {
               </div>
 
               {/* Amount */}
-              <div className="text-[#7c3aed] font-bold text-base">
+              <div className="text-[#7c3aed] font-bold text-base break-words">
                 {formatAmount(agreement.totalAmountUZS)}
               </div>
 
               {/* Meta */}
-              <div className="flex items-center gap-3 text-xs text-[#a0a5b5]">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-[#a0a5b5]">
                 <span>№ {agreement.contractNumber}</span>
                 <span>
                   {agreement.day}/{String(agreement.month).padStart(2, '0')} {agreement.year}
@@ -180,7 +180,7 @@ export const AgreementsPage: React.FC = () => {
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex flex-wrap items-center gap-2 mt-1">
                 {agreement.statusCode !== 3 && isAdmin ? (
                   <button
                     onClick={() => navigate(`/agreements/${agreement.id}/finalize`)}

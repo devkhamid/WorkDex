@@ -51,30 +51,30 @@ export const ReportsPage: React.FC = () => {
   };
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
+    <div className="p-4 sm:p-6 space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0">
           <h2 className="text-xl font-bold text-[#171b25]">Hisobotlar (Excel Eksport)</h2>
-          <p className="text-xs text-[#7b8190] mt-0.5">Loyihalaringizni batafsil 9 varaqli Excel hisobotlariga aylantiring (PDF §16)</p>
+          <p className="text-xs text-[#7b8190] mt-0.5 break-words">Loyihalaringizni batafsil 9 varaqli Excel hisobotlariga aylantiring (PDF §16)</p>
         </div>
         <button
           onClick={() => reportsApi.downloadAllProjectsExcel()}
-          className="bg-[#ff7a16] hover:bg-[#e86807] text-white font-semibold text-xs h-[34px] px-3.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-all"
+          className="bg-[#ff7a16] hover:bg-[#e86807] text-white font-semibold text-xs min-h-[34px] px-3.5 rounded-lg flex items-center justify-center gap-1.5 shadow-sm transition-all w-full sm:w-auto"
         >
           <Download className="w-4 h-4" />
-          <span>Barcha loyihalarni Excelga yuklash</span>
+          <span className="text-center">Barcha loyihalarni Excelga yuklash</span>
         </button>
       </div>
 
       {/* Yillik to'liq moliyaviy hisobot */}
-      <div className="bg-gradient-to-br from-[#1e293b] to-[#334155] rounded-xl p-6 shadow-sm text-white">
+      <div className="bg-gradient-to-br from-[#1e293b] to-[#334155] rounded-xl p-4 sm:p-6 shadow-sm text-white">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="max-w-xl">
-            <div className="flex items-center gap-2 mb-2">
+          <div className="max-w-xl min-w-0">
+            <div className="flex items-center gap-2 mb-2 min-w-0">
               <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center">
                 <CalendarRange className="w-5 h-5 text-[#ffb070]" />
               </div>
-              <h3 className="font-bold text-base">Yillik to'liq moliyaviy hisobot</h3>
+              <h3 className="font-bold text-base break-words">Yillik to'liq moliyaviy hisobot</h3>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
               Ofis va barcha loyihalarning butun yil bo'yicha kirim-chiqimi bitta Excel faylda. Barcha tahlil
@@ -82,11 +82,11 @@ export const ReportsPage: React.FC = () => {
               o'zgartirsangiz, hammasi avtomatik qayta hisoblanadi.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <select
               value={year}
               onChange={(e) => setYear(Number(e.target.value))}
-              className="h-9 px-3 rounded-lg text-xs font-semibold text-[#171b25] bg-white outline-none"
+              className="h-9 px-3 rounded-lg text-xs font-semibold text-[#171b25] bg-white outline-none w-full sm:w-auto"
             >
               {Array.from({ length: 6 }, (_, i) => currentYear - i).map((y) => (
                 <option key={y} value={y}>{y}-yil</option>
@@ -95,7 +95,7 @@ export const ReportsPage: React.FC = () => {
             <button
               onClick={downloadAnnual}
               disabled={downloading}
-              className="h-9 px-4 bg-[#ff7a16] hover:bg-[#e86807] disabled:opacity-60 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors"
+              className="min-h-9 px-4 bg-[#ff7a16] hover:bg-[#e86807] disabled:opacity-60 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors w-full sm:w-auto"
             >
               {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               <span>{downloading ? 'Tayyorlanmoqda...' : 'Yillik hisobotni yuklash'}</span>
@@ -105,49 +105,49 @@ export const ReportsPage: React.FC = () => {
 
         {/* Ixtiyoriy sana oralig'i */}
         <div className="mt-5 pt-4 border-t border-white/10 flex flex-wrap items-end justify-between gap-4">
-          <div className="max-w-xl">
+          <div className="max-w-xl min-w-0">
             <div className="text-sm font-bold">Tanlangan davr bo'yicha hisobot</div>
             <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
               Xuddi shu varaqlar, lekin istalgan sanadan istalgan sanagacha. Excelda boshlanish/tugash sanalarini
               o'zgartirsangiz ham formulalar qayta hisoblanadi; oldingi teng davr bilan solishtiriladi.
             </p>
           </div>
-          <div className="flex flex-wrap items-end gap-2">
-            <label className="flex flex-col gap-1 text-[10px] font-semibold text-slate-300">
+          <div className="flex flex-wrap items-end gap-2 w-full sm:w-auto">
+            <label className="flex flex-col gap-1 text-[10px] font-semibold text-slate-300 w-full sm:w-auto">
               Boshlanish
               <input
                 type="date"
                 value={rangeFrom}
                 max={rangeTo || undefined}
                 onChange={(e) => setRangeFrom(e.target.value)}
-                className="h-9 px-2.5 rounded-lg text-xs font-semibold text-[#171b25] bg-white outline-none"
+                className="h-9 px-2.5 rounded-lg text-xs font-semibold text-[#171b25] bg-white outline-none w-full sm:w-auto"
               />
             </label>
-            <label className="flex flex-col gap-1 text-[10px] font-semibold text-slate-300">
+            <label className="flex flex-col gap-1 text-[10px] font-semibold text-slate-300 w-full sm:w-auto">
               Tugash
               <input
                 type="date"
                 value={rangeTo}
                 min={rangeFrom || undefined}
                 onChange={(e) => setRangeTo(e.target.value)}
-                className="h-9 px-2.5 rounded-lg text-xs font-semibold text-[#171b25] bg-white outline-none"
+                className="h-9 px-2.5 rounded-lg text-xs font-semibold text-[#171b25] bg-white outline-none w-full sm:w-auto"
               />
             </label>
             <button
               onClick={downloadRange}
               disabled={downloadingRange || rangeInvalid}
-              className="h-9 px-4 bg-[#ff7a16] hover:bg-[#e86807] disabled:opacity-60 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors"
+              className="min-h-9 px-4 bg-[#ff7a16] hover:bg-[#e86807] disabled:opacity-60 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors w-full sm:w-auto"
             >
               {downloadingRange ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               <span>{downloadingRange ? 'Tayyorlanmoqda...' : 'Davr hisobotini yuklash'}</span>
             </button>
           </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 mt-5">
           {ANNUAL_SHEETS.map((s) => (
             <div key={s.name} className="bg-white/5 border border-white/10 rounded-lg p-2.5">
               <div className="text-[11px] font-bold text-[#ffb070]">{s.name}</div>
-              <div className="text-[10px] text-slate-300 mt-0.5 leading-snug">{s.desc}</div>
+              <div className="text-[10px] text-slate-300 mt-0.5 leading-snug break-words">{s.desc}</div>
             </div>
           ))}
         </div>
@@ -181,7 +181,7 @@ export const ReportsPage: React.FC = () => {
               <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
                 <Building2 className="w-5 h-5" />
               </div>
-              <h3 className="font-bold text-sm text-gray-900 truncate">{p.name}</h3>
+              <h3 className="font-bold text-sm text-gray-900 truncate min-w-0">{p.name}</h3>
               <p className="text-xs text-[#7b8190] mt-1 leading-relaxed">
                 Ushbu loyiha bo'yicha to'liq <b>9 varaqli</b> hisobot: to'lovlar, xarajatlar, materiallar, usta haqlari, qo'shimcha ishlar va sof foyda tahlili.
               </p>

@@ -55,16 +55,16 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenNewProject }) 
   };
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-4 sm:p-6 space-y-4">
       {/* Page Title */}
       <div>
         <h2 className="text-xl font-bold text-[#171b25]">Loyihalar</h2>
-        <p className="text-xs text-[#7b8190] mt-0.5">Barcha ta’mirlash va qurilish loyihalaringizni bir joydan boshqaring.</p>
+        <p className="text-xs text-[#7b8190] mt-0.5 break-words">Barcha ta’mirlash va qurilish loyihalaringizni bir joydan boshqaring.</p>
       </div>
 
       {/* Toolbar */}
       <div className="bg-white border border-[#e4e7ec] rounded-xl p-3 flex flex-wrap items-center gap-3 shadow-xs">
-        <div className="relative flex-1 min-w-[240px]">
+        <div className="relative flex-1 min-w-full sm:min-w-[240px]">
           <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
           <input
             type="text"
@@ -78,7 +78,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenNewProject }) 
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="h-9 px-3 border border-[#e4e7ec] rounded-lg text-xs text-gray-700 bg-white outline-none focus:border-[#ff7a16]"
+          className="h-9 w-full sm:w-auto px-3 border border-[#e4e7ec] rounded-lg text-xs text-gray-700 bg-white outline-none focus:border-[#ff7a16]"
         >
           <option value="all">Barcha holatlar</option>
           <option value={ProjectStatus.InProgress}>Faol (InProgress)</option>
@@ -88,7 +88,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenNewProject }) 
           <option value={ProjectStatus.Cancelled}>Bekor qilingan (Cancelled)</option>
         </select>
 
-        <span className="text-xs text-[#969ca7] font-semibold ml-auto">
+        <span className="text-xs text-[#969ca7] font-semibold sm:ml-auto">
           {filtered.length} ta loyiha
         </span>
       </div>
@@ -127,14 +127,14 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenNewProject }) 
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-2 gap-2 p-3 bg-gray-50/80 rounded-lg border border-gray-100 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 bg-gray-50/80 rounded-lg border border-gray-100 mb-4">
                 <div>
                   <small className="block text-[10px] font-semibold text-[#9a9faa]">Shartnoma</small>
-                  <UsdWithUzs className="text-sm font-bold text-[#171b25]" usd={p.contractAmount} uzs={p.contractAmountUzs} />
+                  <UsdWithUzs className="text-sm font-bold text-[#171b25] break-words" usd={p.contractAmount} uzs={p.contractAmountUzs} />
                 </div>
                 <div>
                   <small className="block text-[10px] font-semibold text-[#9a9faa]">Rejali Byudjet</small>
-                  <UsdWithUzs className="text-sm font-bold text-[#171b25]" usd={p.budget} />
+                  <UsdWithUzs className="text-sm font-bold text-[#171b25] break-words" usd={p.budget} />
                 </div>
               </div>
             </div>

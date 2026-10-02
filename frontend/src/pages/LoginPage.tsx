@@ -28,7 +28,7 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#f6f7f9] flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white border border-[#e4e7ec] rounded-2xl shadow-xl p-8 space-y-6">
+      <div className="w-full max-w-md bg-white border border-[#e4e7ec] rounded-2xl shadow-xl p-5 sm:p-8 space-y-6">
         {/* Brand */}
         <div className="text-center space-y-2">
           <div className="w-12 h-12 rounded-xl bg-[#ff7a16] text-white flex items-center justify-center font-extrabold text-2xl mx-auto shadow-md">

@@ -18,6 +18,7 @@ export const AgreementFormPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [showContractorFields, setShowContractorFields] = useState(false);
   const [showExtraRequisites, setShowExtraRequisites] = useState(false);
+  const [mobilePane, setMobilePane] = useState<'form' | 'preview'>('form');
 
   // 1 = Jismoniy shaxs (Individual), 2 = Yuridik shaxs (LegalEntity)
   const [clientType, setClientType] = useState<1 | 2>(1);
@@ -408,20 +409,41 @@ export const AgreementFormPage: React.FC = () => {
         }
       `}</style>
 
-      <div className="agreement-form-wrapper flex h-full bg-[#f8f9fb]">
+      <div className="agreement-form-wrapper flex flex-col lg:flex-row h-full bg-[#f8f9fb]">
+        <div className="no-print lg:hidden sticky top-0 z-20 bg-white border-b border-gray-200 p-2 flex gap-2">
+          <button
+            type="button"
+            onClick={() => setMobilePane('form')}
+            className={`flex-1 rounded-lg py-2 text-xs font-semibold ${
+              mobilePane === 'form' ? 'bg-[#7c3aed] text-white' : 'bg-gray-100 text-gray-600'
+            }`}
+          >
+            Forma
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobilePane('preview')}
+            className={`flex-1 rounded-lg py-2 text-xs font-semibold ${
+              mobilePane === 'preview' ? 'bg-[#7c3aed] text-white' : 'bg-gray-100 text-gray-600'
+            }`}
+          >
+            Ko'rish
+          </button>
+        </div>
+
         {/* LEFT — Form */}
-        <div className="w-[460px] flex-shrink-0 bg-white border-r border-gray-200 overflow-y-auto no-print">
-          <div className="p-5">
+        <div className={`${mobilePane === 'form' ? 'block' : 'hidden'} lg:block w-full lg:w-[460px] lg:flex-shrink-0 bg-white border-b lg:border-b-0 lg:border-r border-gray-200 overflow-y-auto no-print`}>
+          <div className="p-4 sm:p-5">
             {/* Header */}
             <div className="flex items-center gap-3 mb-4">
               <button
                 onClick={() => navigate('/agreements')}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+                className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 flex-shrink-0"
                 title="Ortga"
               >
                 <ArrowLeft className="w-4 h-4" />
               </button>
-              <div>
+              <div className="min-w-0">
                 <h2 className="font-bold text-[#171b25] text-sm">
                   {isEdit ? 'Shartnomani tahrirlash' : 'Yangi shartnoma'}
                 </h2>
@@ -432,11 +454,11 @@ export const AgreementFormPage: React.FC = () => {
             </div>
 
             {/* MIJOZ TURI (Jismoniy shaxs vs Yuridik shaxs) */}
-            <div className="mb-4 p-1 bg-gray-100 rounded-xl flex items-center gap-1">
+            <div className="mb-4 p-1 bg-gray-100 rounded-xl flex items-center gap-1 overflow-x-auto scrollbar-none">
               <button
                 type="button"
                 onClick={() => setClientType(1)}
-                className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all whitespace-nowrap flex-shrink-0 ${
                   clientType === 1
                     ? 'bg-white text-[#7c3aed] shadow-xs'
                     : 'text-gray-500 hover:text-gray-900'
@@ -448,7 +470,7 @@ export const AgreementFormPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setClientType(2)}
-                className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all whitespace-nowrap flex-shrink-0 ${
                   clientType === 2
                     ? 'bg-white text-[#7c3aed] shadow-xs'
                     : 'text-gray-500 hover:text-gray-900'
@@ -467,7 +489,7 @@ export const AgreementFormPage: React.FC = () => {
                   Shartnoma shakli
                 </span>
               </div>
-              <div className="grid grid-cols-4 gap-2 mb-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
                 <div>
                   <label className="text-[10px] text-gray-500 block mb-1 font-medium">№</label>
                   <input
@@ -528,8 +550,8 @@ export const AgreementFormPage: React.FC = () => {
 
             {/* Section: Buyurtmachi (Zakazchik) */}
             <div className="mb-4 border border-gray-100 rounded-xl p-3 bg-gray-50/50">
-              <div className="flex items-center justify-between mb-2.5">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2.5">
+                <div className="flex flex-wrap items-center gap-2">
                   <div className="w-1 h-3.5 bg-[#ff7a16] rounded-full" />
                   <span className="text-xs font-bold text-[#171b25] uppercase tracking-wide">
                     {clientType === 1 ? 'Mijoz (Jismoniy shaxs)' : 'Buyurtmachi (Yuridik shaxs)'}
@@ -539,7 +561,7 @@ export const AgreementFormPage: React.FC = () => {
                   <select
                     value={customerId}
                     onChange={e => handleCustomerSelect(e.target.value)}
-                    className="text-[10px] border border-gray-200 rounded px-2 py-1 bg-white text-gray-600 focus:outline-none"
+                    className="w-full sm:w-auto text-[10px] border border-gray-200 rounded px-2 py-1 bg-white text-gray-600 focus:outline-none"
                   >
                     <option value="">Mavjud mijozdan...</option>
                     {customers.map(c => (
@@ -618,7 +640,7 @@ export const AgreementFormPage: React.FC = () => {
                       className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-[#7c3aed] bg-white font-semibold"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
                       <label className="text-[10px] text-gray-500 block mb-1 font-medium">
                         Direktor / Rahbar (F.I.O.)
@@ -644,7 +666,7 @@ export const AgreementFormPage: React.FC = () => {
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
                       <label className="text-[10px] text-gray-500 block mb-1 font-medium">
                         Asos (Hujjat)
@@ -682,7 +704,7 @@ export const AgreementFormPage: React.FC = () => {
                       className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-[#7c3aed] bg-white"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
                       <label className="text-[10px] text-gray-500 block mb-1 font-medium">
                         Bank nomi
@@ -755,7 +777,7 @@ export const AgreementFormPage: React.FC = () => {
                             className="w-full border border-gray-200 rounded px-2 py-1 text-xs"
                           />
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <div>
                             <label className="text-[10px] text-gray-500 block mb-0.5">Vtor/schet</label>
                             <input
@@ -777,7 +799,7 @@ export const AgreementFormPage: React.FC = () => {
                             />
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <div>
                             <label className="text-[10px] text-gray-500 block mb-0.5">OKED</label>
                             <input
@@ -837,7 +859,7 @@ export const AgreementFormPage: React.FC = () => {
                     className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-[#7c3aed] bg-white"
                   />
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <div>
                     <label className="text-[10px] text-gray-500 block mb-1 font-medium">Blok</label>
                     <input
@@ -907,7 +929,7 @@ export const AgreementFormPage: React.FC = () => {
                   </div>
                 </div>
               )}
-              <div className="grid grid-cols-3 gap-2 mb-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
                 <div>
                   <label className="text-[10px] text-gray-500 block mb-1 font-medium">Oldindan %</label>
                   <input
@@ -938,7 +960,7 @@ export const AgreementFormPage: React.FC = () => {
               </div>
 
               {totalNum > 0 && (
-                <div className="grid grid-cols-3 gap-2 mt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
                   <div className="bg-purple-50 rounded-lg p-2 text-center border border-purple-100">
                     <div className="text-[9px] text-purple-600 font-medium">{prepayPct}% Oldindan</div>
                     <div className="text-[11px] font-bold text-purple-800">{fmt(prepayAmount)}</div>
@@ -957,8 +979,8 @@ export const AgreementFormPage: React.FC = () => {
 
             {/* Section: Bajaruvchi firma (Podryadchik) */}
             <div className="mb-4 border border-gray-100 rounded-xl p-3 bg-gray-50/50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <div className="w-1 h-3.5 bg-indigo-500 rounded-full" />
                   <span className="text-xs font-bold text-[#171b25] uppercase tracking-wide">
                     Bajaruvchi (Sizning firmangiz)
@@ -985,7 +1007,7 @@ export const AgreementFormPage: React.FC = () => {
                       className="w-full border border-gray-200 rounded px-2.5 py-1 text-xs bg-white"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
                       <label className="text-[10px] text-gray-500 block mb-0.5">Direktor</label>
                       <input
@@ -1014,7 +1036,7 @@ export const AgreementFormPage: React.FC = () => {
                       className="w-full border border-gray-200 rounded px-2.5 py-1 text-xs bg-white"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
                       <label className="text-[10px] text-gray-500 block mb-0.5">Bank</label>
                       <input
@@ -1034,7 +1056,7 @@ export const AgreementFormPage: React.FC = () => {
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
                       <label className="text-[10px] text-gray-500 block mb-0.5">Hisob raqam (Р/С)</label>
                       <input
@@ -1064,7 +1086,7 @@ export const AgreementFormPage: React.FC = () => {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-2 sticky bottom-0 bg-white pt-3 pb-1 border-t border-gray-100">
+            <div className="flex flex-col sm:flex-row gap-2 sticky bottom-0 bg-white pt-3 pb-1 border-t border-gray-100">
               <button
                 type="button"
                 onClick={() => navigate('/agreements')}
@@ -1086,13 +1108,13 @@ export const AgreementFormPage: React.FC = () => {
         </div>
 
         {/* RIGHT — Contract Preview */}
-        <div className="contract-preview-scroll flex-1 overflow-auto bg-gray-100">
+        <div className={`contract-preview-scroll ${mobilePane === 'preview' ? 'block' : 'hidden'} lg:block flex-1 min-w-0 overflow-auto bg-gray-100`}>
           {/* Toolbar */}
-          <div className="no-print bg-white border-b border-gray-200 px-5 py-3 flex items-center justify-between sticky top-0 z-10">
+          <div className="no-print bg-white border-b border-gray-200 px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sticky top-0 z-10">
             <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">
               Shartnoma ko'rinishi
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <div className="text-xs text-gray-400">PDF yuklash uchun:</div>
               <button
                 onClick={handlePrint}
@@ -1107,7 +1129,7 @@ export const AgreementFormPage: React.FC = () => {
           {/* Contract Document (A4 Style) */}
           <div
             ref={printRef}
-            className="contract-preview w-[794px] max-w-full mx-auto my-6 bg-white shadow-xl"
+            className="contract-preview w-[794px] mx-auto my-4 sm:my-6 bg-white shadow-xl"
           >
             <div className="flex justify-center mb-10">
               <img src="/unio-logo.png" alt="UNIO ARCHITECTS" className="h-24 w-auto object-contain" />

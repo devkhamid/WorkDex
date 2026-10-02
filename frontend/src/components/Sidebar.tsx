@@ -14,7 +14,8 @@ import {
   Grid,
   ShieldCheck,
   Briefcase,
-  FileText
+  FileText,
+  X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { projectsApi } from '../api/services';
@@ -22,13 +23,21 @@ import { Project, ProjectStatus, UserRole } from '../types';
 
 interface SidebarProps {
   onOpenNewProject: () => void;
+  // Mobil (lg dan kichik) ekranda chap tomondan chiquvchi menyu holati
+  mobileOpen?: boolean;
+  onClose?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ onOpenNewProject }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onClose }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [activeProjects, setActiveProjects] = useState<Project[]>([]);
+
+  useEffect(() => {
+    onClose?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   const isSuperAdmin = user?.role === UserRole.SuperAdmin;
 
@@ -86,18 +95,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenNewProject }) => {
   };
 
   return (
-    <aside className="no-print w-[230px] border-r border-[#e4e7ec] bg-white flex flex-col justify-between flex-shrink-0 min-h-screen">
+    <>
+    {mobileOpen && (
+      <div className="no-print fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={onClose} aria-hidden="true" />
+    )}
+    <aside
+      className={`no-print fixed inset-y-0 left-0 z-50 w-[260px] max-w-[85vw] transform transition-transform duration-200 lg:static lg:z-auto lg:w-[230px] lg:translate-x-0 border-r border-[#e4e7ec] bg-white flex flex-col justify-between flex-shrink-0 lg:min-h-screen overflow-y-auto ${
+        mobileOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
+      }`}
+    >
       {/* Brand Header */}
       <div>
-        <div className="h-[66px] flex items-center justify-between px-5 border-b border-[#e4e7ec]">
+        <div className="h-[56px] lg:h-[66px] flex items-center justify-between px-5 border-b border-[#e4e7ec]">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-[#ff7a16] text-white flex items-center justify-center font-bold text-sm shadow-xs">
               W
             </div>
             <span className="font-extrabold text-sm text-[#171b25] tracking-tight">WorkDex</span>
           </div>
-          <button className="text-gray-400 hover:text-gray-600 transition-colors">
+          <button className="hidden lg:block text-gray-400 hover:text-gray-600 transition-colors">
             <Grid className="w-4 h-4" />
+          </button>
+          <button onClick={onClose} className="lg:hidden p-1.5 -mr-1.5 text-gray-500 hover:text-gray-800" aria-label="Menyuni yopish">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -186,5 +206,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenNewProject }) => {
         </button>
       </div>
     </aside>
+    </>
   );
 };

@@ -54,20 +54,20 @@ const AddUserModal: React.FC<{ onClose: () => void; onSuccess: () => void }> = (
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[92vh] overflow-y-auto p-4 sm:p-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-3 mb-5">
+          <div className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 bg-[#fff3e8] rounded-lg flex items-center justify-center">
               <UserPlus className="w-4 h-4 text-[#ff7a16]" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h2 className="text-sm font-bold text-[#171b25]">Yangi Xodim Qo'shish</h2>
-              <p className="text-[10px] text-gray-400">Kompaniyangizga yangi a'zo qo'shing</p>
+              <p className="text-[10px] text-gray-400 break-words">Kompaniyangizga yangi a'zo qo'shing</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+          <button onClick={onClose} className="min-h-8 min-w-8 p-1.5 hover:bg-gray-100 rounded-lg transition-colors inline-flex items-center justify-center">
             <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>
@@ -79,7 +79,7 @@ const AddUserModal: React.FC<{ onClose: () => void; onSuccess: () => void }> = (
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">Ism *</label>
               <div className="relative">
@@ -150,7 +150,7 @@ const AddUserModal: React.FC<{ onClose: () => void; onSuccess: () => void }> = (
             </select>
           </div>
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <button
               type="button" onClick={onClose}
               className="flex-1 h-9 border border-[#e4e7ec] bg-white hover:bg-gray-50 text-gray-700 font-semibold text-xs rounded-lg transition-colors"
@@ -230,7 +230,7 @@ export const DashboardPage: React.FC = () => {
 
   
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-4 sm:p-6 space-y-5">
       {/* Add User Modal */}
       {isAddUserModalOpen && (
         <AddUserModal
@@ -241,14 +241,14 @@ export const DashboardPage: React.FC = () => {
 
       {/* Top Action Bar — Admin uchun "Xodim qo'shish" tugmasi */}
       {canAddUser && (
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="min-w-0">
             <h2 className="text-sm font-bold text-[#171b25]">Boshqaruv paneli</h2>
-            <p className="text-[11px] text-gray-400">Kompaniyangiz loyihalari va ko'rsatkichlari</p>
+            <p className="text-[11px] text-gray-400 break-words">Kompaniyangiz loyihalari va ko'rsatkichlari</p>
           </div>
           <button
             onClick={() => setIsAddUserModalOpen(true)}
-            className="h-9 px-4 bg-[#ff7a16] hover:bg-[#e86807] text-white text-xs font-semibold rounded-lg flex items-center gap-2 shadow-sm transition-colors"
+            className="min-h-9 px-4 bg-[#ff7a16] hover:bg-[#e86807] text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors w-full sm:w-auto"
           >
             <UserPlus className="w-4 h-4" />
             <span>Xodim qo'shish</span>
@@ -257,13 +257,13 @@ export const DashboardPage: React.FC = () => {
       )}
 
       {/* 4 KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* KPI 1: Faol Loyihalar */}
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between">
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#ff7a16]" />
           <div>
             <small className="block text-[11px] font-medium text-[#697180] mb-1.5">Faol Loyihalar</small>
-            <strong className="text-2xl font-bold tracking-tight text-[#171b25]">
+            <strong className="text-xl sm:text-2xl font-bold tracking-tight text-[#171b25] break-words">
               {stats?.activeProjects ?? projects.length} <span className="text-xs font-semibold text-gray-400">/ {stats?.totalProjects ?? projects.length}</span>
             </strong>
           </div>
@@ -278,7 +278,7 @@ export const DashboardPage: React.FC = () => {
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#3b82f6]" />
           <div>
             <small className="block text-[11px] font-medium text-[#697180] mb-1.5">Olingan Tushum</small>
-            <strong className="text-2xl font-bold tracking-tight text-[#171b25]">
+            <strong className="text-xl sm:text-2xl font-bold tracking-tight text-[#171b25] break-words">
               ${(stats?.totalRevenueReceived ?? 0).toLocaleString()}
             </strong>
             <span className="text-[11px] text-gray-400 block mt-0.5">
@@ -286,7 +286,7 @@ export const DashboardPage: React.FC = () => {
             </span>
           </div>
           <div className="text-[11px] font-medium mt-2 text-[#3b82f6] flex items-center gap-1">
-            <span>Qoldiq: ${(stats?.totalPendingReceivables ?? 0).toLocaleString()} (≈ {(stats?.totalPendingReceivablesUzs ?? 0).toLocaleString()} so'm)</span>
+            <span className="break-words">Qoldiq: ${(stats?.totalPendingReceivables ?? 0).toLocaleString()} (≈ {(stats?.totalPendingReceivablesUzs ?? 0).toLocaleString()} so'm)</span>
           </div>
         </div>
 
@@ -295,7 +295,7 @@ export const DashboardPage: React.FC = () => {
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#ef5350]" />
           <div>
             <small className="block text-[11px] font-medium text-[#697180] mb-1.5">Jami Xarajatlar</small>
-            <strong className="text-2xl font-bold tracking-tight text-[#171b25]">
+            <strong className="text-xl sm:text-2xl font-bold tracking-tight text-[#171b25] break-words">
               ${(stats?.totalExpenses ?? 0).toLocaleString()}
             </strong>
             <span className="text-[11px] text-gray-400 block mt-0.5">
@@ -317,20 +317,20 @@ export const DashboardPage: React.FC = () => {
             <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between">
               <div className={`absolute left-0 top-4 w-1.5 h-8 rounded-r ${isNegative ? 'bg-rose-500' : 'bg-emerald-500'}`} />
               <div>
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex flex-wrap items-center justify-between gap-1 mb-1">
                   <small className="block text-[11px] font-bold text-[#697180] uppercase tracking-wider">Net Balans (Qo'ldagi summa)</small>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${isNegative ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
                     {isNegative ? 'Kamomad' : 'Kassa ijobiy'}
                   </span>
                 </div>
-                <strong className={`text-2xl font-extrabold tracking-tight block ${isNegative ? 'text-rose-600' : 'text-emerald-600'}`}>
+                <strong className={`text-xl sm:text-2xl font-extrabold tracking-tight block break-words ${isNegative ? 'text-rose-600' : 'text-emerald-600'}`}>
                   {isNegative ? `-$${Math.abs(netBal).toLocaleString()}` : `$${netBal.toLocaleString()}`}
                 </strong>
                 <span className="text-[11px] text-gray-400 block mt-0.5">
                   ≈ {isNegative ? `-${Math.abs(netBalUzs).toLocaleString()} so'm` : `${netBalUzs.toLocaleString()} so'm`}
                 </span>
               </div>
-              <div className="text-[11px] font-medium mt-2 text-gray-500 flex items-center justify-between">
+              <div className="text-[11px] font-medium mt-2 text-gray-500 flex flex-wrap items-center justify-between gap-1">
                 <span>Tushum − Xarajatlar</span>
                 {stats?.totalNetProfit !== undefined && (
                   <span className="text-[10px] text-purple-600 font-semibold" title="Kutilayotgan sof foyda">
@@ -378,17 +378,17 @@ export const DashboardPage: React.FC = () => {
           const behindCount = chartProjects.filter(c => c.behind).length;
 
           return (
-            <div className="lg:col-span-7 bg-white border border-[#e4e7ec] rounded-xl shadow-xs p-5 flex flex-col">
-              <div className="flex items-center justify-between pb-3 border-b border-[#f0f2f5]">
-                <div>
+            <div className="lg:col-span-7 bg-white border border-[#e4e7ec] rounded-xl shadow-xs p-4 sm:p-5 flex flex-col">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-[#f0f2f5]">
+                <div className="min-w-0">
                   <h3 className="font-bold text-xs text-[#171b25]">Loyihalar holati</h3>
                   <div className="text-[10px] text-[#9399a4]">Bajarilgan va muddat bo'yicha kutilgan foiz</div>
                 </div>
-                <div className="flex items-center gap-3 text-[10px] text-[#727987]">
-                  <span className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-3 text-[10px] text-[#727987]">
+                  <span className="flex items-center gap-1.5 whitespace-nowrap">
                     <i className="w-2.5 h-2.5 rounded-xs bg-[#ff7a16] inline-block" /> Bajarilgan
                   </span>
-                  <span className="flex items-center gap-1.5">
+                  <span className="flex items-center gap-1.5 whitespace-nowrap">
                     <i className="w-2.5 h-2.5 rounded-xs bg-[#bdd9f7] inline-block" /> Kutilgan
                   </span>
                 </div>
@@ -424,18 +424,18 @@ export const DashboardPage: React.FC = () => {
                   Hali loyihalar mavjud emas
                 </div>
               ) : (
-                <div className="pt-5 px-1 flex-1 flex items-end justify-around gap-2 border-b border-[#e8ebef]">
+                <div className="pt-5 px-1 flex-1 min-h-[180px] sm:min-h-[220px] flex items-end justify-around gap-2 border-b border-[#e8ebef] overflow-x-auto scrollbar-none">
                   {chartProjects.map(({ p, expected, behind }) => (
                     <div
                       key={p.id}
-                      className="flex flex-col items-center gap-1.5 flex-1 min-w-0 cursor-pointer group"
+                      className="flex flex-col items-center gap-1.5 flex-1 min-w-[42px] cursor-pointer group"
                       onClick={() => navigate(`/projects/${p.id}`)}
                       title={`${p.name}\nBajarilgan: ${p.progressPercent}%${expected !== null ? `\nKutilgan: ${expected}%` : ''}\nHolat: ${p.statusName}`}
                     >
                       <span className={`text-[10px] font-bold ${behind ? 'text-rose-600' : 'text-[#171b25]'}`}>
                         {p.progressPercent}%
                       </span>
-                      <div className="flex items-end gap-1 h-32">
+                      <div className="flex items-end gap-1 h-24 sm:h-32">
                         <div
                           style={{ height: `${Math.max(p.progressPercent, 2)}%` }}
                           className={`w-4 rounded-t-sm transition-all group-hover:brightness-95 ${behind ? 'bg-rose-500' : 'bg-[#ff7a16]'}`}
@@ -457,7 +457,7 @@ export const DashboardPage: React.FC = () => {
         })()}
 
         {/* Right: Loyiha holati */}
-        <div className="lg:col-span-5 bg-white border border-[#e4e7ec] rounded-xl shadow-xs p-5 flex flex-col justify-between space-y-3">
+        <div className="lg:col-span-5 bg-white border border-[#e4e7ec] rounded-xl shadow-xs p-4 sm:p-5 flex flex-col justify-between space-y-3">
           <div>
             <div className="pb-3 border-b border-[#f0f2f5]">
               <h3 className="font-bold text-xs text-[#171b25]">Loyiha holati</h3>
@@ -468,7 +468,7 @@ export const DashboardPage: React.FC = () => {
               {projects.slice(0, 4).map((p) => (
                 <div key={p.id} className="cursor-pointer hover:bg-gray-50/70 p-2 rounded-lg transition-colors" onClick={() => navigate(`/projects/${p.id}`)}>
                   <div className="flex justify-between text-xs font-semibold mb-1.5">
-                    <span className="flex items-center gap-1.5 text-[#171b25] truncate">
+                    <span className="flex items-center gap-1.5 text-[#171b25] truncate min-w-0">
                       <span className="w-2 h-2 rounded-full bg-[#21bd68]" />
                       <span className="truncate">{p.name}</span>
                     </span>
@@ -480,9 +480,9 @@ export const DashboardPage: React.FC = () => {
                       className={`h-full rounded-full ${getProgressColor(p.progressPercent)} transition-all`}
                     />
                   </div>
-                  <div className="flex justify-between text-[10px] text-[#9a9faa] mt-1.5">
-                    <span>{p.location || 'Toshkent'}</span>
-                    <span className="font-medium text-gray-600">{p.statusName}</span>
+                  <div className="flex justify-between gap-2 text-[10px] text-[#9a9faa] mt-1.5">
+                    <span className="truncate min-w-0">{p.location || 'Toshkent'}</span>
+                    <span className="font-medium text-gray-600 truncate">{p.statusName}</span>
                   </div>
                 </div>
               ))}
@@ -505,13 +505,13 @@ export const DashboardPage: React.FC = () => {
       {/* Table Card */}
       <div className="bg-white border border-[#e4e7ec] rounded-xl shadow-xs overflow-hidden">
         {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-2 px-5 py-3.5 border-b border-[#e4e7ec] bg-white">
+        <div className="flex flex-wrap items-center gap-2 px-4 sm:px-5 py-3.5 border-b border-[#e4e7ec] bg-white">
           <input
             type="text"
             placeholder="⌕ Loyiha qidirish..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-[34px] border border-[#e4e7ec] rounded-lg px-3 text-xs outline-none focus:border-[#ff7a16] min-w-[200px]"
+            className="h-[34px] border border-[#e4e7ec] rounded-lg px-3 text-xs outline-none focus:border-[#ff7a16] w-full sm:w-auto sm:min-w-[200px]"
           />
           <button className="h-[34px] border border-[#e4e7ec] bg-white hover:bg-gray-50 px-3 rounded-lg text-xs text-gray-700 flex items-center gap-1.5 transition-colors font-medium">
             <Filter className="w-3 h-3 text-gray-500" />
@@ -524,14 +524,14 @@ export const DashboardPage: React.FC = () => {
             <Download className="w-3 h-3 text-gray-500" />
             <span>Eksport (Excel)</span>
           </button>
-          <div className="ml-auto text-[11px] text-[#969ca7] font-semibold">
+          <div className="w-full sm:w-auto sm:ml-auto text-[11px] text-[#969ca7] font-semibold">
             {filteredProjects.length} ta loyiha
           </div>
         </div>
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full min-w-[820px] text-left text-xs">
             <thead>
               <tr className="border-b border-[#e4e7ec] bg-gray-50/50">
                 <th className="py-3.5 px-5 font-bold text-[#7c838e] text-[10px] uppercase tracking-wider">LOYIHA NOMI</th>
@@ -584,7 +584,7 @@ export const DashboardPage: React.FC = () => {
                         e.stopPropagation();
                         navigate(`/projects/${p.id}`);
                       }}
-                      className="px-3 py-1 text-[11px] font-bold text-[#ff7a16] hover:bg-orange-50 rounded-lg border border-orange-200 transition-colors"
+                      className="min-h-8 px-3 py-1 text-[11px] font-bold text-[#ff7a16] hover:bg-orange-50 rounded-lg border border-orange-200 transition-colors"
                     >
                       Ochish →
                     </button>
