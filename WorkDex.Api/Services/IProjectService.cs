@@ -10,6 +10,7 @@ public interface IProjectService
     Task<ProjectDto> CreateAsync(CreateProjectDto dto, Guid createdByUserId);
     Task<ProjectDto> UpdateAsync(Guid id, UpdateProjectDto dto);
     Task<ProjectDto> UpdateStatusAsync(Guid id, UpdateProjectStatusDto dto);
+    Task<ProjectDto> RenameAsync(Guid id, RenameProjectDto dto);
     Task<ProjectSummaryDto> GetSummaryAsync(Guid id);
     Task<ProjectMemberDto> AddMemberAsync(Guid projectId, AddProjectMemberDto dto);
     Task RemoveMemberAsync(Guid projectId, Guid userId);

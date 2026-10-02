@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Building2, ArrowRight } from 'lucide-react';
+import { Search, Building2, ArrowRight, Pencil } from 'lucide-react';
 import { projectsApi } from '../api/services';
-import { Project, ProjectStatus } from '../types';
+import { Project, ProjectStatus, UserRole } from '../types';
 import { UsdWithUzs } from '../components/Money';
+import { RenameProjectModal } from '../components/RenameProjectModal';
+import { useAuth } from '../context/AuthContext';
 
 interface ProjectsPageProps {
   onOpenNewProject: () => void;
@@ -15,6 +17,9 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenNewProject }) 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<number | 'all'>('all');
   const [loading, setLoading] = useState(true);
+  const [renaming, setRenaming] = useState<Project | null>(null);
+  const { user } = useAuth();
+  const canRename = user?.role === UserRole.SuperAdmin || user?.role === UserRole.Admin || user?.role === UserRole.ProjectManager;
 
   useEffect(() => {
     projectsApi.getAll().then((data) => {
@@ -104,7 +109,20 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenNewProject }) 
             <div>
               <div className="flex items-center justify-between">
                 {getStatusPill(p.status)}
-                <span className="text-gray-300 font-bold text-sm">⋯</span>
+                {canRename && (
+                  <button
+                    type="button"
+                    title="Nomini o'zgartirish"
+                    aria-label="Nomini o'zgartirish"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRenaming(p);
+                    }}
+                    className="ml-auto p-1.5 -m-1.5 rounded-md text-gray-400 hover:text-[#ff7a16] hover:bg-orange-50 transition-colors"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
               <h3 className="font-bold text-sm text-[#171b25] mt-3 mb-1 truncate">{p.name}</h3>
@@ -160,6 +178,12 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenNewProject }) 
           <p className="text-xs text-gray-400 mt-1">Yangi loyiha yaratish uchun tepada "+ Yangi loyiha" tugmasini bosing</p>
         </div>
       )}
+
+      <RenameProjectModal
+        project={renaming}
+        onClose={() => setRenaming(null)}
+        onRenamed={(updated) => setProjects((prev) => prev.map((x) => (x.id === updated.id ? { ...x, name: updated.name } : x)))}
+      />
     </div>
   );
 };

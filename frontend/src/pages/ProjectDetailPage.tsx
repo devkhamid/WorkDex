@@ -12,11 +12,14 @@ import {
   Clock,
   HardHat,
   Upload,
-  Trash2
+  Trash2,
+  Pencil
 } from 'lucide-react';
 import { projectsApi, reportsApi, materialsApi, workersApi } from '../api/services';
 import { MoneyInput, UsdWithUzs } from '../components/Money';
 import { MaterialPicker } from '../components/MaterialPicker';
+import { RenameProjectModal } from '../components/RenameProjectModal';
+import { useAuth } from '../context/AuthContext';
 import { formatUsd, formatUzs, useCbuRate } from '../utils/money';
 import { getFileUrl } from '../api/client';
 import {
@@ -35,7 +38,8 @@ import {
   ProjectStage,
   Material,
   Worker,
-  Currency
+  Currency,
+  UserRole
 } from '../types';
 
 export const formatDateUz = (dateStr?: string | Date | null) => {
@@ -73,6 +77,9 @@ export const ProjectDetailPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [project, setProject] = useState<Project | null>(null);
+  const [isRenameOpen, setIsRenameOpen] = useState(false);
+  const { user } = useAuth();
+  const canRename = user?.role === UserRole.SuperAdmin || user?.role === UserRole.Admin || user?.role === UserRole.ProjectManager;
   const [summary, setSummary] = useState<ProjectSummary | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'finance' | 'tasks' | 'materials' | 'workers' | 'expenses' | 'extraworks' | 'photos' | 'documents'>('overview');
   const [loading, setLoading] = useState(true);
@@ -579,7 +586,20 @@ export const ProjectDetailPage: React.FC = () => {
         </button>
 
         <div className="min-w-0 flex-1">
-          <h2 className="text-xl font-bold text-[#171b25] truncate">{project.name}</h2>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <h2 className="text-xl font-bold text-[#171b25] truncate">{project.name}</h2>
+            {canRename && (
+              <button
+                type="button"
+                title="Nomini o'zgartirish"
+                aria-label="Nomini o'zgartirish"
+                onClick={() => setIsRenameOpen(true)}
+                className="shrink-0 p-1.5 rounded-md text-gray-400 hover:text-[#ff7a16] hover:bg-orange-50 transition-colors"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
+          </div>
           <p className="text-xs text-[#7b8190] mt-0.5">
             {project.customerName} · {project.location || 'Toshkent'}
           </p>
@@ -2206,6 +2226,12 @@ export const ProjectDetailPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      <RenameProjectModal
+        project={isRenameOpen ? project : null}
+        onClose={() => setIsRenameOpen(false)}
+        onRenamed={(updated) => setProject((prev) => (prev ? { ...prev, name: updated.name } : prev))}
+      />
     </div>
   );
 };

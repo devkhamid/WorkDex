@@ -194,6 +194,29 @@ public class ProjectService : IProjectService
         return MapToDto(project);
     }
 
+    public async Task<ProjectDto> RenameAsync(Guid id, RenameProjectDto dto)
+    {
+        var name = dto.Name?.Trim() ?? string.Empty;
+        if (name.Length == 0)
+            throw new InvalidOperationException("Loyiha nomi bo'sh bo'lishi mumkin emas.");
+
+        var project = await _context.Projects
+            .Include(p => p.Customer)
+            .Include(p => p.CreatedByUser)
+            .Include(p => p.Members)
+            .Include(p => p.Stages)
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+        if (project is null)
+            throw new KeyNotFoundException("Loyiha topilmadi.");
+
+        project.Name = name;
+        project.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        return MapToDto(project);
+    }
+
     public async Task<ProjectSummaryDto> GetSummaryAsync(Guid id)
     {
         var project = await _context.Projects

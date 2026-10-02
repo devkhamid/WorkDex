@@ -9,6 +9,13 @@ public class UpdateProjectStatusDto
     public ProjectStatus Status { get; set; }
 }
 
+public class RenameProjectDto
+{
+    [Required]
+    [MaxLength(300)]
+    public string Name { get; set; } = string.Empty;
+}
+
 public class AddProjectMemberDto
 {
     [Required]

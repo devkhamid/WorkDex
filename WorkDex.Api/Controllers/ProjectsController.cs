@@ -102,6 +102,26 @@ public class ProjectsController : ControllerBase
         }
     }
 
+    [HttpPatch("{id:guid}/name")]
+    [Authorize(Roles = "SuperAdmin,Admin,ProjectManager")]
+    public async Task<IActionResult> Rename(Guid id, [FromBody] RenameProjectDto dto)
+    {
+        try
+        {
+            await EnsureAccessAsync(id);
+            var project = await _projectService.RenameAsync(id, dto);
+            return Ok(project);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     // Moliyaviy xulosa — PDF §4
     [HttpGet("{id:guid}/summary")]
     [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]

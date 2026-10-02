@@ -122,6 +122,10 @@ export const projectsApi = {
     const res = await apiClient.put<Project>(`/projects/${id}`, data);
     return res.data;
   },
+  rename: async (id: string, name: string): Promise<Project> => {
+    const res = await apiClient.patch<Project>(`/projects/${id}/name`, { name });
+    return res.data;
+  },
   updateStatus: async (id: string, status: number, actualEndDate?: string): Promise<Project> => {
     const res = await apiClient.patch<Project>(`/projects/${id}/status`, { status, actualEndDate });
     return res.data;
