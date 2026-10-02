@@ -205,6 +205,7 @@ export interface Material {
   brand?: string;
   unit: string;
   description?: string;
+  purchaseCount?: number;
   createdAt: string;
 }
 
@@ -238,7 +239,23 @@ export interface MaterialSummary {
   unit: string;
   totalQuantity: number;
   totalCost: number;
+  totalCostUsd?: number;
   purchaseCount: number;
+}
+
+export interface MaterialUsage {
+  materialId: string;
+  materialName: string;
+  brand?: string;
+  unit: string;
+  projectId: string;
+  projectName: string;
+  totalQuantity: number;
+  totalCost: number; // so'm
+  totalCostUsd: number;
+  averageUnitPrice: number; // so'm
+  purchaseCount: number;
+  lastPurchaseDate: string;
 }
 
 export interface Worker {

@@ -26,5 +26,12 @@ public class MaterialDto
     public string? Brand { get; set; }
     public string Unit { get; set; } = string.Empty;
     public string? Description { get; set; }
+    public int PurchaseCount { get; set; } // Nechta xaridda ishlatilgan
     public DateTime CreatedAt { get; set; }
+}
+
+public class MergeMaterialDto
+{
+    [Required]
+    public Guid TargetId { get; set; }
 }

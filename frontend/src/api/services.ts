@@ -10,6 +10,7 @@ import {
   Material,
   MaterialPurchase,
   MaterialSummary,
+  MaterialUsage,
   Payment,
   Project,
   ProjectDocument,
@@ -184,8 +185,11 @@ export const projectsApi = {
     return res.data;
   },
   createPurchase: async (projectId: string, data: {
-    materialId: string;
+    materialId?: string;
+    // materialName berilsa server katalogdan nom+brend bo'yicha topadi yoki yaratadi
+    materialName?: string;
     brand?: string;
+    unit?: string;
     quantity: number;
     unitPrice: number;
     currency: Currency;
@@ -358,6 +362,15 @@ export const materialsApi = {
   },
   create: async (data: { name: string; brand?: string; unit: string; description?: string }): Promise<Material> => {
     const res = await apiClient.post<Material>('/materials', data);
+    return res.data;
+  },
+  getUsage: async (from?: string, to?: string): Promise<MaterialUsage[]> => {
+    const res = await apiClient.get<MaterialUsage[]>('/materials/usage', { params: { from: from || undefined, to: to || undefined } });
+    return res.data;
+  },
+  // sourceId dagi barcha xaridlar targetId ga o'tkaziladi, sourceId o'chiriladi
+  merge: async (sourceId: string, targetId: string): Promise<Material> => {
+    const res = await apiClient.post<Material>(`/materials/${sourceId}/merge`, { targetId });
     return res.data;
   }
 };

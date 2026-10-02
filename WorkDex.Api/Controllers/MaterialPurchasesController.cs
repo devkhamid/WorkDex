@@ -61,6 +61,10 @@ public class MaterialPurchasesController : ControllerBase
         {
             return NotFound(new { message = ex.Message });
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpDelete("api/projects/{projectId:guid}/material-purchases/{purchaseId:guid}")]

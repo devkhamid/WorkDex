@@ -9,7 +9,6 @@ import {
   Camera,
   FileText,
   UserPlus,
-  PackagePlus,
   Clock,
   HardHat,
   Upload,
@@ -17,6 +16,7 @@ import {
 } from 'lucide-react';
 import { projectsApi, reportsApi, materialsApi, workersApi } from '../api/services';
 import { MoneyInput, UsdWithUzs } from '../components/Money';
+import { MaterialPicker } from '../components/MaterialPicker';
 import { formatUsd, formatUzs, useCbuRate } from '../utils/money';
 import { getFileUrl } from '../api/client';
 import {
@@ -122,11 +122,9 @@ export const ProjectDetailPage: React.FC = () => {
   const [newExpDate, setNewExpDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Purchase Form State
-  const [isNewMaterial, setIsNewMaterial] = useState(false);
   const [newPurMatName, setNewPurMatName] = useState('');
   const [newPurMatBrand, setNewPurMatBrand] = useState('');
   const [newPurMatUnit, setNewPurMatUnit] = useState('dona');
-  const [newPurMatId, setNewPurMatId] = useState('');
   const [newPurQty, setNewPurQty] = useState<number | ''>('');
   const [newPurPrice, setNewPurPrice] = useState<number | ''>('');
   const [newPurCurrency, setNewPurCurrency] = useState<Currency>('UZS');
@@ -191,6 +189,9 @@ export const ProjectDetailPage: React.FC = () => {
   };
 
   const handleOpenPurchaseModal = () => {
+    setNewPurMatName('');
+    setNewPurMatBrand('');
+    setNewPurMatUnit('dona');
     setNewPurCurrency('UZS');
     setNewPurPrice('');
     setNewPurQty(1);
@@ -264,7 +265,6 @@ export const ProjectDetailPage: React.FC = () => {
       setCatalogMaterials(cMat);
       setCatalogWorkers(cWork);
 
-      if (cMat.length > 0) setNewPurMatId(cMat[0].id);
       if (cWork.length > 0) setNewWorkId(cWork[0].id);
     } catch (err) {
       console.error(err);
@@ -360,20 +360,11 @@ export const ProjectDetailPage: React.FC = () => {
     }
 
     try {
-      let finalMaterialId = newPurMatId;
-
-      if (isNewMaterial) {
-        const createdMat = await materialsApi.create({
-          name: newPurMatName,
-          brand: newPurMatBrand || undefined,
-          unit: newPurMatUnit
-        });
-        finalMaterialId = createdMat.id;
-      }
-
+      // Server katalogdan nom+brend bo'yicha topadi, bo'lmasa yangi material yaratadi
       await projectsApi.createPurchase(id, {
-        materialId: finalMaterialId,
-        brand: newPurMatBrand || undefined,
+        materialName: newPurMatName.trim(),
+        brand: newPurMatBrand.trim() || undefined,
+        unit: newPurMatUnit,
         quantity: Number(newPurQty) || 0,
         unitPrice: unitPriceVal,
         currency: newPurCurrency,
@@ -381,7 +372,6 @@ export const ProjectDetailPage: React.FC = () => {
         purchaseDate: new Date().toISOString()
       });
       setIsPurchaseModalOpen(false);
-      setIsNewMaterial(false);
       setNewPurMatName('');
       setNewPurMatBrand('');
       setNewPurQty('');
@@ -1044,7 +1034,7 @@ export const ProjectDetailPage: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {materialsSummary.map((m) => (
-                <div key={m.materialId} className="p-3 bg-white border border-gray-200 rounded-xl shadow-xs space-y-1.5">
+                <div key={`${m.materialId}-${m.brand ?? ''}-${m.unit}`} className="p-3 bg-white border border-gray-200 rounded-xl shadow-xs space-y-1.5">
                   <div className="flex items-center justify-between">
                     <div className="font-bold text-xs text-gray-900 truncate">{m.materialName}</div>
                     {m.brand && (
@@ -1059,7 +1049,7 @@ export const ProjectDetailPage: React.FC = () => {
                   </div>
                   <div className="flex justify-between text-xs text-gray-600 pt-1 border-t border-gray-50">
                     <span className="text-gray-500">Jami xarajat:</span>
-                    <UsdWithUzs className="text-[#ff7a16] font-bold items-end" uzs={m.totalCost} />
+                    <UsdWithUzs className="text-[#ff7a16] font-bold items-end" usd={m.totalCostUsd} uzs={m.totalCost} />
                   </div>
                 </div>
               ))}
@@ -1791,99 +1781,22 @@ export const ProjectDetailPage: React.FC = () => {
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl border border-gray-200 space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="font-bold text-sm text-[#171b25]">Material Xaridi Kiritish</h3>
-              <button
-                type="button"
-                onClick={() => setIsNewMaterial(!isNewMaterial)}
-                className="text-[11px] text-[#ff7a16] font-semibold hover:underline flex items-center gap-1"
-              >
-                <PackagePlus className="w-3.5 h-3.5" />
-                <span>{isNewMaterial ? "Katalogdan tanlash" : "+ Yangi material qo'shish"}</span>
-              </button>
+              <button type="button" onClick={() => setIsPurchaseModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-sm">✕</button>
             </div>
 
             <form onSubmit={handleCreatePurchase} className="space-y-3">
-              {isNewMaterial ? (
-                <div className="p-3 bg-orange-50/50 border border-orange-200 rounded-lg space-y-2">
-                  <div>
-                    <label className="block text-[11px] font-semibold mb-1">Material Nomi *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ispan kafeli 60x60"
-                      value={newPurMatName}
-                      onChange={(e) => setNewPurMatName(e.target.value)}
-                      className="w-full h-8 px-2.5 border border-gray-300 rounded text-xs bg-white outline-none focus:border-[#ff7a16]"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[11px] font-semibold mb-1">Brend / Ishlab chiqaruvchi</label>
-                      <input
-                        type="text"
-                        placeholder="Knauf, Kerama Marazzi..."
-                        value={newPurMatBrand}
-                        onChange={(e) => setNewPurMatBrand(e.target.value)}
-                        className="w-full h-8 px-2.5 border border-gray-300 rounded text-xs bg-white outline-none focus:border-[#ff7a16]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold mb-1">O'lchov Birligi *</label>
-                      <select
-                        value={newPurMatUnit}
-                        onChange={(e) => setNewPurMatUnit(e.target.value)}
-                        className="w-full h-8 px-2 border border-gray-300 rounded text-xs bg-white outline-none"
-                      >
-                        <option value="dona">dona</option>
-                        <option value="m²">m²</option>
-                        <option value="kg">kg</option>
-                        <option value="qop">qop</option>
-                        <option value="m³">m³</option>
-                        <option value="metr">metr</option>
-                        <option value="litr">litr</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div>
-                    <label className="block text-xs font-semibold mb-1">Material *</label>
-                    <select
-                      value={newPurMatId}
-                      onChange={(e) => {
-                        setNewPurMatId(e.target.value);
-                        const selMat = catalogMaterials.find(m => m.id === e.target.value);
-                        if (selMat?.brand) setNewPurMatBrand(selMat.brand);
-                      }}
-                      required
-                      className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs bg-white outline-none"
-                    >
-                      {catalogMaterials.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.name} {m.brand ? `[${m.brand}]` : ''} ({m.unit})
-                        </option>
-                      ))}
-                      {catalogMaterials.length === 0 && (
-                        <option value="">Materiallar yo'q — tepadan yangi qo'shing</option>
-                      )}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold mb-1">Brend / Ishlab chiqaruvchi</label>
-                    <input
-                      type="text"
-                      placeholder="Knauf, Kerama Marazzi, Marshall..."
-                      value={newPurMatBrand}
-                      onChange={(e) => setNewPurMatBrand(e.target.value)}
-                      className="w-full h-8 px-2.5 border border-gray-300 rounded-lg text-xs bg-white outline-none focus:border-[#ff7a16]"
-                    />
-                  </div>
-                </div>
-              )}
+              <MaterialPicker
+                materials={catalogMaterials}
+                name={newPurMatName}
+                brand={newPurMatBrand}
+                unit={newPurMatUnit}
+                onNameChange={setNewPurMatName}
+                onBrandChange={setNewPurMatBrand}
+                onUnitChange={setNewPurMatUnit}
+              />
 
-              {/* Currency Toggle */}
               <div>
-                <label className="block text-xs font-semibold mb-1">Miqdor *</label>
+                <label className="block text-xs font-semibold mb-1">Miqdor ({newPurMatUnit}) *</label>
                 <input
                   type="number"
                   required

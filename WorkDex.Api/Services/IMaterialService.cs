@@ -11,6 +11,7 @@ public interface IMaterialService
     Task<MaterialDto> CreateMaterialAsync(CreateMaterialDto dto, Guid createdByUserId);
     Task<MaterialDto> UpdateMaterialAsync(Guid id, CreateMaterialDto dto, Guid requestingUserId, UserRole requestingUserRole);
     Task DeleteMaterialAsync(Guid id, Guid requestingUserId, UserRole requestingUserRole);
+    Task<MaterialDto> MergeMaterialAsync(Guid sourceId, Guid targetId, Guid requestingUserId, UserRole requestingUserRole);
 
     // Loyiha xaridlari
     Task<MaterialPurchaseDto> AddPurchaseAsync(Guid projectId, CreateMaterialPurchaseDto dto, Guid createdByUserId);
@@ -18,4 +19,7 @@ public interface IMaterialService
     Task<MaterialPurchaseDto> GetPurchaseByIdAsync(Guid projectId, Guid purchaseId);
     Task DeletePurchaseAsync(Guid projectId, Guid purchaseId);
     Task<List<ProjectMaterialSummaryDto>> GetProjectMaterialSummaryAsync(Guid projectId);
+
+    // Hisobot: loyiha × material × brend bo'yicha sarf
+    Task<List<MaterialUsageDto>> GetMaterialUsageAsync(Guid requestingUserId, UserRole requestingUserRole, DateTime? from, DateTime? to);
 }
