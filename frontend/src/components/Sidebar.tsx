@@ -16,6 +16,7 @@ import {
   Briefcase,
   FileText,
   Settings,
+  UserCog,
   X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -73,6 +74,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onClose })
         { to: '/customers', label: 'Mijozlar', icon: Users },
         { to: '/materials', label: 'Materiallar', icon: Package },
         { to: '/workers', label: 'Ustalar & Ish haqi', icon: HardHat },
+        ...(user?.role === UserRole.Admin ? [{ to: '/team', label: 'Xodimlar', icon: UserCog }] : []),
         { to: '/finance', label: 'Moliya', icon: DollarSign },
         { to: '/tasks', label: 'Vazifalar', icon: CheckSquare },
         { to: '/reports', label: 'Hisobotlar (Excel)', icon: FileSpreadsheet },

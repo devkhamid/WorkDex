@@ -69,6 +69,16 @@ public class UserService : IUserService
         user.LastName = dto.LastName.Trim();
         user.PhoneNumber = dto.PhoneNumber?.Trim();
         user.Role = dto.Role;
+
+        var newEmail = dto.Email?.Trim();
+        if (!string.IsNullOrEmpty(newEmail) && !string.Equals(newEmail, user.Email, StringComparison.OrdinalIgnoreCase))
+        {
+            var lower = newEmail.ToLower();
+            if (await _context.Users.AnyAsync(u => u.Id != user.Id && u.Email.ToLower() == lower))
+                throw new InvalidOperationException("Bu email allaqachon ro'yxatdan o'tgan.");
+            user.Email = newEmail;
+        }
+
         user.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -85,6 +95,8 @@ public class UserService : IUserService
 
         if (user.Role == UserRole.SuperAdmin)
             throw new InvalidOperationException("Asosiy SuperAdmin hisobini o'chirib yoki bloklab bo'lmaydi.");
+        if (user.Id == requestingUserId)
+            throw new InvalidOperationException("O'z hisobingizni to'xtatib bo'lmaydi.");
 
         user.IsActive = !user.IsActive;
         user.UpdatedAt = DateTime.UtcNow;
@@ -193,6 +205,105 @@ public class UserService : IUserService
         return user?.CompanyAdminId ?? requestingUserId;
     }
 
+    // Kompaniya loyihalari — ProjectAccessGuard dagi Admin qoidasi bilan bir xil
+    private IQueryable<ProjectTask> CompanyTasks(Guid companyAdminId) =>
+        _context.Tasks.Where(t =>
+            t.Project.CompanyAdminId == companyAdminId ||
+            t.Project.CreatedByUserId == companyAdminId ||
+            t.Project.CreatedByUser.CompanyAdminId == companyAdminId);
+
+    public async Task<List<StaffMemberDto>> GetStaffAsync(Guid requestingUserId, UserRole requestingUserRole)
+    {
+        var companyAdminId = await ResolveCompanyAdminIdAsync(requestingUserId, requestingUserRole);
+
+        var users = await _context.Users
+            .Where(u => (u.CompanyAdminId == companyAdminId || u.Id == companyAdminId) && u.Role != UserRole.Customer)
+            .OrderBy(u => u.FirstName).ThenBy(u => u.LastName)
+            .ToListAsync();
+
+        var userIds = users.Select(u => u.Id).ToList();
+        var today = DateTime.UtcNow.Date;
+        var stats = await CompanyTasks(companyAdminId)
+            .Where(t => t.AssignedToUserId != null && userIds.Contains(t.AssignedToUserId.Value))
+            .GroupBy(t => t.AssignedToUserId!.Value)
+            .Select(g => new
+            {
+                UserId = g.Key,
+                Open = g.Count(t => !t.IsCompleted),
+                Done = g.Count(t => t.IsCompleted),
+                Overdue = g.Count(t => !t.IsCompleted && t.DueDate != null && t.DueDate < today)
+            })
+            .ToDictionaryAsync(x => x.UserId);
+
+        return users.Select(u =>
+        {
+            var dto = new StaffMemberDto();
+            CopyTo(u, dto);
+            dto.IsCompanyOwner = IsCompanyOwner(u);
+            if (stats.TryGetValue(u.Id, out var s))
+            {
+                dto.OpenTaskCount = s.Open;
+                dto.CompletedTaskCount = s.Done;
+                dto.OverdueTaskCount = s.Overdue;
+            }
+            return dto;
+        }).ToList();
+    }
+
+    public async Task<List<StaffTaskDto>> GetUserTasksAsync(Guid id, Guid requestingUserId, UserRole requestingUserRole)
+    {
+        var user = await _context.Users.FindAsync(id);
+        if (user is null)
+            throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
+        await EnsureSameCompanyAsync(user, requestingUserId, requestingUserRole);
+
+        var companyAdminId = await ResolveCompanyAdminIdAsync(requestingUserId, requestingUserRole);
+        var tasks = await CompanyTasks(companyAdminId)
+            .Include(t => t.Project)
+            .Include(t => t.Stage)
+            .Where(t => t.AssignedToUserId == id)
+            .OrderBy(t => t.IsCompleted)
+            .ThenBy(t => t.DueDate == null)
+            .ThenBy(t => t.DueDate)
+            .ThenByDescending(t => t.CreatedAt)
+            .ToListAsync();
+
+        return tasks.Select(t => new StaffTaskDto
+        {
+            Id = t.Id,
+            ProjectId = t.ProjectId,
+            ProjectName = t.Project.Name,
+            ProjectStatus = t.Project.Status,
+            StageId = t.StageId,
+            StageName = t.Stage?.Name,
+            Title = t.Title,
+            Description = t.Description,
+            AssignedToUserId = t.AssignedToUserId,
+            AssignedToUserName = user.FullName,
+            Weight = t.Weight,
+            IsCompleted = t.IsCompleted,
+            CompletedAt = t.CompletedAt,
+            DueDate = t.DueDate,
+            CreatedAt = t.CreatedAt
+        }).ToList();
+    }
+
+    public async Task ResetPasswordAsync(Guid id, string newPassword, Guid requestingUserId, UserRole requestingUserRole)
+    {
+        var user = await _context.Users.FindAsync(id);
+        if (user is null)
+            throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
+        await EnsureSameCompanyAsync(user, requestingUserId, requestingUserRole);
+        EnsureCanModify(user, requestingUserId, requestingUserRole);
+
+        if (user.Role == UserRole.SuperAdmin)
+            throw new InvalidOperationException("SuperAdmin parolini bu yerda o'zgartirib bo'lmaydi.");
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        user.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+    }
+
     // Asosiy (kompaniya egasi) admin — CompanyAdminId bo'sh; yordamchi adminlarda u to'ldirilgan.
     private static bool IsCompanyOwner(User user) =>
         user.Role == UserRole.Admin && user.CompanyAdminId == null;
@@ -212,18 +323,25 @@ public class UserService : IUserService
     }
 
     // User entity ni UserDto ga aylantirish — PasswordHash hech qachon qaytarilmaydi
-    private static UserDto MapToDto(User user) => new()
+    private static UserDto MapToDto(User user)
     {
-        Id = user.Id,
-        FirstName = user.FirstName,
-        LastName = user.LastName,
-        FullName = user.FullName,
-        Email = user.Email,
-        PhoneNumber = user.PhoneNumber,
-        CompanyName = user.CompanyName,
-        Role = user.Role,
-        RoleName = user.Role.ToString(),
-        IsActive = user.IsActive,
-        CreatedAt = user.CreatedAt
-    };
+        var dto = new UserDto();
+        CopyTo(user, dto);
+        return dto;
+    }
+
+    private static void CopyTo(User user, UserDto dto)
+    {
+        dto.Id = user.Id;
+        dto.FirstName = user.FirstName;
+        dto.LastName = user.LastName;
+        dto.FullName = user.FullName;
+        dto.Email = user.Email;
+        dto.PhoneNumber = user.PhoneNumber;
+        dto.CompanyName = user.CompanyName;
+        dto.Role = user.Role;
+        dto.RoleName = user.Role.ToString();
+        dto.IsActive = user.IsActive;
+        dto.CreatedAt = user.CreatedAt;
+    }
 }

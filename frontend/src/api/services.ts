@@ -76,8 +76,43 @@ export const usersApi = {
   deleteUser: async (id: string): Promise<any> => {
     const res = await apiClient.delete(`/users/${id}`);
     return res.data;
+  },
+  getTeam: async (): Promise<StaffMember[]> => {
+    const res = await apiClient.get<StaffMember[]>('/users/team');
+    return res.data;
+  },
+  getUserTasks: async (id: string): Promise<StaffTask[]> => {
+    const res = await apiClient.get<StaffTask[]>(`/users/${id}/tasks`);
+    return res.data;
+  },
+  update: async (id: string, data: {
+    firstName: string;
+    lastName: string;
+    email?: string;
+    phoneNumber?: string;
+    role: number;
+  }): Promise<User> => {
+    const res = await apiClient.put<User>(`/users/${id}`, data);
+    return res.data;
+  },
+  resetPassword: async (id: string, newPassword: string): Promise<void> => {
+    await apiClient.post(`/users/${id}/reset-password`, { newPassword });
   }
 };
+
+export interface StaffMember extends User {
+  firstName: string;
+  lastName: string;
+  isCompanyOwner: boolean;
+  openTaskCount: number;
+  completedTaskCount: number;
+  overdueTaskCount: number;
+}
+
+export interface StaffTask extends ProjectTask {
+  projectName: string;
+  projectStatus: number;
+}
 
 export const dashboardApi = {
   getStats: async (): Promise<DashboardStats> => {
@@ -291,6 +326,21 @@ export const projectsApi = {
   toggleTaskComplete: async (projectId: string, taskId: string): Promise<ProjectTask> => {
     const res = await apiClient.patch<ProjectTask>(`/projects/${projectId}/tasks/${taskId}/toggle-complete`);
     return res.data;
+  },
+  updateTask: async (projectId: string, taskId: string, data: {
+    title: string;
+    stageId?: string | null;
+    description?: string | null;
+    assignedToUserId?: string | null;
+    weight: number;
+    isCompleted: boolean;
+    dueDate?: string | null;
+  }): Promise<ProjectTask> => {
+    const res = await apiClient.put<ProjectTask>(`/projects/${projectId}/tasks/${taskId}`, data);
+    return res.data;
+  },
+  deleteTask: async (projectId: string, taskId: string): Promise<void> => {
+    await apiClient.delete(`/projects/${projectId}/tasks/${taskId}`);
   },
   // Documents
   getDocuments: async (projectId: string): Promise<ProjectDocument[]> => {

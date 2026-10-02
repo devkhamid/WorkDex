@@ -22,6 +22,7 @@ import { AgreementsPage } from './pages/AgreementsPage';
 import { AgreementFormPage } from './pages/AgreementFormPage';
 import { FinalizeAgreementPage } from './pages/FinalizeAgreementPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { TeamPage } from './pages/TeamPage';
 import { ThemeProvider } from './context/ThemeContext';
 import { UserRole } from './types';
 import { ShieldAlert, FileQuestion } from 'lucide-react';
@@ -47,6 +48,8 @@ const ROUTE_ROLES: Record<string, UserRole[]> = {
   '/materials': [UserRole.SuperAdmin, UserRole.Admin, UserRole.Finance, UserRole.ProjectManager, UserRole.FieldWorker],
   // GET /api/workers → WorkersController:23
   '/workers': [UserRole.SuperAdmin, UserRole.Admin, UserRole.Finance, UserRole.ProjectManager, UserRole.FieldWorker],
+  // GET /api/users/team → UsersController
+  '/team': [UserRole.Admin],
   // dashboard/stats + reports → DashboardController & ReportsController
   '/finance': [UserRole.SuperAdmin, UserRole.Admin, UserRole.Finance, UserRole.ProjectManager],
   // GET /api/projects/{id}/tasks → TasksController:21
@@ -128,6 +131,7 @@ const ProtectedLayout: React.FC = () => {
     if (pathname === '/customers') return 'Mijozlar';
     if (pathname === '/materials') return 'Materiallar';
     if (pathname === '/workers') return 'Jamoa & Ustalar';
+    if (pathname === '/team') return 'Xodimlar';
     if (pathname === '/finance') return 'Moliya';
     if (pathname === '/tasks') return 'Vazifalar';
     if (pathname === '/reports') return 'Hisobotlar (Excel)';
@@ -225,6 +229,9 @@ const ProtectedLayout: React.FC = () => {
             } />
             <Route path="/workers" element={
               <RoleRoute allow={ROUTE_ROLES['/workers']}><WorkforcePage /></RoleRoute>
+            } />
+            <Route path="/team" element={
+              <RoleRoute allow={ROUTE_ROLES['/team']}><TeamPage /></RoleRoute>
             } />
             <Route path="/finance" element={
               <RoleRoute allow={ROUTE_ROLES['/finance']}><FinancePage /></RoleRoute>

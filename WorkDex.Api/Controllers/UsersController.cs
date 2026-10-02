@@ -44,6 +44,51 @@ public class UsersController : ControllerBase
         return Ok(users);
     }
 
+    // Admin — kompaniya xodimlari va ularning vazifa statistikasi (mijozlarsiz)
+    [HttpGet("team")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetTeam()
+    {
+        var staff = await _userService.GetStaffAsync(User.GetUserId(), User.GetUserRole());
+        return Ok(staff);
+    }
+
+    // Admin — xodimga biriktirilgan barcha vazifalar (kompaniya loyihalari bo'yicha)
+    [HttpGet("{id:guid}/tasks")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetUserTasks(Guid id)
+    {
+        try
+        {
+            var tasks = await _userService.GetUserTasksAsync(id, User.GetUserId(), User.GetUserRole());
+            return Ok(tasks);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    // Admin — xodim parolini yangilaydi
+    [HttpPost("{id:guid}/reset-password")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
+    public async Task<IActionResult> ResetPassword(Guid id, [FromBody] ResetPasswordDto dto)
+    {
+        try
+        {
+            await _userService.ResetPasswordAsync(id, dto.NewPassword, User.GetUserId(), User.GetUserRole());
+            return Ok(new { message = "Parol yangilandi." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     // SuperAdmin va Admin bitta foydalanuvchini ko'ra oladi
     [HttpGet("{id:guid}")]
     [Authorize(Roles = "SuperAdmin,Admin")]

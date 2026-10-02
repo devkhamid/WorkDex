@@ -16,6 +16,11 @@ public class UpdateUserDto
     [MaxLength(20)]
     public string? PhoneNumber { get; set; }
 
+    // Bo'sh qoldirilsa email o'zgarmaydi
+    [EmailAddress]
+    [MaxLength(200)]
+    public string? Email { get; set; }
+
     // Faqat Admin rol o'zgartira oladi — controller darajasida tekshiriladi
     public UserRole Role { get; set; }
 }

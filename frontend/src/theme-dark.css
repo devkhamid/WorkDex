@@ -148,6 +148,7 @@
   :where(html.dark) .text-purple-950:not(:where(.contract-preview, .contract-preview *)) { color: #d8b4fe; }
   :where(html.dark) .bg-gray-50\/80:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(255,255,255,.03); }
   :where(html.dark) .bg-orange-50\/40:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(249,115,22,.06); }
+  :where(html.dark) .bg-orange-50\/60:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(249,115,22,.10); }
   :where(html.dark) .bg-purple-100:not(:where(.contract-preview, .contract-preview *)) { background-color: rgba(168,85,247,.2); }
   :where(html.dark) .text-orange-800:not(:where(.contract-preview, .contract-preview *)) { color: #fdba74; }
   :where(html.dark) .border-blue-200:not(:where(.contract-preview, .contract-preview *)) { border-color: rgba(59,130,246,.3); }
