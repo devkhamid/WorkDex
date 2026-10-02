@@ -15,7 +15,8 @@ import {
   Trash2,
   Pencil
 } from 'lucide-react';
-import { projectsApi, reportsApi, materialsApi, workersApi } from '../api/services';
+import { projectsApi, reportsApi, materialsApi, workersApi, agreementsApi } from '../api/services';
+import { uploadAgreementPdfToProject, isAgreementPdfDoc } from '../utils/agreementPdf';
 import { MoneyInput, UsdWithUzs } from '../components/Money';
 import { MaterialPicker } from '../components/MaterialPicker';
 import { RenameProjectModal } from '../components/RenameProjectModal';
@@ -80,6 +81,7 @@ export const ProjectDetailPage: React.FC = () => {
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const { user } = useAuth();
   const canRename = user?.role === UserRole.SuperAdmin || user?.role === UserRole.Admin || user?.role === UserRole.ProjectManager;
+  const canAttachAgreementPdf = canRename || user?.role === UserRole.Finance;
   const [summary, setSummary] = useState<ProjectSummary | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'finance' | 'tasks' | 'materials' | 'workers' | 'expenses' | 'extraworks' | 'photos' | 'documents'>('overview');
   const [loading, setLoading] = useState(true);
@@ -159,6 +161,7 @@ export const ProjectDetailPage: React.FC = () => {
   const [selectedDocFile, setSelectedDocFile] = useState<File | null>(null);
   const [docUploadMode, setDocUploadMode] = useState<'file' | 'url'>('file');
   const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+  const [isAttachingAgreementPdf, setIsAttachingAgreementPdf] = useState(false);
 
   // Update Work Amount (Hakediş) Modal State
   const [isWorkAmountModalOpen, setIsWorkAmountModalOpen] = useState(false);
@@ -1438,6 +1441,36 @@ export const ProjectDetailPage: React.FC = () => {
               <span>Hujjat qo'shish</span>
             </button>
           </div>
+
+          {project.agreementId && canAttachAgreementPdf && !documents.some(isAgreementPdfDoc) && (
+            <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="text-xs text-purple-800">
+                <div className="font-bold">Bu loyiha shartnomadan yaratilgan</div>
+                <div className="text-[11px] text-purple-600">Shartnoma PDF i hali hujjatlarga qo'shilmagan.</div>
+              </div>
+              <button
+                type="button"
+                disabled={isAttachingAgreementPdf}
+                onClick={async () => {
+                  if (!id || !project.agreementId) return;
+                  setIsAttachingAgreementPdf(true);
+                  try {
+                    const agreement = await agreementsApi.getById(project.agreementId);
+                    await uploadAgreementPdfToProject(id, agreement);
+                    loadAllData(id);
+                  } catch (err: any) {
+                    alert(err?.response?.data?.message || 'Shartnoma PDF ini yaratib bo\'lmadi');
+                  } finally {
+                    setIsAttachingAgreementPdf(false);
+                  }
+                }}
+                className="h-8 px-3 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>{isAttachingAgreementPdf ? 'PDF tayyorlanmoqda...' : 'Shartnoma PDF ini qo\'shish'}</span>
+              </button>
+            </div>
+          )}
 
           {/* Add Document Form */}
           <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-3">

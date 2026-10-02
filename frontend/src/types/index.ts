@@ -107,6 +107,7 @@ export interface Project {
   location?: string;
   notes?: string;
   createdAt: string;
+  agreementId?: string | null; // Loyiha shartnomadan yaratilgan bo'lsa
   stages?: ProjectStage[];
   members?: ProjectMember[];
 }

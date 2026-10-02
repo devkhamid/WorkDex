@@ -176,6 +176,10 @@ public class UpdateAgreementDto
 
 public class FinalizeAgreementDto
 {
+    // WorkDex ichidagi loyiha nomi; shartnomadagi "loyiha nomi" esa ob'ekt joyini bildiradi
+    [System.ComponentModel.DataAnnotations.MaxLength(300)]
+    public string? ProjectName { get; set; }
+
     // Kurs endi serverda CBU dan olinadi; eski klientlar uchun maydon qoldirilgan, lekin e'tiborga olinmaydi
     public decimal? ExchangeRate { get; set; }
     public DateTime? Deadline { get; set; }

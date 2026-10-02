@@ -256,6 +256,10 @@ public class AgreementService : IAgreementService
 
     public async Task<AgreementDto> FinalizeAsync(Guid id, FinalizeAgreementDto dto, Guid createdByUserId)
     {
+        var projectName = dto.ProjectName?.Trim();
+        if (string.IsNullOrEmpty(projectName))
+            throw new ArgumentException("Loyiha nomini kiriting.");
+
         var agreement = await _context.Agreements.Include(a => a.Customer).FirstOrDefaultAsync(a => a.Id == id)
             ?? throw new KeyNotFoundException("Shartnoma topilmadi");
 
@@ -279,7 +283,7 @@ public class AgreementService : IAgreementService
         // Loyiha yaratish — shartnoma summasi UZS da; CreateAsync uni bugungi CBU kursi bilan USD ga o'giradi
         var createProjectDto = new CreateProjectDto
         {
-            Name = agreement.ProjectName,
+            Name = projectName,
             CustomerId = agreement.CustomerId.Value,
             ContractAmount = agreement.TotalAmountUZS,
             Budget = agreement.TotalAmountUZS,

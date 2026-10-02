@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, DollarSign, Calendar, Users, Rocket } from 'lucide-react';
+import { ArrowLeft, DollarSign, Calendar, Users, Rocket, FolderPen } from 'lucide-react';
 import { agreementsApi } from '../api/services';
 import { UsdWithUzs } from '../components/Money';
 import { useCbuRate } from '../utils/money';
+import { uploadAgreementPdfToProject } from '../utils/agreementPdf';
 
 export const FinalizeAgreementPage: React.FC = () => {
   const navigate = useNavigate();
@@ -15,6 +16,9 @@ export const FinalizeAgreementPage: React.FC = () => {
   const [deadline, setDeadline] = useState('');
   const [managers, setManagers] = useState<any[]>([]);
   const [selectedManagers, setSelectedManagers] = useState<string[]>([]);
+  const [projectName, setProjectName] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [pdfStep, setPdfStep] = useState(false);
 
   useEffect(() => {
     if (id) loadData();
@@ -42,20 +46,46 @@ export const FinalizeAgreementPage: React.FC = () => {
   };
 
   const handleFinalize = async () => {
+    const name = projectName.trim();
+    if (!name) {
+      setNameError('Loyiha nomini kiriting.');
+      return;
+    }
+    let finalized: any;
     try {
       setSaving(true);
       // Kurs serverda bugungi CBU kursidan olinadi
-      await agreementsApi.finalize(id!, {
+      finalized = await agreementsApi.finalize(id!, {
+        projectName: name,
         deadline: deadline ? new Date(deadline).toISOString() : null,
         managerIds: selectedManagers,
       });
-      alert('Loyiha muvaffaqiyatli yaratildi!');
-      navigate('/agreements');
     } catch (err: any) {
       alert(err?.response?.data?.message || 'Xatolik yuz berdi');
-    } finally {
       setSaving(false);
+      return;
     }
+
+    // Shartnoma PDF ini loyiha hujjatlariga avtomatik qo'shamiz
+    let pdfOk = false;
+    if (finalized?.projectId) {
+      setPdfStep(true);
+      try {
+        await uploadAgreementPdfToProject(finalized.projectId, finalized);
+        pdfOk = true;
+      } catch (err) {
+        console.error('Shartnoma PDF yuklanmadi', err);
+      }
+    }
+    setSaving(false);
+    setPdfStep(false);
+
+    alert(
+      pdfOk
+        ? 'Loyiha muvaffaqiyatli yaratildi! Shartnoma PDF i loyiha hujjatlariga qo\'shildi.'
+        : 'Loyiha yaratildi, lekin shartnoma PDF ini qo\'shib bo\'lmadi. Uni loyihaning "Hujjatlar" bo\'limidan qo\'shishingiz mumkin.'
+    );
+    navigate(finalized?.projectId ? `/projects/${finalized.projectId}` : '/agreements');
   };
 
   if (loading)
@@ -89,12 +119,37 @@ export const FinalizeAgreementPage: React.FC = () => {
         {/* Agreement info */}
         {agreement && (
           <div className="bg-purple-50 rounded-lg p-3 mb-4">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-purple-400">Shartnomadagi ob'ekt</div>
             <div className="text-xs font-semibold text-purple-700 break-words">{agreement.projectName}</div>
             <div className="text-xs text-purple-500 mt-0.5 break-words">
               {agreement.customerFullName} • {fmt(agreement.totalAmountUZS)} UZS
             </div>
           </div>
         )}
+
+        {/* WorkDex project name */}
+        <div className="mb-4">
+          <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 mb-1">
+            <FolderPen className="w-3.5 h-3.5" /> Loyiha nomi (WorkDex uchun) <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            autoFocus
+            maxLength={300}
+            value={projectName}
+            onChange={e => {
+              setProjectName(e.target.value);
+              if (nameError) setNameError('');
+            }}
+            placeholder="Masalan: Newport G-6-38"
+            className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7c3aed] ${nameError ? 'border-red-400' : 'border-gray-200'}`}
+          />
+          {nameError ? (
+            <div className="text-[10px] text-red-600 mt-1">{nameError}</div>
+          ) : (
+            <div className="text-[10px] text-gray-400 mt-1">Bu nom faqat WorkDex ichida ko'rinadi, shartnoma matniga ta'sir qilmaydi.</div>
+          )}
+        </div>
 
         {/* Deadline */}
         <div className="mb-4">
@@ -171,11 +226,11 @@ export const FinalizeAgreementPage: React.FC = () => {
           </button>
           <button
             onClick={handleFinalize}
-            disabled={saving}
+            disabled={saving || !projectName.trim()}
             className="flex-1 flex items-center justify-center gap-2 bg-[#7c3aed] text-white py-2 rounded-lg text-sm font-semibold hover:bg-[#6d28d9] disabled:opacity-50"
           >
             <Rocket className="w-4 h-4" />
-            {saving ? 'Yaratilmoqda...' : 'Loyiha yaratish'}
+            {saving ? (pdfStep ? 'PDF tayyorlanmoqda...' : 'Yaratilmoqda...') : 'Loyiha yaratish'}
           </button>
         </div>
       </div>
