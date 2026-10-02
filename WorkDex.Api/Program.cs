@@ -114,7 +114,7 @@ builder.Services.AddScoped<IAgreementService, AgreementService>();
 builder.Services.AddSingleton<ICurrencyService, CurrencyService>();
 builder.Services.AddScoped<IAiAnalysisService, AiAnalysisService>();
 builder.Services.AddHttpClient("Groq", c => c.Timeout = TimeSpan.FromSeconds(120));
-builder.Services.AddHttpClient("CBU");
+builder.Services.AddHttpClient("CBU", c => c.Timeout = TimeSpan.FromSeconds(15));
 
 // =============================================
 // CONTROLLERS

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
 import { NotificationBell } from './NotificationBell';
 import { useCbuRate } from '../utils/money';
+import { CurrencyHistoryModal } from './CurrencyHistoryModal';
 
 interface HeaderProps {
   title: string;
@@ -15,6 +16,7 @@ export const Header: React.FC<HeaderProps> = ({ title, onOpenNewProject, onOpenM
   const { user } = useAuth();
   const isSuperAdmin = user?.role === UserRole.SuperAdmin;
   const cbuRate = useCbuRate();
+  const [isCurrencyHistoryOpen, setIsCurrencyHistoryOpen] = React.useState(false);
 
   return (
     <header className="no-print sticky top-0 z-30 lg:static h-[56px] lg:h-[66px] bg-white border-b border-[#e4e7ec] flex items-center px-3 sm:px-6 gap-2 sm:gap-3">
@@ -37,15 +39,18 @@ export const Header: React.FC<HeaderProps> = ({ title, onOpenNewProject, onOpenM
 
       {/* CBU kursi */}
       {cbuRate > 0 && (
-        <div
-          title="O'zbekiston Markaziy banki (CBU) bugungi kursi"
-          className="hidden sm:flex flex-shrink-0 border border-[#e4e7ec] bg-white rounded-lg h-[34px] px-2.5 text-xs text-[#4f5663] items-center gap-1.5"
+        <button
+          type="button"
+          onClick={() => setIsCurrencyHistoryOpen(true)}
+          title="USD kursi tarixini ko'rish"
+          aria-label={`CBU joriy kursi: 1 AQSH dollari ${cbuRate.toLocaleString('ru-RU')} so'm. Tarixni ko'rish`}
+          className="flex flex-shrink-0 border border-[#e4e7ec] bg-white hover:bg-[#f7f8fa] rounded-lg h-[34px] px-2 sm:px-2.5 text-xs text-[#4f5663] items-center gap-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
         >
           <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 rounded px-1 py-0.5">CBU</span>
-          <span className="whitespace-nowrap">
+          <span className="hidden whitespace-nowrap sm:inline">
             1$ = <b className="font-semibold text-[#171b25]">{cbuRate.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}</b> so'm
           </span>
-        </div>
+        </button>
       )}
 
       {/* Date filter pill */}
@@ -67,6 +72,7 @@ export const Header: React.FC<HeaderProps> = ({ title, onOpenNewProject, onOpenM
           <span className="hidden sm:inline">Yangi loyiha</span>
         </button>
       )}
+      {isCurrencyHistoryOpen && <CurrencyHistoryModal onClose={() => setIsCurrencyHistoryOpen(false)} />}
     </header>
   );
 };

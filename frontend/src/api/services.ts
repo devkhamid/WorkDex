@@ -616,8 +616,17 @@ export const currencyApi = {
   getRate: async (): Promise<{ rate: number; currency: string; toCurrency: string; date: string }> => {
     const res = await apiClient.get<{ rate: number; currency: string; toCurrency: string; date: string }>('/currency/rate');
     return res.data;
+  },
+  getHistory: async (days: number): Promise<CurrencyRateHistoryPoint[]> => {
+    const res = await apiClient.get<CurrencyRateHistoryPoint[]>('/currency/history', { params: { days } });
+    return res.data;
   }
 };
+
+export interface CurrencyRateHistoryPoint {
+  date: string;
+  rate: number;
+}
 
 // CBU kursi kuniga bir marta o'zgaradi — barcha komponentlar bitta so'rovni bo'lishadi
 let cbuRatePromise: Promise<number> | null = null;
