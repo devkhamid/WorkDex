@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, DollarSign, Calendar, Users, Rocket } from 'lucide-react';
 import { agreementsApi } from '../api/services';
+import { UsdWithUzs } from '../components/Money';
+import { useCbuRate } from '../utils/money';
 
 export const FinalizeAgreementPage: React.FC = () => {
   const navigate = useNavigate();
@@ -9,7 +11,7 @@ export const FinalizeAgreementPage: React.FC = () => {
   const [agreement, setAgreement] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [exchangeRate, setExchangeRate] = useState('');
+  const cbuRate = useCbuRate();
   const [deadline, setDeadline] = useState('');
   const [managers, setManagers] = useState<any[]>([]);
   const [selectedManagers, setSelectedManagers] = useState<string[]>([]);
@@ -40,14 +42,10 @@ export const FinalizeAgreementPage: React.FC = () => {
   };
 
   const handleFinalize = async () => {
-    if (!exchangeRate || parseFloat(exchangeRate) <= 0) {
-      alert('Valyuta kursini kiriting');
-      return;
-    }
     try {
       setSaving(true);
+      // Kurs serverda bugungi CBU kursidan olinadi
       await agreementsApi.finalize(id!, {
-        exchangeRate: parseFloat(exchangeRate),
         deadline: deadline ? new Date(deadline).toISOString() : null,
         managerIds: selectedManagers,
       });
@@ -66,11 +64,6 @@ export const FinalizeAgreementPage: React.FC = () => {
         <div className="w-8 h-8 border-4 border-[#7c3aed] border-t-transparent rounded-full animate-spin" />
       </div>
     );
-
-  const totalUSD =
-    agreement && exchangeRate
-      ? Math.round(agreement.totalAmountUZS / parseFloat(exchangeRate))
-      : 0;
 
   const fmt = (n: number) => new Intl.NumberFormat('uz-UZ').format(n);
 
@@ -121,16 +114,12 @@ export const FinalizeAgreementPage: React.FC = () => {
           <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 mb-1">
             <DollarSign className="w-3.5 h-3.5" /> Valyuta kursi (UZS → USD)
           </label>
-          <input
-            type="number"
-            value={exchangeRate}
-            onChange={e => setExchangeRate(e.target.value)}
-            placeholder="Kursni kiriting (masalan: 12850)"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7c3aed]"
-          />
-          {exchangeRate && agreement && (
+          <div className="w-full border border-gray-100 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-700">
+            {cbuRate > 0 ? `1 USD = ${fmt(cbuRate)} so'm (Markaziy bank)` : 'Kurs yuklanmoqda...'}
+          </div>
+          {cbuRate > 0 && agreement && (
             <div className="text-xs text-gray-500 mt-1">
-              Joriy shartnoma: {fmt(totalUSD)} USD
+              Shartnoma: <UsdWithUzs inline className="font-semibold text-gray-700" uzs={agreement.totalAmountUZS} />
             </div>
           )}
         </div>

@@ -8,10 +8,12 @@ namespace WorkDex.Api.Services;
 public class MaterialService : IMaterialService
 {
     private readonly AppDbContext _context;
+    private readonly ICurrencyService _currencyService;
 
-    public MaterialService(AppDbContext context)
+    public MaterialService(AppDbContext context, ICurrencyService currencyService)
     {
         _context = context;
+        _currencyService = currencyService;
     }
 
     public async Task<List<MaterialDto>> GetAllMaterialsAsync(Guid requestingUserId, UserRole requestingUserRole)
@@ -168,9 +170,10 @@ public class MaterialService : IMaterialService
         if (user is null)
             throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
 
-        var isUsd = string.Equals(dto.Currency, "USD", StringComparison.OrdinalIgnoreCase) && dto.ExchangeRateToUzs.HasValue && dto.ExchangeRateToUzs.Value > 0;
-        var originalPrice = dto.OriginalUnitPrice ?? dto.UnitPrice;
-        var effectiveUnitPrice = isUsd ? Math.Round(originalPrice * dto.ExchangeRateToUzs!.Value, 2) : dto.UnitPrice;
+        // UnitPrice/TotalCost har doim so'mda saqlanadi; kurs bugungi CBU kursi
+        var currency = Money.Normalize(dto.Currency, "UZS");
+        var rate = await Money.CurrentRateAsync(_currencyService);
+        var effectiveUnitPrice = Money.ToUzs(dto.UnitPrice, currency, rate);
         var totalCost = Math.Round(dto.Quantity * effectiveUnitPrice, 2);
         var finalBrand = !string.IsNullOrWhiteSpace(dto.Brand) ? dto.Brand.Trim() : material.Brand;
 
@@ -182,9 +185,9 @@ public class MaterialService : IMaterialService
             Unit = material.Unit,
             UnitPrice = effectiveUnitPrice,
             TotalCost = totalCost,
-            Currency = isUsd ? "USD" : "UZS",
-            ExchangeRateToUzs = isUsd ? dto.ExchangeRateToUzs : null,
-            OriginalUnitPrice = isUsd ? originalPrice : null,
+            Currency = currency,
+            ExchangeRateToUzs = rate,
+            OriginalUnitPrice = dto.UnitPrice,
             Brand = finalBrand,
             Supplier = dto.Supplier?.Trim(),
             PurchaseDate = dto.PurchaseDate,
@@ -208,6 +211,7 @@ public class MaterialService : IMaterialService
             Unit = purchase.Unit,
             UnitPrice = purchase.UnitPrice,
             TotalCost = purchase.TotalCost,
+            TotalCostUsd = Math.Round(purchase.TotalCost / rate, 2),
             Currency = purchase.Currency,
             ExchangeRateToUzs = purchase.ExchangeRateToUzs,
             OriginalUnitPrice = purchase.OriginalUnitPrice,
@@ -234,6 +238,7 @@ public class MaterialService : IMaterialService
             .OrderByDescending(mp => mp.PurchaseDate)
             .ToListAsync();
 
+        var currentRate = await Money.CurrentRateAsync(_currencyService);
         return purchases.Select(p => new MaterialPurchaseDto
         {
             Id = p.Id,
@@ -245,6 +250,7 @@ public class MaterialService : IMaterialService
             Unit = p.Unit,
             UnitPrice = p.UnitPrice,
             TotalCost = p.TotalCost,
+            TotalCostUsd = Math.Round(p.TotalCost / (p.ExchangeRateToUzs is > 0 ? p.ExchangeRateToUzs.Value : currentRate), 2),
             Currency = p.Currency ?? "UZS",
             ExchangeRateToUzs = p.ExchangeRateToUzs,
             OriginalUnitPrice = p.OriginalUnitPrice,

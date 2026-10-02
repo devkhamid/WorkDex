@@ -2,15 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, Building2, Wallet, ArrowUpRight, ArrowDownRight, FileSpreadsheet } from 'lucide-react';
 import { dashboardApi, projectsApi, reportsApi } from '../api/services';
 import { DashboardStats, Project } from '../types';
-
-// Valyuta yordamchi funksiyalar
-const formatUzs = (amount: number) => `${amount.toLocaleString()} so'm`;
-const formatUsd = (amount: number) => `$${amount.toLocaleString()}`;
-const formatProjectContract = (p: Project) => {
-  const curr = (p.currency || 'USD').toUpperCase();
-  if (curr === 'UZS' && p.contractAmountUzs) return `${p.contractAmountUzs.toLocaleString()} so'm`;
-  return `$${p.contractAmount.toLocaleString()}`;
-};
+import { UsdWithUzs } from '../components/Money';
 
 export const FinancePage: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -192,15 +184,15 @@ export const FinancePage: React.FC = () => {
           <div className="divide-y divide-gray-100 text-xs">
             <div className="py-3 flex justify-between items-center">
               <span className="text-gray-600 font-medium">Ustalar haqi to'lovlari</span>
-              <b className="text-gray-900 font-semibold">0 so'm</b>
+              <UsdWithUzs className="text-gray-900 font-semibold items-end" usd={0} uzs={0} />
             </div>
             <div className="py-3 flex justify-between items-center">
               <span className="text-gray-600 font-medium">Material xaridlari qoldig'i</span>
-              <b className="text-gray-900 font-semibold">0 so'm</b>
+              <UsdWithUzs className="text-gray-900 font-semibold items-end" usd={0} uzs={0} />
             </div>
             <div className="py-3 flex justify-between items-center">
               <span className="text-gray-600 font-medium">Transport &amp; Logistika</span>
-              <b className="text-gray-900 font-semibold">0 so'm</b>
+              <UsdWithUzs className="text-gray-900 font-semibold items-end" usd={0} uzs={0} />
             </div>
           </div>
         </div>
@@ -230,9 +222,9 @@ export const FinancePage: React.FC = () => {
                   <td className="py-3.5 px-5 font-bold text-[#171b25]">{p.name}</td>
                   <td className="py-3.5 px-5 text-gray-700">{p.customerName || '-'}</td>
                   <td className="py-3.5 px-5 font-semibold text-gray-900">
-                    {formatProjectContract(p)}
+                    <UsdWithUzs usd={p.contractAmount} uzs={p.contractAmountUzs} />
                   </td>
-                  <td className="py-3.5 px-5 text-gray-600">{formatUzs(p.budget)}</td>
+                  <td className="py-3.5 px-5 text-gray-600"><UsdWithUzs usd={p.budget} /></td>
                   <td className="py-3.5 px-5">
                     <span className="px-2.5 py-0.5 bg-gray-100 text-gray-700 rounded-full text-[10px] font-bold">
                       {p.statusName}

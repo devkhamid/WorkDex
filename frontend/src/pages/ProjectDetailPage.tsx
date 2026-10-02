@@ -15,7 +15,9 @@ import {
   Upload,
   Trash2
 } from 'lucide-react';
-import { projectsApi, reportsApi, materialsApi, workersApi, currencyApi } from '../api/services';
+import { projectsApi, reportsApi, materialsApi, workersApi } from '../api/services';
+import { MoneyInput, UsdWithUzs } from '../components/Money';
+import { formatUsd, formatUzs, useCbuRate } from '../utils/money';
 import { getFileUrl } from '../api/client';
 import {
   Project,
@@ -32,7 +34,8 @@ import {
   ProjectDocument,
   ProjectStage,
   Material,
-  Worker
+  Worker,
+  Currency
 } from '../types';
 
 export const formatDateUz = (dateStr?: string | Date | null) => {
@@ -107,15 +110,14 @@ export const ProjectDetailPage: React.FC = () => {
 
   // Payment Form State
   const [newPayAmount, setNewPayAmount] = useState<number | ''>('');
+  const [newPayCurrency, setNewPayCurrency] = useState<Currency>('USD');
   const [newPayMethod, setNewPayMethod] = useState(1);
   const [newPayNotes, setNewPayNotes] = useState('');
 
   // Expense Form State
   const [newExpCategory, setNewExpCategory] = useState(9); // Default: Yuklarni tashish / Ko'tarish
   const [newExpAmount, setNewExpAmount] = useState<number | ''>('');
-  const [newExpCurrency, setNewExpCurrency] = useState<'UZS' | 'USD'>('UZS');
-  const [newExpRate, setNewExpRate] = useState<number | ''>('');
-  const [newExpAmountUsd, setNewExpAmountUsd] = useState<number | ''>('');
+  const [newExpCurrency, setNewExpCurrency] = useState<Currency>('UZS');
   const [newExpDesc, setNewExpDesc] = useState('');
   const [newExpDate, setNewExpDate] = useState(new Date().toISOString().split('T')[0]);
 
@@ -127,9 +129,7 @@ export const ProjectDetailPage: React.FC = () => {
   const [newPurMatId, setNewPurMatId] = useState('');
   const [newPurQty, setNewPurQty] = useState<number | ''>('');
   const [newPurPrice, setNewPurPrice] = useState<number | ''>('');
-  const [newPurCurrency, setNewPurCurrency] = useState<'UZS' | 'USD'>('UZS');
-  const [newPurRate, setNewPurRate] = useState<number | ''>('');
-  const [newPurPriceUsd, setNewPurPriceUsd] = useState<number | ''>('');
+  const [newPurCurrency, setNewPurCurrency] = useState<Currency>('UZS');
   const [newPurSupplier, setNewPurSupplier] = useState('');
 
   // Worker Payment Form State
@@ -140,17 +140,13 @@ export const ProjectDetailPage: React.FC = () => {
   const [newWorkId, setNewWorkId] = useState('');
   const [newWorkDesc, setNewWorkDesc] = useState('');
   const [newWorkAgreed, setNewWorkAgreed] = useState<number | ''>('');
-  const [newWorkCurrency, setNewWorkCurrency] = useState<'UZS' | 'USD'>('UZS');
-  const [newWorkRate, setNewWorkRate] = useState<number | ''>('');
-  const [newWorkAgreedUsd, setNewWorkAgreedUsd] = useState<number | ''>('');
+  const [newWorkCurrency, setNewWorkCurrency] = useState<Currency>('UZS');
 
   // Pay Worker Modal State
   const [isPayWorkerModalOpen, setIsPayWorkerModalOpen] = useState(false);
   const [selectedWorkerForPay, setSelectedWorkerForPay] = useState<WorkerPayment | null>(null);
   const [payWorkerAmount, setPayWorkerAmount] = useState<number | ''>('');
-  const [payWorkerCurrency, setPayWorkerCurrency] = useState<'UZS' | 'USD'>('UZS');
-  const [payWorkerRate, setPayWorkerRate] = useState<number | ''>('');
-  const [payWorkerAmountUsd, setPayWorkerAmountUsd] = useState<number | ''>('');
+  const [payWorkerCurrency, setPayWorkerCurrency] = useState<Currency>('UZS');
   const [payWorkerDate, setPayWorkerDate] = useState(new Date().toISOString().split('T')[0]);
   const [payWorkerNotes, setPayWorkerNotes] = useState('');
 
@@ -163,57 +159,48 @@ export const ProjectDetailPage: React.FC = () => {
   const [isWorkAmountModalOpen, setIsWorkAmountModalOpen] = useState(false);
   const [selectedWorkerForWorkAmount, setSelectedWorkerForWorkAmount] = useState<WorkerPayment | null>(null);
   const [workAmountInput, setWorkAmountInput] = useState<number | ''>('');
+  const [workAmountCurrency, setWorkAmountCurrency] = useState<Currency>('UZS');
   const [workAmountNotes, setWorkAmountNotes] = useState('');
 
   // Extra Work Form State
   const [newExtraTitle, setNewExtraTitle] = useState('');
   const [newExtraCustAmt, setNewExtraCustAmt] = useState<number | ''>('');
   const [newExtraCost, setNewExtraCost] = useState<number | ''>('');
+  const [newExtraCurrency, setNewExtraCurrency] = useState<Currency>('USD');
 
   // Photo Form State
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
   const [newPhotoCaption, setNewPhotoCaption] = useState('');
   const [newPhotoVisible, setNewPhotoVisible] = useState(true);
 
-  const [cbuRate, setCbuRate] = useState<number>(12800);
+  const cbuRate = useCbuRate();
 
-  useEffect(() => {
-    currencyApi.getRate().then((res) => {
-      if (res?.rate > 0) setCbuRate(res.rate);
-    }).catch(() => {});
-  }, []);
+  const exceedsUzsLimit = (amount: number, currency: Currency, limitUzs: number) =>
+    currency === 'USD' ? cbuRate > 0 && amount > limitUzs / cbuRate + 0.01 : amount > limitUzs;
+  const payRemaining = selectedWorkerForPay ? selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount : 0;
+  const payExceeds = !!selectedWorkerForPay && exceedsUzsLimit(Number(payWorkerAmount) || 0, payWorkerCurrency, payRemaining);
+  const workAmountExceeds = !!selectedWorkerForWorkAmount &&
+    exceedsUzsLimit(Number(workAmountInput) || 0, workAmountCurrency, selectedWorkerForWorkAmount.agreedAmount);
 
   const handleOpenExpenseModal = () => {
-    const isProjUsd = (project?.currency || 'USD').toUpperCase() === 'USD';
-    setNewExpCurrency(isProjUsd ? 'USD' : 'UZS');
-    const defaultRate = Math.round(project?.exchangeRate || cbuRate || 12800);
-    setNewExpRate(defaultRate);
+    setNewExpCurrency('UZS');
     setNewExpAmount('');
-    setNewExpAmountUsd('');
     setNewExpDesc('');
     setNewExpDate(new Date().toISOString().split('T')[0]);
     setIsExpenseModalOpen(true);
   };
 
   const handleOpenPurchaseModal = () => {
-    const isProjUsd = (project?.currency || 'USD').toUpperCase() === 'USD';
-    setNewPurCurrency(isProjUsd ? 'USD' : 'UZS');
-    const defaultRate = Math.round(project?.exchangeRate || cbuRate || 12800);
-    setNewPurRate(defaultRate);
+    setNewPurCurrency('UZS');
     setNewPurPrice('');
-    setNewPurPriceUsd('');
     setNewPurQty(1);
     setNewPurSupplier('');
     setIsPurchaseModalOpen(true);
   };
 
   const handleOpenWorkerModal = () => {
-    const isProjUsd = (project?.currency || 'USD').toUpperCase() === 'USD';
-    setNewWorkCurrency(isProjUsd ? 'USD' : 'UZS');
-    const defaultRate = Math.round(project?.exchangeRate || cbuRate || 12800);
-    setNewWorkRate(defaultRate);
+    setNewWorkCurrency('UZS');
     setNewWorkAgreed('');
-    setNewWorkAgreedUsd('');
     setNewWorkDesc('');
     setIsWorkerModalOpen(true);
   };
@@ -319,6 +306,7 @@ export const ProjectDetailPage: React.FC = () => {
     try {
       await projectsApi.createPayment(id, {
         amount: Number(newPayAmount) || 0,
+        currency: newPayCurrency,
         paymentMethod: newPayMethod,
         paymentDate: new Date().toISOString(),
         notes: newPayNotes || undefined
@@ -335,33 +323,23 @@ export const ProjectDetailPage: React.FC = () => {
   const handleCreateExpense = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
-    const isUsd = newExpCurrency === 'USD';
-    const amountVal = isUsd ? Number(newExpAmountUsd) : Number(newExpAmount);
-    const rateVal = isUsd ? Number(newExpRate) : undefined;
+    const amountVal = Number(newExpAmount);
 
     if (!amountVal || amountVal <= 0) {
       alert("Summa 0 dan katta bo'lishi kerak.");
-      return;
-    }
-    if (isUsd && (!rateVal || rateVal <= 0)) {
-      alert("Dollar kursini kiriting (masalan: 11 750).");
       return;
     }
 
     try {
       await projectsApi.createExpense(id, {
         category: newExpCategory,
-        amount: isUsd ? Math.round(amountVal * (rateVal || 1)) : amountVal,
+        amount: amountVal,
         currency: newExpCurrency,
-        exchangeRateToUzs: rateVal,
-        originalAmount: isUsd ? amountVal : undefined,
         description: newExpDesc.trim(),
         expenseDate: new Date(newExpDate).toISOString(),
       });
       setIsExpenseModalOpen(false);
       setNewExpAmount('');
-      setNewExpAmountUsd('');
-      setNewExpRate('');
       setNewExpCurrency('UZS');
       setNewExpDesc('');
       setNewExpDate(new Date().toISOString().split('T')[0]);
@@ -374,16 +352,10 @@ export const ProjectDetailPage: React.FC = () => {
   const handleCreatePurchase = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
-    const isUsd = newPurCurrency === 'USD';
-    const unitPriceVal = isUsd ? Number(newPurPriceUsd) : Number(newPurPrice);
-    const rateVal = isUsd ? Number(newPurRate) : undefined;
+    const unitPriceVal = Number(newPurPrice);
 
     if (!unitPriceVal || unitPriceVal <= 0) {
       alert("Narx 0 dan katta bo'lishi kerak.");
-      return;
-    }
-    if (isUsd && (!rateVal || rateVal <= 0)) {
-      alert("Dollar kursini kiriting (masalan: 11 750).");
       return;
     }
 
@@ -403,10 +375,8 @@ export const ProjectDetailPage: React.FC = () => {
         materialId: finalMaterialId,
         brand: newPurMatBrand || undefined,
         quantity: Number(newPurQty) || 0,
-        unitPrice: isUsd ? Math.round(unitPriceVal * (rateVal || 1)) : unitPriceVal,
+        unitPrice: unitPriceVal,
         currency: newPurCurrency,
-        exchangeRateToUzs: rateVal,
-        originalUnitPrice: isUsd ? unitPriceVal : undefined,
         supplier: newPurSupplier || undefined,
         purchaseDate: new Date().toISOString()
       });
@@ -416,8 +386,6 @@ export const ProjectDetailPage: React.FC = () => {
       setNewPurMatBrand('');
       setNewPurQty('');
       setNewPurPrice('');
-      setNewPurPriceUsd('');
-      setNewPurRate('');
       setNewPurCurrency('UZS');
       setNewPurSupplier('');
       loadAllData(id);
@@ -429,20 +397,12 @@ export const ProjectDetailPage: React.FC = () => {
   const handleCreateWorkerPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
-    const isUsd = newWorkCurrency === 'USD';
-    const agreedVal = isUsd ? Number(newWorkAgreedUsd) : Number(newWorkAgreed);
-    const rateVal = isUsd ? Number(newWorkRate) : undefined;
+    const agreedVal = Number(newWorkAgreed);
 
     if (!Number.isFinite(agreedVal) || agreedVal <= 0) {
       alert("Kelishilgan summa 0 dan katta bo'lishi kerak.");
       return;
     }
-    if (isUsd && (!rateVal || rateVal <= 0)) {
-      alert("Dollar kursini kiriting (masalan: 11 750).");
-      return;
-    }
-
-    const effectiveAgreed = isUsd ? Math.round(agreedVal * (rateVal || 1)) : agreedVal;
 
     try {
       let finalWorkerId = newWorkId;
@@ -459,10 +419,8 @@ export const ProjectDetailPage: React.FC = () => {
       await projectsApi.createWorkerPayment(id, {
         workerId: finalWorkerId,
         jobDescription: newWorkDesc,
-        agreedAmount: effectiveAgreed,
+        agreedAmount: agreedVal,
         currency: newWorkCurrency,
-        exchangeRateToUzs: rateVal,
-        originalAgreedAmount: isUsd ? agreedVal : undefined,
       });
       setIsWorkerModalOpen(false);
       setIsNewWorker(false);
@@ -470,8 +428,6 @@ export const ProjectDetailPage: React.FC = () => {
       setNewWorkerPhone('');
       setNewWorkDesc('');
       setNewWorkAgreed('');
-      setNewWorkAgreedUsd('');
-      setNewWorkRate('');
       setNewWorkCurrency('UZS');
       loadAllData(id);
     } catch (err: any) {
@@ -482,11 +438,8 @@ export const ProjectDetailPage: React.FC = () => {
   const openPayWorkerModal = (wp: WorkerPayment) => {
     setSelectedWorkerForPay(wp);
     const maxAllowed = Math.max(0, wp.remainingAllowedToPay ?? wp.agreedAmount - wp.paidAmount);
+    setPayWorkerCurrency('UZS');
     setPayWorkerAmount(maxAllowed > 0 ? maxAllowed : '');
-    setPayWorkerAmountUsd('');
-    const defaultRate = Math.round(wp.exchangeRateToUzs || project?.exchangeRate || cbuRate || 12800);
-    setPayWorkerRate(defaultRate);
-    setPayWorkerCurrency(wp.currency === 'USD' ? 'USD' : 'UZS');
     setPayWorkerDate(new Date().toISOString().split('T')[0]);
     setPayWorkerNotes('');
     setIsPayWorkerModalOpen(true);
@@ -495,41 +448,35 @@ export const ProjectDetailPage: React.FC = () => {
   const submitPayWorker = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id || !selectedWorkerForPay) return;
-    const isUsd = payWorkerCurrency === 'USD';
-    const amountVal = isUsd ? Number(payWorkerAmountUsd) : Number(payWorkerAmount);
-    const rateVal = isUsd ? Number(payWorkerRate) : undefined;
+    const amountVal = Number(payWorkerAmount);
 
     if (!amountVal || amountVal <= 0) {
       alert("Iltimos, to'g'ri to'lov summasini kiriting.");
       return;
     }
-    if (isUsd && (!rateVal || rateVal <= 0)) {
-      alert("Dollar kursini kiriting (masalan: 11 750).");
-      return;
-    }
 
-    const effectiveAmountInUzs = isUsd ? Math.round(amountVal * (rateVal || 1)) : amountVal;
     const maxAllowed = selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount;
+    const isUsd = payWorkerCurrency === 'USD';
+    // USD kiritilganda 1 sentlik yaxlitlash farqiga ruxsat (server qoldiqqa tenglashtiradi)
+    const exceeds = isUsd
+      ? cbuRate > 0 && amountVal > maxAllowed / cbuRate + 0.01
+      : amountVal > maxAllowed;
 
-    if (effectiveAmountInUzs > maxAllowed) {
-      alert(`⚠️ Ustaga faqat ${maxAllowed.toLocaleString()} so'm to'lash mumkin. Kiritilgan summa (${effectiveAmountInUzs.toLocaleString()} so'm) kelishilgan umumiy summadan (${selectedWorkerForPay.agreedAmount.toLocaleString()} so'm) oshib ketmoqda.`);
+    if (exceeds) {
+      alert(`⚠️ Ustaga faqat ${formatUzs(maxAllowed)}${cbuRate > 0 ? ` (≈ ${formatUsd(maxAllowed / cbuRate)})` : ''} to'lash mumkin. Kiritilgan summa kelishilgan umumiy summadan (${formatUzs(selectedWorkerForPay.agreedAmount)}) oshib ketmoqda.`);
       return;
     }
 
     try {
       await projectsApi.payWorker(id, selectedWorkerForPay.id, {
-        amount: effectiveAmountInUzs,
+        amount: amountVal,
         currency: payWorkerCurrency,
-        exchangeRateToUzs: rateVal,
-        originalAmount: isUsd ? amountVal : undefined,
         paymentDate: new Date(payWorkerDate).toISOString(),
         notes: payWorkerNotes || undefined
       });
       setIsPayWorkerModalOpen(false);
       setSelectedWorkerForPay(null);
       setPayWorkerAmount('');
-      setPayWorkerAmountUsd('');
-      setPayWorkerRate('');
       setPayWorkerCurrency('UZS');
       loadAllData(id);
     } catch (err: any) {
@@ -540,6 +487,7 @@ export const ProjectDetailPage: React.FC = () => {
   const openWorkAmountModal = (wp: WorkerPayment) => {
     setSelectedWorkerForWorkAmount(wp);
     setWorkAmountInput(wp.workAmount || '');
+    setWorkAmountCurrency('UZS');
     setWorkAmountNotes('');
     setIsWorkAmountModalOpen(true);
   };
@@ -554,13 +502,17 @@ export const ProjectDetailPage: React.FC = () => {
       return;
     }
 
-    if (workAmt > selectedWorkerForWorkAmount.agreedAmount) {
-      alert(`⚠️ Ishlangan haq kelishilgan umumiy summadan (${selectedWorkerForWorkAmount.agreedAmount.toLocaleString()} so'm) ko'p bo'lishi mumkin emas.`);
+    const agreed = selectedWorkerForWorkAmount.agreedAmount;
+    const workExceeds = workAmountCurrency === 'USD'
+      ? cbuRate > 0 && workAmt > agreed / cbuRate + 0.01
+      : workAmt > agreed;
+    if (workExceeds) {
+      alert(`⚠️ Ishlangan haq kelishilgan umumiy summadan (${formatUzs(agreed)}) ko'p bo'lishi mumkin emas.`);
       return;
     }
 
     try {
-      await projectsApi.updateWorkAmount(id, selectedWorkerForWorkAmount.id, workAmt, workAmountNotes || undefined);
+      await projectsApi.updateWorkAmount(id, selectedWorkerForWorkAmount.id, workAmt, workAmountCurrency, workAmountNotes || undefined);
       setIsWorkAmountModalOpen(false);
       setSelectedWorkerForWorkAmount(null);
       setWorkAmountInput('');
@@ -578,6 +530,7 @@ export const ProjectDetailPage: React.FC = () => {
         title: newExtraTitle,
         customerAmount: Number(newExtraCustAmt) || 0,
         actualCost: Number(newExtraCost) || 0,
+        currency: newExtraCurrency,
         isApprovedByCustomer: true,
       });
       setIsExtraWorkModalOpen(false);
@@ -680,91 +633,45 @@ export const ProjectDetailPage: React.FC = () => {
         ))}
       </div>
 
-      {/* 4 Finance Cards */}
+      {/* 4 Finance Cards — asosiy USD, ostida so'm */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-        {/* SHARTNOMA CARD */}
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-3.5 shadow-xs">
           <small className="block text-[9px] font-bold text-[#8e95a0] uppercase tracking-wider">SHARTNOMA</small>
-          {(() => {
-            const isUzs = (project.currency || 'USD').toUpperCase() === 'UZS';
-            const uzsAmount = summary?.contractAmountUzs ?? project.contractAmountUzs;
-            const usdAmount = summary?.contractAmount ?? project.contractAmount;
-            if (isUzs && uzsAmount) {
-              return (
-                <>
-                  <b className="text-xl font-extrabold text-[#171b25] block mt-1.5">
-                    {uzsAmount.toLocaleString()} so'm
-                  </b>
-                  <span className="text-[11px] text-gray-400 mt-0.5 block">
-                    ≈ ${usdAmount.toLocaleString()}
-                    {project.exchangeRate && <span className="ml-1 text-[10px]">(kurs: {project.exchangeRate.toLocaleString()})</span>}
-                  </span>
-                </>
-              );
-            }
-            return (
-              <>
-                <b className="text-xl font-extrabold text-[#171b25] block mt-1.5">${usdAmount.toLocaleString()}</b>
-              </>
-            );
-          })()}
+          <UsdWithUzs
+            className="text-xl font-extrabold text-[#171b25] mt-1.5"
+            uzsClassName="text-[11px] mt-0.5"
+            usd={summary?.contractAmount ?? project.contractAmount}
+            uzs={summary?.contractAmountUzs ?? project.contractAmountUzs}
+          />
+          {project.exchangeRate ? (
+            <span className="block text-[10px] text-gray-400">Shartnoma kursi: {project.exchangeRate.toLocaleString('ru-RU')}</span>
+          ) : null}
         </div>
 
-        {/* OLINGAN TO'LOV */}
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-3.5 shadow-xs">
           <small className="block text-[9px] font-bold text-[#8e95a0] uppercase tracking-wider">OLINGAN TO'LOV</small>
-          {(() => {
-            const isUzs = (project.currency || 'USD').toUpperCase() === 'UZS';
-            const paidUsd = summary?.totalPaid ?? 0;
-            const paidUzs = summary?.totalPaidUzs ?? 0;
-            if (isUzs) {
-              return (
-                <>
-                  <b className="text-xl font-extrabold text-[#21bd68] block mt-1.5">{paidUzs.toLocaleString()} so'm</b>
-                  {paidUsd > 0 && <span className="text-[11px] text-gray-400 mt-0.5 block">≈ ${paidUsd.toLocaleString()}</span>}
-                </>
-              );
-            }
-            return (
-              <>
-                <b className="text-xl font-extrabold text-[#21bd68] block mt-1.5">${paidUsd.toLocaleString()}</b>
-              </>
-            );
-          })()}
+          <UsdWithUzs
+            className="text-xl font-extrabold text-[#21bd68] mt-1.5"
+            uzsClassName="text-[11px] mt-0.5"
+            usd={summary?.totalPaid ?? 0}
+            uzs={summary?.totalPaidUzs}
+          />
         </div>
 
-        {/* QOLGAN TO'LOV (QARZ) */}
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-3.5 shadow-xs">
           <small className="block text-[9px] font-bold text-[#8e95a0] uppercase tracking-wider">QOLGAN TO'LOV (QARZ)</small>
-          {(() => {
-            const isUzs = (project.currency || 'USD').toUpperCase() === 'UZS';
-            const remUsd = summary?.remainingPayment ?? project.contractAmount;
-            const remUzs = summary?.remainingPaymentUzs ?? (project.contractAmountUzs ?? 0);
-            if (isUzs && remUzs > 0) {
-              return (
-                <>
-                  <b className="text-xl font-extrabold text-[#ff7a16] block mt-1.5">{remUzs.toLocaleString()} so'm</b>
-                  <span className="text-[11px] text-gray-400 mt-0.5 block">≈ ${remUsd.toLocaleString()}</span>
-                </>
-              );
-            }
-            return (
-              <>
-                <b className="text-xl font-extrabold text-[#ff7a16] block mt-1.5">${remUsd.toLocaleString()}</b>
-              </>
-            );
-          })()}
+          <UsdWithUzs
+            className="text-xl font-extrabold text-[#ff7a16] mt-1.5"
+            uzsClassName="text-[11px] mt-0.5"
+            usd={summary?.remainingPayment ?? project.contractAmount}
+            uzs={summary?.remainingPaymentUzs}
+          />
         </div>
 
-        {/* NET BALANS (QO'LDAGI SUMMA) */}
         {(() => {
-          const isUzs = (project.currency || 'USD').toUpperCase() === 'UZS';
           const netUsd = summary?.netBalance ?? ((summary?.totalPaid ?? 0) - (summary?.totalExpenses ?? 0));
-          const netUzs = summary?.netBalanceUzs ?? ((summary?.totalPaidUzs ?? 0) - (summary?.totalExpensesUzs ?? 0));
-          const isNegative = isUzs ? netUzs < 0 : netUsd < 0;
-          const grossUsd = summary?.grossProfit ?? 0;
-          const grossUzs = summary?.grossProfitUzs ?? 0;
-
+          const netUzs = summary?.netBalanceUzs;
+          const isNegative = netUsd < 0;
           return (
             <div className="bg-white border border-[#e4e7ec] rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
               <div>
@@ -774,34 +681,18 @@ export const ProjectDetailPage: React.FC = () => {
                     {isNegative ? 'Kamomad' : 'Kassa ijobiy'}
                   </span>
                 </div>
-                {isUzs ? (
-                  <>
-                    <b className={`text-xl font-extrabold block mt-1.5 ${isNegative ? 'text-red-600' : 'text-[#21bd68]'}`}>
-                      {isNegative ? `-${Math.abs(netUzs).toLocaleString()} so'm` : `${netUzs.toLocaleString()} so'm`}
-                    </b>
-                    <span className="text-[11px] text-gray-400 mt-0.5 block">
-                      ≈ {isNegative ? `-$${Math.abs(netUsd).toLocaleString()}` : `$${netUsd.toLocaleString()}`}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <b className={`text-xl font-extrabold block mt-1.5 ${isNegative ? 'text-red-600' : 'text-[#21bd68]'}`}>
-                      {isNegative ? `-$${Math.abs(netUsd).toLocaleString()}` : `$${netUsd.toLocaleString()}`}
-                    </b>
-                  </>
-                )}
+                <UsdWithUzs
+                  className={`text-xl font-extrabold mt-1.5 ${isNegative ? 'text-red-600' : 'text-[#21bd68]'}`}
+                  uzsClassName="text-[11px] mt-0.5"
+                  usd={netUsd}
+                  uzs={netUzs}
+                />
               </div>
               <div className="text-[10px] text-gray-400 mt-1 flex items-center justify-between">
                 <span>Olingan to'lov − Xarajatlar</span>
-                {isUzs ? (
-                  <span className="text-[9px] text-purple-600 font-medium" title="Kutilayotgan sof foyda">
-                    Kutilayotgan: {grossUzs.toLocaleString()} so'm
-                  </span>
-                ) : (
-                  <span className="text-[9px] text-purple-600 font-medium" title="Kutilayotgan sof foyda">
-                    Kutilayotgan: ${grossUsd.toLocaleString()}
-                  </span>
-                )}
+                <span className="text-[9px] text-purple-600 font-medium" title="Kutilayotgan sof foyda">
+                  Kutilayotgan: {formatUsd(summary?.grossProfit ?? 0)}
+                </span>
               </div>
             </div>
           );
@@ -874,32 +765,24 @@ export const ProjectDetailPage: React.FC = () => {
               <h3 className="font-bold text-xs text-[#171b25] mb-2.5">So'nggi Moliya Harakatlari</h3>
               <div className="divide-y divide-[#eef0f3] text-xs">
                 {payments.slice(0, 2).map((p) => {
-                  const isUzsProj = (project?.currency || 'USD').toUpperCase() === 'UZS';
                   return (
                     <div key={p.id} className="py-2 flex justify-between items-center">
                       <div>
                         <div className="font-semibold text-gray-800">Mijoz to‘lovi ({p.paymentMethodName})</div>
                         <div className="text-[10px] text-gray-400">{formatDateUz(p.paymentDate)}</div>
                       </div>
-                      <span className="text-[#21bd68] font-bold">
-                        {isUzsProj ? `+${p.amount.toLocaleString()} so'm` : `+$${p.amount.toLocaleString()}`}
-                      </span>
+                      <UsdWithUzs className="text-[#21bd68] font-bold text-right" usd={p.amount} uzs={p.amountUzs} />
                     </div>
                   );
                 })}
                 {expenses.slice(0, 2).map((e) => {
-                  const isExpUsd = e.currency === 'USD' && e.originalAmount !== undefined && e.originalAmount !== null && e.originalAmount > 0;
                   return (
                     <div key={e.id} className="py-2 flex justify-between items-center">
                       <div>
                         <div className="font-semibold text-gray-800">{expenseCategoryLabels[e.category] || e.categoryName}: {e.description}</div>
                         <div className="text-[10px] text-gray-400">{formatDateUz(e.expenseDate)}</div>
                       </div>
-                      <span className="text-[#ef5350] font-bold">
-                        {isExpUsd
-                          ? `-$${e.originalAmount!.toLocaleString()}`
-                          : `-${e.amount.toLocaleString()} so'm`}
-                      </span>
+                      <UsdWithUzs className="text-[#ef5350] font-bold text-right" usd={e.amountUsd} uzs={e.amount} />
                     </div>
                   );
                 })}
@@ -1005,22 +888,22 @@ export const ProjectDetailPage: React.FC = () => {
 
             <div className="divide-y divide-gray-100 max-h-[450px] overflow-y-auto custom-scrollbar">
               {payments.map((p) => {
-                const isUzsProj = (project?.currency || 'USD').toUpperCase() === 'UZS';
                 return (
                   <div key={p.id} className="p-4 flex justify-between items-center text-xs hover:bg-gray-50/50 transition-colors">
                     <div className="space-y-0.5">
                       <div className="font-bold text-sm text-gray-900 flex items-center gap-2">
-                        <span>{isUzsProj ? `${p.amount.toLocaleString()} so'm` : `$${p.amount.toLocaleString()}`}</span>
+                        <span>{formatUsd(p.amount)}</span>
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">{p.paymentMethodName}</span>
                       </div>
                       <div className="text-[11px] text-gray-400">
                         Sana: {formatDateUz(p.paymentDate)} · Qabul qildi: <b className="text-gray-700">{p.receivedByName}</b>
                       </div>
+                      {p.currency === 'UZS' && p.originalAmount ? (
+                        <div className="text-[10px] text-gray-400">Kiritilgan: {formatUzs(p.originalAmount)} · kurs {p.exchangeRate?.toLocaleString('ru-RU')}</div>
+                      ) : null}
                       {p.notes && <div className="text-[11px] text-gray-600 bg-gray-50 px-2 py-1 rounded mt-1 border border-gray-100">Izoh: {p.notes}</div>}
                     </div>
-                    <span className="text-emerald-700 font-extrabold text-base">
-                      {isUzsProj ? `+${p.amount.toLocaleString()} so'm` : `+$${p.amount.toLocaleString()}`}
-                    </span>
+                    <UsdWithUzs className="text-emerald-700 font-extrabold text-base text-right" usd={p.amount} uzs={p.amountUzs} />
                   </div>
                 );
               })}
@@ -1055,20 +938,16 @@ export const ProjectDetailPage: React.FC = () => {
 
             <div className="divide-y divide-gray-100 max-h-[450px] overflow-y-auto custom-scrollbar">
               {expenses.map((exp) => {
-                const isUsd = exp.currency === 'USD' && exp.originalAmount !== undefined && exp.originalAmount !== null && exp.originalAmount > 0;
+                const isUsd = exp.currency === 'USD' && !!exp.originalAmount;
                 return (
                   <div key={exp.id} className="p-4 flex justify-between items-center text-xs hover:bg-gray-50/50 transition-colors">
                     <div className="space-y-0.5">
                       <div className="font-bold text-sm text-gray-900 flex items-center gap-2">
-                        {isUsd ? (
-                          <>
-                            <span className="text-emerald-700 font-bold text-base">${exp.originalAmount!.toLocaleString()}</span>
-                            <span className="text-[11px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
-                              {exp.amount.toLocaleString()} so'm (kurs: {exp.exchangeRateToUzs?.toLocaleString() || '-'})
-                            </span>
-                          </>
-                        ) : (
-                          <span className="font-bold text-base text-gray-900">{exp.amount.toLocaleString()} so'm</span>
+                        <span className="font-bold text-base text-gray-900">{formatUsd(exp.amountUsd ?? 0)}</span>
+                        {isUsd && (
+                          <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
+                            Kiritilgan: {formatUsd(exp.originalAmount!)} · kurs {exp.exchangeRateToUzs?.toLocaleString('ru-RU') || '-'}
+                          </span>
                         )}
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-800 font-medium">
                           {expenseCategoryLabels[exp.category] || exp.categoryName}
@@ -1082,11 +961,7 @@ export const ProjectDetailPage: React.FC = () => {
                       </div>
                     </div>
                     <div className="text-right">
-                      {isUsd ? (
-                        <span className="text-red-600 font-extrabold text-base block">-${exp.originalAmount!.toLocaleString()}</span>
-                      ) : (
-                        <span className="text-red-600 font-extrabold text-base block">-{exp.amount.toLocaleString()} so'm</span>
-                      )}
+                      <UsdWithUzs className="text-red-600 font-extrabold text-base items-end" usd={exp.amountUsd} uzs={exp.amount} />
                     </div>
                   </div>
                 );
@@ -1184,7 +1059,7 @@ export const ProjectDetailPage: React.FC = () => {
                   </div>
                   <div className="flex justify-between text-xs text-gray-600 pt-1 border-t border-gray-50">
                     <span className="text-gray-500">Jami xarajat:</span>
-                    <b className="text-[#ff7a16] font-bold">{m.totalCost.toLocaleString()} so'm</b>
+                    <UsdWithUzs className="text-[#ff7a16] font-bold items-end" uzs={m.totalCost} />
                   </div>
                 </div>
               ))}
@@ -1228,22 +1103,15 @@ export const ProjectDetailPage: React.FC = () => {
                       <td className="py-2.5 px-3 font-medium">
                         {pur.currency === 'USD' && pur.originalUnitPrice ? (
                           <div>
-                            <span className="font-bold text-emerald-700">${pur.originalUnitPrice.toLocaleString()}</span>
-                            <div className="text-[10px] text-gray-400">kurs: {pur.exchangeRateToUzs?.toLocaleString()} ({pur.unitPrice.toLocaleString()} so'm)</div>
+                            <span>{formatUsd(pur.originalUnitPrice)}</span>
+                            <div className="text-[10px] text-gray-400">kurs: {pur.exchangeRateToUzs?.toLocaleString('ru-RU')}</div>
                           </div>
                         ) : (
-                          `${pur.unitPrice.toLocaleString()} so'm`
+                          formatUzs(pur.unitPrice)
                         )}
                       </td>
                       <td className="py-2.5 px-3 font-bold text-[#ff7a16]">
-                        {pur.currency === 'USD' && pur.originalUnitPrice ? (
-                          <div>
-                            <span className="text-emerald-700 font-bold">${(pur.originalUnitPrice * pur.quantity).toLocaleString()}</span>
-                            <div className="text-[10px] text-gray-500 font-normal">({pur.totalCost.toLocaleString()} so'm)</div>
-                          </div>
-                        ) : (
-                          `${pur.totalCost.toLocaleString()} so'm`
-                        )}
+                        <UsdWithUzs usd={pur.totalCostUsd} uzs={pur.totalCost} />
                       </td>
                       <td className="py-2.5 px-3 text-gray-600">{pur.supplier || '-'}</td>
                       <td className="py-2.5 px-3 text-gray-600 font-medium">{pur.createdByName || '-'}</td>
@@ -1299,21 +1167,19 @@ export const ProjectDetailPage: React.FC = () => {
                     <div className="space-y-1 text-xs">
                       <div className="flex justify-between text-gray-600">
                         <span>Kelishilgan:</span>
-                        <b className="text-gray-900">{w.totalAgreedAmount.toLocaleString()} so'm</b>
+                        <UsdWithUzs className="font-bold text-gray-900 items-end" uzs={w.totalAgreedAmount} />
                       </div>
                       <div className="flex justify-between text-gray-600">
                         <span>Ishlangan haq:</span>
-                        <b className="text-purple-700">{w.totalWorkAmount.toLocaleString()} so'm</b>
+                        <UsdWithUzs className="font-bold text-purple-700 items-end" uzs={w.totalWorkAmount} />
                       </div>
                       <div className="flex justify-between text-emerald-700">
                         <span>To'langan:</span>
-                        <b>{w.totalPaidAmount.toLocaleString()} so'm</b>
+                        <UsdWithUzs className="font-bold items-end" uzs={w.totalPaidAmount} />
                       </div>
                       <div className="flex justify-between items-center pt-1.5 border-t border-gray-100">
                         <span className="text-gray-600 font-medium">Qoldiq qarzimiz:</span>
-                        <b className={isOverpaid ? 'text-red-600' : isFullyPaid ? 'text-emerald-700' : 'text-gray-900'}>
-                          {isOverpaid ? `-${Math.abs(debt).toLocaleString()} so'm` : `${debt.toLocaleString()} so'm`}
-                        </b>
+                        <UsdWithUzs className={`font-bold items-end ${isOverpaid ? 'text-red-600' : isFullyPaid ? 'text-emerald-700' : 'text-gray-900'}`} uzs={debt} />
                       </div>
                     </div>
 
@@ -1324,11 +1190,11 @@ export const ProjectDetailPage: React.FC = () => {
                         </span>
                       ) : w.totalPaidAmount > 0 ? (
                         <span className="w-full inline-flex justify-center items-center gap-1 py-1 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                          ⏳ Qisman to'langan (Qoldiq: {debt.toLocaleString()} so'm)
+                          ⏳ Qisman to'langan (Qoldiq: {formatUsd(cbuRate > 0 ? debt / cbuRate : 0)})
                         </span>
                       ) : (
                         <span className="w-full inline-flex justify-center items-center gap-1 py-1 rounded-md text-[10px] font-bold bg-gray-50 text-gray-600 border border-gray-200">
-                          To'lanmagan (Qoldiq: {debt.toLocaleString()} so'm)
+                          To'lanmagan (Qoldiq: {formatUsd(cbuRate > 0 ? debt / cbuRate : 0)})
                         </span>
                       )}
                     </div>
@@ -1374,21 +1240,12 @@ export const ProjectDetailPage: React.FC = () => {
                         </td>
                         <td className="py-2.5 px-3 text-gray-700">{wp.jobDescription}</td>
                         <td className="py-2.5 px-3 font-semibold text-gray-900">
-                          {wp.currency === 'USD' && wp.originalAgreedAmount ? (
-                            <div>
-                              <span className="text-emerald-700 font-bold">${wp.originalAgreedAmount.toLocaleString()}</span>
-                              <div className="text-[10px] text-gray-400 font-normal">kurs: {wp.exchangeRateToUzs?.toLocaleString()} ({wp.agreedAmount.toLocaleString()} so'm)</div>
-                            </div>
-                          ) : (
-                            `${wp.agreedAmount.toLocaleString()} so'm`
-                          )}
+                          <UsdWithUzs usd={wp.agreedAmountUsd} uzs={wp.agreedAmount} />
                         </td>
-                        <td className="py-2.5 px-3 font-semibold text-purple-700">{wp.workAmount.toLocaleString()} so'm</td>
-                        <td className="py-2.5 px-3 font-semibold text-emerald-700">{wp.paidAmount.toLocaleString()} so'm</td>
+                        <td className="py-2.5 px-3 font-semibold text-purple-700"><UsdWithUzs uzs={wp.workAmount} /></td>
+                        <td className="py-2.5 px-3 font-semibold text-emerald-700"><UsdWithUzs usd={wp.paidAmountUsd} uzs={wp.paidAmount} /></td>
                         <td className="py-2.5 px-3 font-bold">
-                          <span className={isOverpaid ? 'text-red-600' : isFullyPaid ? 'text-emerald-700' : 'text-gray-900'}>
-                            {isOverpaid ? `-${Math.abs(debt).toLocaleString()} so'm` : `${debt.toLocaleString()} so'm`}
-                          </span>
+                          <UsdWithUzs className={isOverpaid ? 'text-red-600' : isFullyPaid ? 'text-emerald-700' : 'text-gray-900'} uzs={debt} />
                         </td>
                         <td className="py-2.5 px-3">
                           {isFullyPaid ? (
@@ -1473,9 +1330,9 @@ export const ProjectDetailPage: React.FC = () => {
                   <div className="font-bold text-xs text-gray-900">{ew.title}</div>
                   <div className="text-[10px] text-gray-500 mt-0.5">{ew.description || 'Izohsiz'}</div>
                   <div className="flex gap-4 mt-2 text-xs">
-                    <span className="text-gray-600">Mijoz narxi: <b>${ew.customerAmount.toLocaleString()}</b></span>
-                    <span className="text-gray-600">Tannarx: <b>${ew.actualCost.toLocaleString()}</b></span>
-                    <span className="text-emerald-700 font-bold">Foyda: +${(ew.customerAmount - ew.actualCost).toLocaleString()}</span>
+                    <span className="text-gray-600">Mijoz narxi: <UsdWithUzs className="font-bold" usd={ew.customerAmount} uzs={ew.customerAmountUzs} /></span>
+                    <span className="text-gray-600">Tannarx: <UsdWithUzs className="font-bold" usd={ew.actualCost} uzs={ew.actualCostUzs} /></span>
+                    <span className="text-emerald-700">Foyda: <UsdWithUzs className="font-bold" usd={ew.customerAmount - ew.actualCost} /></span>
                   </div>
                 </div>
                 <button
@@ -1821,18 +1678,14 @@ export const ProjectDetailPage: React.FC = () => {
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl border border-gray-200 space-y-4">
             <h3 className="font-bold text-sm text-[#171b25]">Mijozdan To'lov Qabul Qilish</h3>
             <form onSubmit={handleCreatePayment} className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold mb-1">Summa ($) *</label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  placeholder="5000"
-                  value={newPayAmount}
-                  onChange={(e) => setNewPayAmount(Number(e.target.value))}
-                  className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none focus:border-[#ff7a16]"
-                />
-              </div>
+              <MoneyInput
+                label="Summa"
+                required
+                value={newPayAmount}
+                onChange={setNewPayAmount}
+                currency={newPayCurrency}
+                onCurrencyChange={setNewPayCurrency}
+              />
               <div>
                 <label className="block text-xs font-semibold mb-1">To'lov Usuli</label>
                 <select
@@ -1894,76 +1747,14 @@ export const ProjectDetailPage: React.FC = () => {
                   <option value={7}>📋 Boshqa (Other)</option>
                 </select>
               </div>
-              {/* Currency Toggle */}
-              <div>
-                <label className="block text-xs font-semibold mb-1">To'lov Valyutasi</label>
-                <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-lg">
-                  <button
-                    type="button"
-                    onClick={() => setNewExpCurrency('UZS')}
-                    className={`py-1 text-xs font-semibold rounded-md transition-all ${newExpCurrency === 'UZS' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
-                  >
-                    🇺🇿 So'm (UZS)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setNewExpCurrency('USD')}
-                    className={`py-1 text-xs font-semibold rounded-md transition-all ${newExpCurrency === 'USD' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
-                  >
-                    💵 Dollar (USD)
-                  </button>
-                </div>
-              </div>
-
-              {newExpCurrency === 'UZS' ? (
-                <div>
-                  <label className="block text-xs font-semibold mb-1">Summa (so'm) *</label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    placeholder="300 000"
-                    value={newExpAmount}
-                    onChange={(e) => setNewExpAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none focus:border-[#ff7a16]"
-                  />
-                </div>
-              ) : (
-                <div className="space-y-2 p-2.5 bg-emerald-50/50 border border-emerald-200 rounded-lg">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-emerald-900 mb-1">Dollar summasi ($) *</label>
-                      <input
-                        type="number"
-                        required
-                        min="0.01"
-                        step="any"
-                        placeholder="100"
-                        value={newExpAmountUsd}
-                        onChange={(e) => setNewExpAmountUsd(e.target.value === '' ? '' : Number(e.target.value))}
-                        className="w-full h-8 px-2.5 border border-emerald-300 rounded text-xs bg-white outline-none focus:border-emerald-600"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-emerald-900 mb-1">Dollar kursi (kurs) *</label>
-                      <input
-                        type="number"
-                        required
-                        min="1"
-                        placeholder={String(Math.round(project?.exchangeRate || cbuRate || 12800))}
-                        value={newExpRate}
-                        onChange={(e) => setNewExpRate(e.target.value === '' ? '' : Number(e.target.value))}
-                        className="w-full h-8 px-2.5 border border-emerald-300 rounded text-xs bg-white outline-none focus:border-emerald-600"
-                      />
-                    </div>
-                  </div>
-                  {Number(newExpAmountUsd) > 0 && Number(newExpRate) > 0 && (
-                    <div className="text-[11px] font-semibold text-emerald-800 text-right">
-                      = {(Number(newExpAmountUsd) * Number(newExpRate)).toLocaleString()} so'm
-                    </div>
-                  )}
-                </div>
-              )}
+              <MoneyInput
+                label="Summa"
+                required
+                value={newExpAmount}
+                onChange={setNewExpAmount}
+                currency={newExpCurrency}
+                onCurrencyChange={setNewExpCurrency}
+              />
               <div>
                 <label className="block text-xs font-semibold mb-1">Tavsif (Izoh) *</label>
                 <input
@@ -2092,101 +1883,31 @@ export const ProjectDetailPage: React.FC = () => {
 
               {/* Currency Toggle */}
               <div>
-                <label className="block text-xs font-semibold mb-1">Narx Valyutasi</label>
-                <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-lg">
-                  <button
-                    type="button"
-                    onClick={() => setNewPurCurrency('UZS')}
-                    className={`py-1 text-xs font-semibold rounded-md transition-all ${newPurCurrency === 'UZS' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
-                  >
-                    🇺🇿 So'm (UZS)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setNewPurCurrency('USD')}
-                    className={`py-1 text-xs font-semibold rounded-md transition-all ${newPurCurrency === 'USD' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
-                  >
-                    💵 Dollar (USD)
-                  </button>
-                </div>
+                <label className="block text-xs font-semibold mb-1">Miqdor *</label>
+                <input
+                  type="number"
+                  required
+                  min="0.01"
+                  step="any"
+                  placeholder="50"
+                  value={newPurQty}
+                  onChange={(e) => setNewPurQty(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none"
+                />
               </div>
-
-              {newPurCurrency === 'UZS' ? (
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-xs font-semibold mb-1">Miqdor *</label>
-                    <input
-                      type="number"
-                      required
-                      min="0.01"
-                      step="any"
-                      placeholder="50"
-                      value={newPurQty}
-                      onChange={(e) => setNewPurQty(e.target.value === '' ? '' : Number(e.target.value))}
-                      className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold mb-1">Birlik narxi (so'm) *</label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      step="any"
-                      placeholder="250 000"
-                      value={newPurPrice}
-                      onChange={(e) => setNewPurPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                      className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2 p-2.5 bg-emerald-50/50 border border-emerald-200 rounded-lg">
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-emerald-900 mb-1">Miqdor *</label>
-                      <input
-                        type="number"
-                        required
-                        min="0.01"
-                        step="any"
-                        placeholder="50"
-                        value={newPurQty}
-                        onChange={(e) => setNewPurQty(e.target.value === '' ? '' : Number(e.target.value))}
-                        className="w-full h-8 px-2.5 border border-emerald-300 rounded text-xs bg-white outline-none focus:border-emerald-600"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-emerald-900 mb-1">Birlik narxi ($) *</label>
-                      <input
-                        type="number"
-                        required
-                        min="0.01"
-                        step="any"
-                        placeholder="25"
-                        value={newPurPriceUsd}
-                        onChange={(e) => setNewPurPriceUsd(e.target.value === '' ? '' : Number(e.target.value))}
-                        className="w-full h-8 px-2.5 border border-emerald-300 rounded text-xs bg-white outline-none focus:border-emerald-600"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-emerald-900 mb-1">Dollar kursi *</label>
-                      <input
-                        type="number"
-                        required
-                        min="1"
-                        placeholder={String(Math.round(project?.exchangeRate || cbuRate || 12800))}
-                        value={newPurRate}
-                        onChange={(e) => setNewPurRate(e.target.value === '' ? '' : Number(e.target.value))}
-                        className="w-full h-8 px-2.5 border border-emerald-300 rounded text-xs bg-white outline-none focus:border-emerald-600"
-                      />
-                    </div>
-                  </div>
-                  {Number(newPurQty) > 0 && Number(newPurPriceUsd) > 0 && Number(newPurRate) > 0 && (
-                    <div className="text-[11px] font-semibold text-emerald-800 text-right">
-                      = ${(Number(newPurQty) * Number(newPurPriceUsd)).toLocaleString()} × {Number(newPurRate).toLocaleString()} = {(Number(newPurQty) * Number(newPurPriceUsd) * Number(newPurRate)).toLocaleString()} so'm
-                    </div>
-                  )}
+              <MoneyInput
+                label="Birlik narxi"
+                required
+                value={newPurPrice}
+                onChange={setNewPurPrice}
+                currency={newPurCurrency}
+                onCurrencyChange={setNewPurCurrency}
+              />
+              {Number(newPurQty) > 0 && Number(newPurPrice) > 0 && (
+                <div className="text-[11px] font-semibold text-gray-700 text-right">
+                  Jami: {newPurCurrency === 'USD'
+                    ? `${formatUsd(Number(newPurQty) * Number(newPurPrice))}`
+                    : formatUzs(Number(newPurQty) * Number(newPurPrice))}
                 </div>
               )}
               <div>
@@ -2292,76 +2013,14 @@ export const ProjectDetailPage: React.FC = () => {
                   className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none"
                 />
               </div>
-              {/* Currency Toggle */}
-              <div>
-                <label className="block text-xs font-semibold mb-1">Valyuta</label>
-                <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-lg">
-                  <button
-                    type="button"
-                    onClick={() => setNewWorkCurrency('UZS')}
-                    className={`py-1 text-xs font-semibold rounded-md transition-all ${newWorkCurrency === 'UZS' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
-                  >
-                    🇺🇿 So'm (UZS)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setNewWorkCurrency('USD')}
-                    className={`py-1 text-xs font-semibold rounded-md transition-all ${newWorkCurrency === 'USD' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
-                  >
-                    💵 Dollar (USD)
-                  </button>
-                </div>
-              </div>
-
-              {newWorkCurrency === 'UZS' ? (
-                <div>
-                  <label className="block text-xs font-semibold mb-1">Kelishilgan Haq (so'm) *</label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    placeholder="3 000 000"
-                    value={newWorkAgreed}
-                    onChange={(e) => setNewWorkAgreed(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none focus:border-[#ff7a16]"
-                  />
-                </div>
-              ) : (
-                <div className="space-y-2 p-2.5 bg-emerald-50/50 border border-emerald-200 rounded-lg">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-emerald-900 mb-1">Kelishilgan Haq ($) *</label>
-                      <input
-                        type="number"
-                        required
-                        min="0.01"
-                        step="any"
-                        placeholder="300"
-                        value={newWorkAgreedUsd}
-                        onChange={(e) => setNewWorkAgreedUsd(e.target.value === '' ? '' : Number(e.target.value))}
-                        className="w-full h-8 px-2.5 border border-emerald-300 rounded text-xs bg-white outline-none focus:border-emerald-600"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-emerald-900 mb-1">Dollar kursi *</label>
-                      <input
-                        type="number"
-                        required
-                        min="1"
-                        placeholder={String(Math.round(project?.exchangeRate || cbuRate || 12800))}
-                        value={newWorkRate}
-                        onChange={(e) => setNewWorkRate(e.target.value === '' ? '' : Number(e.target.value))}
-                        className="w-full h-8 px-2.5 border border-emerald-300 rounded text-xs bg-white outline-none focus:border-emerald-600"
-                      />
-                    </div>
-                  </div>
-                  {Number(newWorkAgreedUsd) > 0 && Number(newWorkRate) > 0 && (
-                    <div className="text-[11px] font-semibold text-emerald-800 text-right">
-                      = ${(Number(newWorkAgreedUsd)).toLocaleString()} × {Number(newWorkRate).toLocaleString()} = {(Number(newWorkAgreedUsd) * Number(newWorkRate)).toLocaleString()} so'm
-                    </div>
-                  )}
-                </div>
-              )}
+              <MoneyInput
+                label="Kelishilgan Haq"
+                required
+                value={newWorkAgreed}
+                onChange={setNewWorkAgreed}
+                currency={newWorkCurrency}
+                onCurrencyChange={setNewWorkCurrency}
+              />
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setIsWorkerModalOpen(false)} className="px-3 py-1.5 border rounded-lg text-xs">Bekor qilish</button>
                 <button type="submit" className="px-3 py-1.5 bg-[#ff7a16] text-white rounded-lg text-xs font-semibold">Biriktirish</button>
@@ -2388,32 +2047,24 @@ export const ProjectDetailPage: React.FC = () => {
                   className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-semibold mb-1">Mijoz Narxi ($) *</label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    placeholder="1500"
-                    value={newExtraCustAmt}
-                    onChange={(e) => setNewExtraCustAmt(Number(e.target.value))}
-                    className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold mb-1">Tannarx ($) *</label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    placeholder="800"
-                    value={newExtraCost}
-                    onChange={(e) => setNewExtraCost(Number(e.target.value))}
-                    className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none"
-                  />
-                </div>
-              </div>
+              <MoneyInput
+                label="Mijoz Narxi"
+                required
+                value={newExtraCustAmt}
+                onChange={setNewExtraCustAmt}
+                currency={newExtraCurrency}
+                onCurrencyChange={setNewExtraCurrency}
+              />
+              <MoneyInput
+                label="Tannarx"
+                required
+                min={0}
+                value={newExtraCost}
+                onChange={setNewExtraCost}
+                currency={newExtraCurrency}
+                onCurrencyChange={setNewExtraCurrency}
+                lockCurrency
+              />
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setIsExtraWorkModalOpen(false)} className="px-3 py-1.5 border rounded-lg text-xs">Bekor qilish</button>
                 <button type="submit" className="px-3 py-1.5 bg-[#ff7a16] text-white rounded-lg text-xs font-semibold">Qo'shish</button>
@@ -2488,103 +2139,36 @@ export const ProjectDetailPage: React.FC = () => {
               <div className="grid grid-cols-3 gap-1 pt-2 mt-1 border-t border-gray-200 text-[11px]">
                 <div>
                   <span className="text-gray-500">Kelishilgan:</span>
-                  <div className="font-bold text-gray-900">
-                    {selectedWorkerForPay.currency === 'USD' && selectedWorkerForPay.originalAgreedAmount
-                      ? `$${selectedWorkerForPay.originalAgreedAmount.toLocaleString()} (${selectedWorkerForPay.agreedAmount.toLocaleString()} so'm)`
-                      : `${selectedWorkerForPay.agreedAmount.toLocaleString()} so'm`}
-                  </div>
+                  <UsdWithUzs className="font-bold text-gray-900" uzs={selectedWorkerForPay.agreedAmount} usd={selectedWorkerForPay.agreedAmountUsd} />
                 </div>
                 <div>
                   <span className="text-gray-500">To'langan:</span>
-                  <div className="font-bold text-emerald-700">{selectedWorkerForPay.paidAmount.toLocaleString()} so'm</div>
+                  <UsdWithUzs className="font-bold text-emerald-700" uzs={selectedWorkerForPay.paidAmount} usd={selectedWorkerForPay.paidAmountUsd} />
                 </div>
                 <div>
                   <span className="text-gray-500">Qolgan limit:</span>
-                  <div className="font-bold text-blue-700">{(selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount).toLocaleString()} so'm</div>
+                  <UsdWithUzs className="font-bold text-blue-700" uzs={selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount} />
                 </div>
               </div>
             </div>
 
             <form onSubmit={submitPayWorker} className="space-y-3">
-              {/* Currency Toggle */}
-              <div>
-                <label className="block text-xs font-semibold mb-1">To'lov Valyutasi</label>
-                <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-lg">
-                  <button
-                    type="button"
-                    onClick={() => setPayWorkerCurrency('UZS')}
-                    className={`py-1 text-xs font-semibold rounded-md transition-all ${payWorkerCurrency === 'UZS' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
-                  >
-                    🇺🇿 So'm (UZS)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPayWorkerCurrency('USD')}
-                    className={`py-1 text-xs font-semibold rounded-md transition-all ${payWorkerCurrency === 'USD' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
-                  >
-                    💵 Dollar (USD)
-                  </button>
-                </div>
-              </div>
-
-              {payWorkerCurrency === 'UZS' ? (
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">To'lov Summasi (so'm) *</label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    placeholder={`Maksimal: ${(selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount).toLocaleString()} so'm`}
-                    value={payWorkerAmount}
-                    onChange={(e) => setPayWorkerAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none focus:border-emerald-600"
-                  />
-                  {Number(payWorkerAmount) > (selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount) && (
-                    <p className="text-[11px] text-red-600 mt-1 font-medium bg-red-50 p-2 rounded border border-red-200">
-                      ⚠️ Ustaga faqat {(selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount).toLocaleString()} so'm to'lash mumkin.
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-2 p-2.5 bg-emerald-50/50 border border-emerald-200 rounded-lg">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-emerald-900 mb-1">To'lov summasi ($) *</label>
-                      <input
-                        type="number"
-                        required
-                        min="0.01"
-                        step="any"
-                        placeholder="100"
-                        value={payWorkerAmountUsd}
-                        onChange={(e) => setPayWorkerAmountUsd(e.target.value === '' ? '' : Number(e.target.value))}
-                        className="w-full h-8 px-2.5 border border-emerald-300 rounded text-xs bg-white outline-none focus:border-emerald-600"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-emerald-900 mb-1">Dollar kursi (manual) *</label>
-                      <input
-                        type="number"
-                        required
-                        min="1"
-                        placeholder={String(Math.round(project?.exchangeRate || cbuRate || 12800))}
-                        value={payWorkerRate}
-                        onChange={(e) => setPayWorkerRate(e.target.value === '' ? '' : Number(e.target.value))}
-                        className="w-full h-8 px-2.5 border border-emerald-300 rounded text-xs bg-white outline-none focus:border-emerald-600"
-                      />
-                    </div>
-                  </div>
-                  {Number(payWorkerAmountUsd) > 0 && Number(payWorkerRate) > 0 && (
-                    <div className="text-[11px] font-semibold text-emerald-800 text-right">
-                      = ${(Number(payWorkerAmountUsd)).toLocaleString()} × {Number(payWorkerRate).toLocaleString()} = {(Number(payWorkerAmountUsd) * Number(payWorkerRate)).toLocaleString()} so'm
-                    </div>
-                  )}
-                  {Number(payWorkerAmountUsd) > 0 && Number(payWorkerRate) > 0 && (Number(payWorkerAmountUsd) * Number(payWorkerRate)) > (selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount) && (
-                    <p className="text-[11px] text-red-600 mt-1 font-medium bg-red-50 p-2 rounded border border-red-200">
-                      ⚠️ Hisoblangan summa ({(Number(payWorkerAmountUsd) * Number(payWorkerRate)).toLocaleString()} so'm) qoldiqdan oshib ketmoqda.
-                    </p>
-                  )}
-                </div>
+              <MoneyInput
+                label="To'lov Summasi"
+                required
+                value={payWorkerAmount}
+                onChange={setPayWorkerAmount}
+                currency={payWorkerCurrency}
+                onCurrencyChange={(c) => {
+                  setPayWorkerCurrency(c);
+                  const rem = selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount;
+                  if (rem > 0) setPayWorkerAmount(c === 'USD' ? (cbuRate > 0 ? Math.floor((rem / cbuRate) * 100) / 100 : '') : rem);
+                }}
+              />
+              {payExceeds && (
+                <p className="text-[11px] text-red-600 mt-1 font-medium bg-red-50 p-2 rounded border border-red-200">
+                  ⚠️ Ustaga faqat {formatUzs(payRemaining)}{cbuRate > 0 ? ` (≈ ${formatUsd(payRemaining / cbuRate)})` : ''} to'lash mumkin.
+                </p>
               )}
 
               <div>
@@ -2619,17 +2203,7 @@ export const ProjectDetailPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={
-                    payWorkerCurrency === 'UZS'
-                      ? (!payWorkerAmount ||
-                         Number(payWorkerAmount) <= 0 ||
-                         Number(payWorkerAmount) > (selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount))
-                      : (!payWorkerAmountUsd ||
-                         Number(payWorkerAmountUsd) <= 0 ||
-                         !payWorkerRate ||
-                         Number(payWorkerRate) <= 0 ||
-                         (Number(payWorkerAmountUsd) * Number(payWorkerRate)) > (selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount))
-                  }
+                  disabled={!payWorkerAmount || Number(payWorkerAmount) <= 0 || payExceeds}
                   className="px-4 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
                 >
                   To'lovni Tasdiqlash
@@ -2656,26 +2230,27 @@ export const ProjectDetailPage: React.FC = () => {
             <div className="p-3 bg-purple-50/50 border border-purple-200 rounded-lg space-y-1 text-xs">
               <div className="font-bold text-purple-950">{selectedWorkerForWorkAmount.workerName}</div>
               <div className="text-gray-600">Ish: <b className="text-gray-800">{selectedWorkerForWorkAmount.jobDescription}</b></div>
-              <div className="text-gray-600">Kelishilgan umumiy summa: <b className="text-gray-900">${selectedWorkerForWorkAmount.agreedAmount.toLocaleString()}</b></div>
+              <div className="text-gray-600">Kelishilgan umumiy summa: <UsdWithUzs inline className="font-bold text-gray-900" uzs={selectedWorkerForWorkAmount.agreedAmount} usd={selectedWorkerForWorkAmount.agreedAmountUsd} /></div>
             </div>
 
             <form onSubmit={submitWorkAmount} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Hozirgacha Bajarilgan Ish Haq Summasi ($) *</label>
-                <input
-                  type="number"
+                <MoneyInput
+                  label="Hozirgacha Bajarilgan Ish Haqi"
                   required
-                  min="0"
-                  step="any"
-                  max={selectedWorkerForWorkAmount.agreedAmount}
-                  placeholder={`Maksimal: $${selectedWorkerForWorkAmount.agreedAmount}`}
+                  min={0}
                   value={workAmountInput}
-                  onChange={(e) => setWorkAmountInput(e.target.value === '' ? '' : Number(e.target.value))}
-                  className="w-full h-9 px-3 border border-gray-300 rounded-lg text-xs outline-none focus:border-purple-600"
+                  onChange={setWorkAmountInput}
+                  currency={workAmountCurrency}
+                  onCurrencyChange={(c) => {
+                    setWorkAmountCurrency(c);
+                    const cur = selectedWorkerForWorkAmount.workAmount;
+                    if (cur > 0) setWorkAmountInput(c === 'USD' ? (cbuRate > 0 ? Math.round((cur / cbuRate) * 100) / 100 : '') : cur);
+                  }}
                 />
-                {Number(workAmountInput) > selectedWorkerForWorkAmount.agreedAmount && (
+                {workAmountExceeds && (
                   <p className="text-[11px] text-red-600 mt-1 font-medium bg-red-50 p-2 rounded border border-red-200">
-                    ⚠️ Ishlangan haq kelishilgan umumiy summadan (${selectedWorkerForWorkAmount.agreedAmount.toLocaleString()}) oshishi mumkin emas.
+                    ⚠️ Ishlangan haq kelishilgan umumiy summadan ({formatUzs(selectedWorkerForWorkAmount.agreedAmount)}) oshishi mumkin emas.
                   </p>
                 )}
               </div>
@@ -2701,7 +2276,7 @@ export const ProjectDetailPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={workAmountInput === '' || Number(workAmountInput) < 0 || Number(workAmountInput) > selectedWorkerForWorkAmount.agreedAmount}
+                  disabled={workAmountInput === '' || Number(workAmountInput) < 0 || workAmountExceeds}
                   className="px-4 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-semibold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
                 >
                   Saqlash

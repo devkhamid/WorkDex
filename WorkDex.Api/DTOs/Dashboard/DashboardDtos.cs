@@ -43,7 +43,8 @@ public class DashboardRecentActivityDto
     public string ActivityType { get; set; } = string.Empty; // Payment, Expense, MaterialPurchase, WorkerPayment, ProjectUpdate
     public string Title { get; set; } = string.Empty;
     public string ProjectName { get; set; } = string.Empty;
-    public decimal? Amount { get; set; }
+    public decimal? Amount { get; set; } // USD
+    public decimal? AmountUzs { get; set; }
     public string CreatedByName { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
 }

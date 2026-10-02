@@ -51,6 +51,8 @@ export enum ExpenseFrequency {
   Monthly = 3
 }
 
+export type Currency = 'USD' | 'UZS';
+
 export interface User {
   id: string;
   email: string;
@@ -163,7 +165,11 @@ export interface ProjectSummary {
 export interface Payment {
   id: string;
   projectId: string;
-  amount: number;
+  amount: number; // USD
+  currency?: Currency;
+  exchangeRate?: number;
+  originalAmount?: number;
+  amountUzs?: number;
   paymentMethod: PaymentMethod;
   paymentMethodName: string;
   paymentDate: string;
@@ -180,7 +186,8 @@ export interface Expense {
   categoryName: string;
   frequency?: ExpenseFrequency;
   frequencyName?: string;
-  amount: number;
+  amount: number; // so'm
+  amountUsd?: number;
   currency?: string;
   exchangeRateToUzs?: number;
   originalAmount?: number;
@@ -210,7 +217,8 @@ export interface MaterialPurchase {
   quantity: number;
   unit: string;
   unitPrice: number;
-  totalCost: number;
+  totalCost: number; // so'm
+  totalCostUsd?: number;
   currency?: string;
   exchangeRateToUzs?: number;
   originalUnitPrice?: number;
@@ -255,6 +263,8 @@ export interface WorkerPayment {
   originalAgreedAmount?: number;
   workAmount: number;
   paidAmount: number;
+  agreedAmountUsd?: number;
+  paidAmountUsd?: number;
   remainingAmount: number;
   remainingAllowedToPay: number;
   isFullyPaid: boolean;
@@ -283,8 +293,14 @@ export interface ExtraWork {
   projectId: string;
   title: string;
   description?: string;
-  customerAmount: number;
-  actualCost: number;
+  customerAmount: number; // USD
+  actualCost: number; // USD
+  currency?: Currency;
+  exchangeRate?: number;
+  originalCustomerAmount?: number;
+  originalActualCost?: number;
+  customerAmountUzs?: number;
+  actualCostUzs?: number;
   profitImpact: number;
   isApprovedByCustomer: boolean;
   approvedAt?: string;
@@ -373,7 +389,8 @@ export interface DashboardRecentActivity {
   activityType: string;
   title: string;
   projectName: string;
-  amount?: number;
+  amount?: number; // USD
+  amountUzs?: number;
   createdByName: string;
   createdAt: string;
 }

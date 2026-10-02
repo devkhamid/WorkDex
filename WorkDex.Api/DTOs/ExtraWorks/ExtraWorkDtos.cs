@@ -19,6 +19,10 @@ public class CreateExtraWorkDto
     [Range(0, double.MaxValue, ErrorMessage = "Tannarx summasi manfiy bo'lishi mumkin emas.")]
     public decimal ActualCost { get; set; }
 
+    // "USD" yoki "UZS" — CustomerAmount va ActualCost shu valyutada; kurs serverda CBU dan olinadi
+    [MaxLength(3)]
+    public string Currency { get; set; } = "USD";
+
     public bool IsApprovedByCustomer { get; set; } = false;
 
     [MaxLength(1000)]
@@ -42,6 +46,9 @@ public class UpdateExtraWorkDto
     [Range(0, double.MaxValue)]
     public decimal ActualCost { get; set; }
 
+    [MaxLength(3)]
+    public string Currency { get; set; } = "USD";
+
     public bool IsApprovedByCustomer { get; set; }
 
     [MaxLength(1000)]
@@ -56,6 +63,12 @@ public class ExtraWorkDto
     public string? Description { get; set; }
     public decimal CustomerAmount { get; set; }
     public decimal ActualCost { get; set; }
+    public string Currency { get; set; } = "USD";
+    public decimal? ExchangeRate { get; set; }
+    public decimal? OriginalCustomerAmount { get; set; }
+    public decimal? OriginalActualCost { get; set; }
+    public decimal CustomerAmountUzs { get; set; }
+    public decimal ActualCostUzs { get; set; }
     public decimal ProfitImpact => CustomerAmount - ActualCost; // Foydaga ta'siri (PDF §7)
     public bool IsApprovedByCustomer { get; set; }
     public DateTime? ApprovedAt { get; set; }

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Building, DollarSign, Calendar, MapPin, UserPlus } from 'lucide-react';
+import { X, Building, Calendar, MapPin, UserPlus } from 'lucide-react';
 import { customersApi, projectsApi } from '../api/services';
-import { Customer } from '../types';
+import { Currency, Customer } from '../types';
+import { MoneyInput } from './Money';
 
 interface NewProjectModalProps {
   isOpen: boolean;
@@ -20,7 +21,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
   const [customerId, setCustomerId] = useState('');
   const [contractAmount, setContractAmount] = useState<number | ''>('');
   const [budget, setBudget] = useState<number | ''>('');
-  const [currency, setCurrency] = useState('USD');
+  const [currency, setCurrency] = useState<Currency>('USD');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState('');
   const [location, setLocation] = useState('');
@@ -175,53 +176,27 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
             )}
           </div>
 
-          {/* Financials */}
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Shartnoma Summasi *</label>
-              <input
-                type="number"
-                required
-                min="0"
-                placeholder="50000"
-                value={contractAmount}
-                onChange={(e) => setContractAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                className="w-full h-9 px-3 border border-[#e4e7ec] rounded-lg text-xs focus:border-[#ff7a16] outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Rejali Byudjet *</label>
-              <input
-                type="number"
-                required
-                min="0"
-                placeholder="35000"
-                value={budget}
-                onChange={(e) => setBudget(e.target.value === '' ? '' : Number(e.target.value))}
-                className="w-full h-9 px-3 border border-[#e4e7ec] rounded-lg text-xs focus:border-[#ff7a16] outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Valyuta</label>
-              <select
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                className="w-full h-9 px-3 border border-[#e4e7ec] rounded-lg text-xs bg-white focus:border-[#ff7a16] outline-none"
-              >
-                <option value="USD">USD ($)</option>
-                <option value="UZS">UZS (so'm)</option>
-                <option value="EUR">EUR (€)</option>
-              </select>
-            </div>
+          {/* Financials — summa so'm yoki USD da, bugungi CBU kursi bilan konvertatsiya qilinadi */}
+          <div className="grid grid-cols-2 gap-3">
+            <MoneyInput
+              label="Shartnoma Summasi"
+              required
+              min={0}
+              value={contractAmount}
+              onChange={setContractAmount}
+              currency={currency}
+              onCurrencyChange={setCurrency}
+            />
+            <MoneyInput
+              label="Rejali Byudjet"
+              required
+              min={0}
+              value={budget}
+              onChange={setBudget}
+              currency={currency}
+              onCurrencyChange={setCurrency}
+            />
           </div>
-          {currency === 'UZS' && (
-            <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 text-[11px] text-blue-700 flex items-start gap-2">
-              <span className="mt-0.5">💱</span>
-              <span>
-                <b>Markaziy Bank kursi bilan avtomatik hisoblash:</b> So'm summasi kiritilganda tizim bugungi CBU kursi bilan dollar ekvivalentini ham hisoblab saqlaydi.
-              </span>
-            </div>
-          )}
 
           {/* Dates in Day.Month.Year format */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

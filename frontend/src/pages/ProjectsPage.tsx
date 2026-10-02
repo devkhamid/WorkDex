@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Building2, ArrowRight } from 'lucide-react';
 import { projectsApi } from '../api/services';
 import { Project, ProjectStatus } from '../types';
+import { UsdWithUzs } from '../components/Money';
 
 interface ProjectsPageProps {
   onOpenNewProject: () => void;
@@ -129,18 +130,11 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenNewProject }) 
               <div className="grid grid-cols-2 gap-2 p-3 bg-gray-50/80 rounded-lg border border-gray-100 mb-4">
                 <div>
                   <small className="block text-[10px] font-semibold text-[#9a9faa]">Shartnoma</small>
-                  {p.currency?.toUpperCase() === 'UZS' && p.contractAmountUzs ? (
-                    <div>
-                      <b className="text-sm font-bold text-[#171b25]">{p.contractAmountUzs.toLocaleString()} so'm</b>
-                      <span className="block text-[10px] text-gray-400">≈ ${p.contractAmount.toLocaleString()}</span>
-                    </div>
-                  ) : (
-                    <b className="text-sm font-bold text-[#171b25]">${p.contractAmount.toLocaleString()}</b>
-                  )}
+                  <UsdWithUzs className="text-sm font-bold text-[#171b25]" usd={p.contractAmount} uzs={p.contractAmountUzs} />
                 </div>
                 <div>
                   <small className="block text-[10px] font-semibold text-[#9a9faa]">Rejali Byudjet</small>
-                  <b className="text-sm font-bold text-[#171b25]">${p.budget.toLocaleString()}</b>
+                  <UsdWithUzs className="text-sm font-bold text-[#171b25]" usd={p.budget} />
                 </div>
               </div>
             </div>

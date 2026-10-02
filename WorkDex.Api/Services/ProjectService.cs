@@ -85,27 +85,12 @@ public class ProjectService : IProjectService
         if (requestingUser?.Role != UserRole.SuperAdmin && customer.CompanyAdminId != null && customer.CompanyAdminId != companyAdminId)
             throw new InvalidOperationException("Tanlangan mijoz boshqa kompaniyaga tegishli.");
 
-        // Valyuta konvertatsiyasi: agar UZS da kiritilgan bo'lsa, CBU kursi bilan USD ga o'giramiz
-        var inputCurrency = string.IsNullOrWhiteSpace(dto.Currency) ? "USD" : dto.Currency.Trim().ToUpper();
-        decimal contractAmountUsd = dto.ContractAmount;
-        decimal? contractAmountUzs = null;
-        decimal? exchangeRate = null;
-
-        if (inputCurrency == "UZS" && dto.ContractAmount > 0)
-        {
-            var rate = await _currencyService.GetUsdToUzsRateAsync();
-            if (rate > 0)
-            {
-                exchangeRate = rate;
-                contractAmountUzs = dto.ContractAmount;
-                contractAmountUsd = Math.Round(dto.ContractAmount / rate, 2);
-            }
-        }
-        else if (inputCurrency == "USD")
-        {
-            // USD da kiritilgan — kursni so'raymiz (ma'lumot uchun saqlaymiz)
-            exchangeRate = await _currencyService.GetUsdToUzsRateAsync();
-        }
+        // Valyuta konvertatsiyasi: summalar har doim USD da saqlanadi, kurs bugungi CBU kursi
+        var inputCurrency = Money.Normalize(dto.Currency, "USD");
+        var exchangeRate = await Money.CurrentRateAsync(_currencyService);
+        decimal contractAmountUsd = Money.ToUsd(dto.ContractAmount, inputCurrency, exchangeRate);
+        decimal? contractAmountUzs = inputCurrency == "UZS" ? dto.ContractAmount : null;
+        decimal budgetUsd = Money.ToUsd(dto.Budget, inputCurrency, exchangeRate);
 
         var project = new Project
         {
@@ -115,7 +100,7 @@ public class ProjectService : IProjectService
             CustomerId = dto.CustomerId,
             ContractAmount = contractAmountUsd,
             ContractAmountUzs = contractAmountUzs,
-            Budget = dto.Budget,
+            Budget = budgetUsd,
             Currency = inputCurrency,
             ExchangeRate = exchangeRate,
             StartDate = dto.StartDate,
@@ -156,13 +141,23 @@ public class ProjectService : IProjectService
         if (project.CompanyAdminId != null && newCustomer.CompanyAdminId != null && newCustomer.CompanyAdminId != project.CompanyAdminId)
             throw new InvalidOperationException("Tanlangan mijoz boshqa kompaniyaga tegishli.");
 
+        var inputCurrency = Money.Normalize(dto.Currency, "USD");
+        // Shartnoma summasi o'zgarmagan bo'lsa, eski kurs saqlanadi (summalar "suzib" ketmasligi uchun)
+        var contractUnchanged = inputCurrency == project.Currency &&
+            (inputCurrency == "UZS" ? project.ContractAmountUzs == dto.ContractAmount : project.ContractAmount == dto.ContractAmount);
+        var rate = contractUnchanged && project.ExchangeRate is > 0
+            ? project.ExchangeRate.Value
+            : await Money.CurrentRateAsync(_currencyService);
+
         project.Name = dto.Name.Trim();
         project.Description = dto.Description?.Trim();
         project.ProjectType = dto.ProjectType?.Trim();
         project.CustomerId = dto.CustomerId;
-        project.ContractAmount = dto.ContractAmount;
-        project.Budget = dto.Budget;
-        project.Currency = dto.Currency;
+        project.ContractAmount = Money.ToUsd(dto.ContractAmount, inputCurrency, rate);
+        project.ContractAmountUzs = inputCurrency == "UZS" ? dto.ContractAmount : null;
+        project.Budget = Money.ToUsd(dto.Budget, inputCurrency, rate);
+        project.Currency = inputCurrency;
+        project.ExchangeRate = rate;
         project.StartDate = dto.StartDate;
         project.EndDate = dto.EndDate;
         project.ActualEndDate = dto.ActualEndDate;

@@ -276,23 +276,21 @@ public class AgreementService : IAgreementService
             agreement.CustomerId = fallbackCustomer.Id;
         }
 
-        agreement.ExchangeRate = dto.ExchangeRate;
-
-        // Loyiha yaratish
-        decimal totalUsd = dto.ExchangeRate > 0 ? agreement.TotalAmountUZS / dto.ExchangeRate : 0;
+        // Loyiha yaratish — shartnoma summasi UZS da; CreateAsync uni bugungi CBU kursi bilan USD ga o'giradi
         var createProjectDto = new CreateProjectDto
         {
             Name = agreement.ProjectName,
             CustomerId = agreement.CustomerId.Value,
-            ContractAmount = totalUsd,
-            Budget = totalUsd,
-            Currency = "USD",
+            ContractAmount = agreement.TotalAmountUZS,
+            Budget = agreement.TotalAmountUZS,
+            Currency = "UZS",
             Location = agreement.ObjectAddress ?? "",
             StartDate = DateTime.UtcNow,
             EndDate = dto.Deadline,
         };
 
         var project = await _projectService.CreateAsync(createProjectDto, createdByUserId);
+        agreement.ExchangeRate = project.ExchangeRate;
 
         // Loyiha maydonlarini yangilash
         var projectEntity = await _context.Projects.FindAsync(project.Id);

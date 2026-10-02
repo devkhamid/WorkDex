@@ -16,9 +16,8 @@ public class CreateWorkerPaymentDto
     public decimal AgreedAmount { get; set; }
 
     [MaxLength(3)]
+    // AgreedAmount, WorkAmount va PaidAmount shu valyutada; kurs serverda CBU dan olinadi
     public string Currency { get; set; } = "UZS";
-    public decimal? ExchangeRateToUzs { get; set; }
-    public decimal? OriginalAgreedAmount { get; set; }
 
     [Range(0, double.MaxValue, ErrorMessage = "Bajarilgan ish haqi manfiy bo'lishi mumkin emas.")]
     public decimal WorkAmount { get; set; } 
@@ -38,6 +37,9 @@ public class UpdateWorkerWorkAmountDto
     [Range(0, double.MaxValue, ErrorMessage = "Bajarilgan ish haqi manfiy bo'lishi mumkin emas.")]
     public decimal WorkAmount { get; set; } 
 
+    [MaxLength(3)]
+    public string Currency { get; set; } = "UZS";
+
     [MaxLength(1000)]
     public string? Notes { get; set; }
 }
@@ -50,8 +52,6 @@ public class PayWorkerDto
 
     [MaxLength(3)]
     public string Currency { get; set; } = "UZS";
-    public decimal? ExchangeRateToUzs { get; set; }
-    public decimal? OriginalAmount { get; set; }
 
     [Required]
     public DateTime PaymentDate { get; set; }
@@ -74,6 +74,8 @@ public class WorkerPaymentDto
     public decimal? OriginalAgreedAmount { get; set; }
     public decimal WorkAmount { get; set; } // Bajarilgan ish haqi
     public decimal PaidAmount { get; set; }
+    public decimal AgreedAmountUsd { get; set; }
+    public decimal PaidAmountUsd { get; set; }
     public decimal RemainingAmount => AgreedAmount - PaidAmount; // Qoldiq qarz
     public decimal RemainingAllowedToPay => Math.Max(0, AgreedAmount - PaidAmount); // To'lanishi mumkin bo'lgan maksimal qoldiq
     public bool IsFullyPaid => AgreedAmount > 0 && PaidAmount >= AgreedAmount;

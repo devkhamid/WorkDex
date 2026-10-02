@@ -1,6 +1,7 @@
 import { apiClient } from './client';
 import {
   AuthResponse,
+  Currency,
   Customer,
   DashboardRecentActivity,
   DashboardStats,
@@ -107,7 +108,7 @@ export const projectsApi = {
     customerId: string;
     contractAmount: number;
     budget: number;
-    currency: string;
+    currency: Currency;
     startDate: string;
     endDate?: string;
     location?: string;
@@ -152,6 +153,7 @@ export const projectsApi = {
   },
   createPayment: async (projectId: string, data: {
     amount: number;
+    currency: Currency;
     paymentMethod: number;
     paymentDate: string;
     notes?: string;
@@ -168,9 +170,7 @@ export const projectsApi = {
   createExpense: async (projectId: string, data: {
     category: number;
     amount: number;
-    currency?: string;
-    exchangeRateToUzs?: number;
-    originalAmount?: number;
+    currency: Currency;
     description: string;
     expenseDate: string;
     notes?: string;
@@ -188,9 +188,7 @@ export const projectsApi = {
     brand?: string;
     quantity: number;
     unitPrice: number;
-    currency?: string;
-    exchangeRateToUzs?: number;
-    originalUnitPrice?: number;
+    currency: Currency;
     supplier?: string;
     purchaseDate: string;
     receiptNumber?: string;
@@ -212,9 +210,7 @@ export const projectsApi = {
     workerId: string;
     jobDescription: string;
     agreedAmount: number;
-    currency?: string;
-    exchangeRateToUzs?: number;
-    originalAgreedAmount?: number;
+    currency: Currency;
     workAmount?: number;
     paidAmount?: number;
     paymentDate?: string;
@@ -223,20 +219,17 @@ export const projectsApi = {
     const res = await apiClient.post<WorkerPayment>(`/projects/${projectId}/worker-payments`, data);
     return res.data;
   },
-  updateWorkAmount: async (projectId: string, paymentId: string, workAmount: number, notes?: string): Promise<WorkerPayment> => {
-    const res = await apiClient.patch<WorkerPayment>(`/projects/${projectId}/worker-payments/${paymentId}/work-amount`, { workAmount, notes });
+  updateWorkAmount: async (projectId: string, paymentId: string, workAmount: number, currency: Currency, notes?: string): Promise<WorkerPayment> => {
+    const res = await apiClient.patch<WorkerPayment>(`/projects/${projectId}/worker-payments/${paymentId}/work-amount`, { workAmount, currency, notes });
     return res.data;
   },
   payWorker: async (projectId: string, paymentId: string, data: {
     amount: number;
-    currency?: string;
-    exchangeRateToUzs?: number;
-    originalAmount?: number;
+    currency: Currency;
     paymentDate: string;
     notes?: string;
-  } | number, paymentDate?: string, notes?: string): Promise<WorkerPayment> => {
-    const payload = typeof data === 'object' ? data : { amount: data, paymentDate, notes };
-    const res = await apiClient.patch<WorkerPayment>(`/projects/${projectId}/worker-payments/${paymentId}/pay`, payload);
+  }): Promise<WorkerPayment> => {
+    const res = await apiClient.patch<WorkerPayment>(`/projects/${projectId}/worker-payments/${paymentId}/pay`, data);
     return res.data;
   },
   getWorkersSummary: async (projectId: string): Promise<WorkerSummary[]> => {
@@ -253,6 +246,7 @@ export const projectsApi = {
     description?: string;
     customerAmount: number;
     actualCost: number;
+    currency: Currency;
     isApprovedByCustomer: boolean;
     notes?: string;
   }): Promise<ExtraWork> => {
@@ -478,6 +472,7 @@ export const officeExpensesApi = {
     category: number;
     frequency: number;
     amount: number;
+    currency: Currency;
     description: string;
     expenseDate: string;
     notes?: string;
@@ -525,4 +520,18 @@ export const currencyApi = {
     const res = await apiClient.get<{ rate: number; currency: string; toCurrency: string; date: string }>('/currency/rate');
     return res.data;
   }
+};
+
+// CBU kursi kuniga bir marta o'zgaradi — barcha komponentlar bitta so'rovni bo'lishadi
+let cbuRatePromise: Promise<number> | null = null;
+export const getCbuRate = (): Promise<number> => {
+  if (!cbuRatePromise) {
+    cbuRatePromise = currencyApi.getRate()
+      .then((r) => (r.rate > 0 ? r.rate : 0))
+      .catch(() => {
+        cbuRatePromise = null;
+        return 0;
+      });
+  }
+  return cbuRatePromise;
 };

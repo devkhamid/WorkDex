@@ -17,6 +17,8 @@ import { dashboardApi, projectsApi, reportsApi, usersApi } from '../api/services
 import { DashboardStats, Project, ProjectStatus } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
+import { UsdWithUzs } from '../components/Money';
+import { formatUsd } from '../utils/money';
 
 // ---- Add User Modal ----
 const AddUserModal: React.FC<{ onClose: () => void; onSuccess: () => void }> = ({ onClose, onSuccess }) => {
@@ -226,21 +228,7 @@ export const DashboardPage: React.FC = () => {
     return 'bg-[#3b82f6]';
   };
 
-  // UZS (so'm) formatida ko'rsatish — barcha xarajatlar va tushum so'mda saqlanadi
-  const formatUzs = (amount: number) => {
-    return `${amount.toLocaleString()} so'm`;
-  };
-  // USD (dollar) formatida ko'rsatish
-  const formatUsd = (amount: number) => {
-    return `$${amount.toLocaleString()}`;
-  };
-  // Loyiha valyutasiga qarab formatlash
-  const formatProjectAmount = (amount: number, uzsAmount?: number, currency?: string) => {
-    const curr = (currency || 'USD').toUpperCase();
-    if (curr === 'UZS' && uzsAmount) return `${uzsAmount.toLocaleString()} so'm`;
-    return `$${amount.toLocaleString()}`;
-  };
-
+  
   return (
     <div className="p-6 space-y-5">
       {/* Add User Modal */}
@@ -581,10 +569,8 @@ export const DashboardPage: React.FC = () => {
                     </div>
                   </td>
                   <td className="py-3.5 px-5">
-                    <span className="font-bold text-gray-900">
-                      {formatProjectAmount(p.contractAmount, p.contractAmountUzs, p.currency)}
-                    </span>
-                    <span className="text-gray-400 font-normal"> / {formatUsd(p.budget)}</span>
+                    <UsdWithUzs className="font-bold text-gray-900" usd={p.contractAmount} uzs={p.contractAmountUzs} />
+                    <span className="block text-[10px] text-gray-400 font-normal">Byudjet: {formatUsd(p.budget)}</span>
                   </td>
                   <td className="py-3.5 px-5 text-gray-600 text-xs">
                     {new Date(p.startDate).toLocaleDateString('uz-UZ')} {p.endDate ? `— ${new Date(p.endDate).toLocaleDateString('uz-UZ')}` : ''}

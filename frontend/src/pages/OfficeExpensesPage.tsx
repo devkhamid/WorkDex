@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Trash2, X, DollarSign, Zap, Wifi, Building } from 'lucide-react';
 import { officeExpensesApi } from '../api/services';
-import { Expense, ExpenseCategory, ExpenseFrequency } from '../types';
+import { Currency, Expense, ExpenseCategory, ExpenseFrequency } from '../types';
+import { MoneyInput, UsdWithUzs } from '../components/Money';
 
 const categoryLabels: Record<number, string> = {
   1: 'Mehnat xarajatlari',
@@ -38,6 +39,7 @@ export const OfficeExpensesPage: React.FC = () => {
   const [category, setCategory] = useState(11); // Electricity default
   const [frequency, setFrequency] = useState(3); // Monthly default
   const [amount, setAmount] = useState<number | ''>('');
+  const [currency, setCurrency] = useState<Currency>('UZS');
   const [description, setDescription] = useState('');
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
@@ -63,6 +65,7 @@ export const OfficeExpensesPage: React.FC = () => {
         category,
         frequency,
         amount: Number(amount),
+        currency,
         description: description.trim(),
         // <input type="date"> "YYYY-MM-DD" beradi; uni to'g'ridan-to'g'ri yuborsak
         // backendda DateTime.Kind=Unspecified bo'lib, ToUniversalTime() uni server
@@ -92,9 +95,13 @@ export const OfficeExpensesPage: React.FC = () => {
     }
   };
 
-  const totalAmount = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const monthlyAmount = expenses.filter(e => (e.frequency || 1) === 3).reduce((sum, e) => sum + e.amount, 0);
-  const dailyAmount = expenses.filter(e => (e.frequency || 1) === 2).reduce((sum, e) => sum + e.amount, 0);
+  const sumOf = (list: Expense[]) => ({
+    uzs: list.reduce((sum, e) => sum + e.amount, 0),
+    usd: list.reduce((sum, e) => sum + (e.amountUsd ?? 0), 0),
+  });
+  const totalAmount = sumOf(expenses);
+  const monthlyAmount = sumOf(expenses.filter(e => (e.frequency || 1) === 3));
+  const dailyAmount = sumOf(expenses.filter(e => (e.frequency || 1) === 2));
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -123,17 +130,17 @@ export const OfficeExpensesPage: React.FC = () => {
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden">
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#ef5350]" />
           <small className="block text-[11px] font-medium text-[#697180] mb-1.5">Jami Ofis Xarajatlari</small>
-          <strong className="text-2xl font-bold text-[#171b25]">${totalAmount.toLocaleString()}</strong>
+          <UsdWithUzs className="text-2xl font-bold text-[#171b25]" uzsClassName="text-xs" usd={totalAmount.usd} uzs={totalAmount.uzs} />
         </div>
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden">
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#ff7a16]" />
           <small className="block text-[11px] font-medium text-[#697180] mb-1.5">Oylik Xarajatlar</small>
-          <strong className="text-2xl font-bold text-[#171b25]">${monthlyAmount.toLocaleString()}</strong>
+          <UsdWithUzs className="text-2xl font-bold text-[#171b25]" uzsClassName="text-xs" usd={monthlyAmount.usd} uzs={monthlyAmount.uzs} />
         </div>
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden">
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#3b82f6]" />
           <small className="block text-[11px] font-medium text-[#697180] mb-1.5">Kunlik Xarajatlar</small>
-          <strong className="text-2xl font-bold text-[#171b25]">${dailyAmount.toLocaleString()}</strong>
+          <UsdWithUzs className="text-2xl font-bold text-[#171b25]" uzsClassName="text-xs" usd={dailyAmount.usd} uzs={dailyAmount.uzs} />
         </div>
       </div>
 
@@ -169,7 +176,7 @@ export const OfficeExpensesPage: React.FC = () => {
                       {frequencyLabels[exp.frequency || 1] || 'Bir martalik'}
                     </span>
                   </td>
-                  <td className="py-3 px-5 font-bold text-[#171b25]">${exp.amount.toLocaleString()}</td>
+                  <td className="py-3 px-5 font-bold text-[#171b25]"><UsdWithUzs usd={exp.amountUsd} uzs={exp.amount} /></td>
                   <td className="py-3 px-5 text-gray-600 max-w-[200px] truncate">{exp.description}</td>
                   <td className="py-3 px-5 text-gray-500">{formatDate(exp.expenseDate)}</td>
                   <td className="py-3 px-5 text-gray-600">{exp.createdByName}</td>
@@ -243,12 +250,14 @@ export const OfficeExpensesPage: React.FC = () => {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Summa ($) *</label>
-                <input type="number" required min="0.01" step="0.01" placeholder="0.00"
-                  value={amount} onChange={e => setAmount(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full h-9 px-3 border border-[#e4e7ec] rounded-lg text-xs outline-none focus:border-[#ff7a16]" />
-              </div>
+              <MoneyInput
+                label="Summa"
+                required
+                value={amount}
+                onChange={setAmount}
+                currency={currency}
+                onCurrencyChange={setCurrency}
+              />
 
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Izoh *</label>

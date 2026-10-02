@@ -6,7 +6,11 @@ public class PaymentDto
 {
     public Guid Id { get; set; }
     public Guid ProjectId { get; set; }
-    public decimal Amount { get; set; }
+    public decimal Amount { get; set; } // USD
+    public string Currency { get; set; } = "USD";
+    public decimal? ExchangeRate { get; set; }
+    public decimal? OriginalAmount { get; set; }
+    public decimal AmountUzs { get; set; }
     public PaymentMethod PaymentMethod { get; set; }
     public string PaymentMethodName { get; set; } = string.Empty;
     public DateTime PaymentDate { get; set; }

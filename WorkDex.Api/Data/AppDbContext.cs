@@ -231,6 +231,10 @@ public class AppDbContext : DbContext
                 .IsRequired()
                 .HasColumnType("numeric(18,2)");
 
+            entity.Property(p => p.Currency).IsRequired().HasMaxLength(3).HasDefaultValue("USD");
+            entity.Property(p => p.ExchangeRate).HasColumnType("numeric(12,2)");
+            entity.Property(p => p.OriginalAmount).HasColumnType("numeric(18,2)");
+
             entity.Property(p => p.Notes)
                 .HasMaxLength(1000);
 
@@ -456,6 +460,11 @@ public class AppDbContext : DbContext
             entity.Property(ew => ew.ActualCost)
                 .IsRequired()
                 .HasColumnType("numeric(18,2)");
+
+            entity.Property(ew => ew.Currency).IsRequired().HasMaxLength(3).HasDefaultValue("USD");
+            entity.Property(ew => ew.ExchangeRate).HasColumnType("numeric(12,2)");
+            entity.Property(ew => ew.OriginalCustomerAmount).HasColumnType("numeric(18,2)");
+            entity.Property(ew => ew.OriginalActualCost).HasColumnType("numeric(18,2)");
 
             entity.Property(ew => ew.Notes)
                 .HasMaxLength(1000);

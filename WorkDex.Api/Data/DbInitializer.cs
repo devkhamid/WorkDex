@@ -55,6 +55,17 @@ public static class DbInitializer
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Expenses\" ADD COLUMN IF NOT EXISTS \"ExchangeRateToUzs\" NUMERIC(12,2);");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Expenses\" ADD COLUMN IF NOT EXISTS \"OriginalAmount\" NUMERIC(18,2);");
 
+        // Valyuta maydonlari — Payments (Amount doim USD)
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Payments\" ADD COLUMN IF NOT EXISTS \"Currency\" VARCHAR(3) NOT NULL DEFAULT 'USD';");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Payments\" ADD COLUMN IF NOT EXISTS \"ExchangeRate\" NUMERIC(12,2);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Payments\" ADD COLUMN IF NOT EXISTS \"OriginalAmount\" NUMERIC(18,2);");
+
+        // Valyuta maydonlari — ExtraWorks (summalar doim USD)
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"ExtraWorks\" ADD COLUMN IF NOT EXISTS \"Currency\" VARCHAR(3) NOT NULL DEFAULT 'USD';");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"ExtraWorks\" ADD COLUMN IF NOT EXISTS \"ExchangeRate\" NUMERIC(12,2);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"ExtraWorks\" ADD COLUMN IF NOT EXISTS \"OriginalCustomerAmount\" NUMERIC(18,2);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"ExtraWorks\" ADD COLUMN IF NOT EXISTS \"OriginalActualCost\" NUMERIC(18,2);");
+
         // Agreements jadvalini yaratish (IF NOT EXISTS orqali xavfsiz)
         await context.Database.ExecuteSqlRawAsync(@"
             CREATE TABLE IF NOT EXISTS ""Agreements"" (

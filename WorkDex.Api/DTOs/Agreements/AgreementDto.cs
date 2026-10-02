@@ -176,7 +176,8 @@ public class UpdateAgreementDto
 
 public class FinalizeAgreementDto
 {
-    public decimal ExchangeRate { get; set; }
+    // Kurs endi serverda CBU dan olinadi; eski klientlar uchun maydon qoldirilgan, lekin e'tiborga olinmaydi
+    public decimal? ExchangeRate { get; set; }
     public DateTime? Deadline { get; set; }
     public List<Guid> ManagerIds { get; set; } = new();
 }

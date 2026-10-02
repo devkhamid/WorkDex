@@ -8,10 +8,23 @@ namespace WorkDex.Api.Services;
 public class ExpenseService : IExpenseService
 {
     private readonly AppDbContext _context;
+    private readonly ICurrencyService _currencyService;
 
-    public ExpenseService(AppDbContext context)
+    public ExpenseService(AppDbContext context, ICurrencyService currencyService)
     {
         _context = context;
+        _currencyService = currencyService;
+    }
+
+    // Amount har doim so'mda saqlanadi; kiritilgan valyuta, asl summa va bugungi CBU kursi alohida
+    private async Task ApplyAmountAsync(Expense expense, CreateExpenseDto dto)
+    {
+        var currency = Money.Normalize(dto.Currency, "UZS");
+        var rate = await Money.CurrentRateAsync(_currencyService);
+        expense.Currency = currency;
+        expense.ExchangeRateToUzs = rate;
+        expense.OriginalAmount = dto.Amount;
+        expense.Amount = Money.ToUzs(dto.Amount, currency, rate);
     }
 
     public async Task<ExpenseDto> AddExpenseAsync(Guid projectId, CreateExpenseDto dto, Guid createdByUserId)
@@ -24,19 +37,11 @@ public class ExpenseService : IExpenseService
         if (user is null)
             throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
 
-        var isUsd = string.Equals(dto.Currency, "USD", StringComparison.OrdinalIgnoreCase) && dto.ExchangeRateToUzs.HasValue && dto.ExchangeRateToUzs.Value > 0;
-        var originalAmount = dto.OriginalAmount ?? dto.Amount;
-        var effectiveAmount = isUsd ? Math.Round(originalAmount * dto.ExchangeRateToUzs!.Value, 2) : dto.Amount;
-
         var expense = new Expense
         {
             ProjectId = projectId,
             Category = dto.Category,
             Frequency = dto.Frequency,
-            Amount = effectiveAmount,
-            Currency = isUsd ? "USD" : "UZS",
-            ExchangeRateToUzs = isUsd ? dto.ExchangeRateToUzs : null,
-            OriginalAmount = isUsd ? originalAmount : null,
             Description = dto.Description.Trim(),
             ExpenseDate = dto.ExpenseDate.ToUniversalTime(),
             Notes = dto.Notes?.Trim(),
@@ -44,6 +49,7 @@ public class ExpenseService : IExpenseService
             CreatedByUserId = createdByUserId,
             CreatedAt = DateTime.UtcNow
         };
+        await ApplyAmountAsync(expense, dto);
 
         _context.Expenses.Add(expense);
         await _context.SaveChangesAsync();
@@ -51,7 +57,7 @@ public class ExpenseService : IExpenseService
         // Load CreatedByUser before mapping
         await _context.Entry(expense).Reference(e => e.CreatedByUser).LoadAsync();
 
-        return MapToDto(expense);
+        return MapToDto(expense, expense.ExchangeRateToUzs!.Value);
     }
 
     public async Task<List<ExpenseDto>> GetExpensesByProjectAsync(Guid projectId, ExpenseCategory? category = null)
@@ -73,7 +79,8 @@ public class ExpenseService : IExpenseService
             .OrderByDescending(e => e.ExpenseDate)
             .ToListAsync();
 
-        return expenses.Select(MapToDto).ToList();
+        var currentRate = await Money.CurrentRateAsync(_currencyService);
+        return expenses.Select(e => MapToDto(e, currentRate)).ToList();
     }
 
     public async Task<ExpenseDto> GetExpenseByIdAsync(Guid projectId, Guid expenseId)
@@ -85,7 +92,7 @@ public class ExpenseService : IExpenseService
         if (expense is null)
             throw new KeyNotFoundException("Xarajat topilmadi.");
 
-        return MapToDto(expense);
+        return MapToDto(expense, await Money.CurrentRateAsync(_currencyService));
     }
 
     public async Task DeleteExpenseAsync(Guid projectId, Guid expenseId)
@@ -112,7 +119,8 @@ public class ExpenseService : IExpenseService
             query = query.Where(e => e.CompanyAdminId == companyAdminId);
 
         var expenses = await query.OrderByDescending(e => e.ExpenseDate).ToListAsync();
-        return expenses.Select(MapToDto).ToList();
+        var currentRate = await Money.CurrentRateAsync(_currencyService);
+        return expenses.Select(e => MapToDto(e, currentRate)).ToList();
     }
 
     // Ofis xarajatlari uchun tenantlik qoidasi. `null` — cheklov yo'q (faqat SuperAdmin).
@@ -141,7 +149,6 @@ public class ExpenseService : IExpenseService
             ProjectId = null,
             Category = dto.Category,
             Frequency = dto.Frequency,
-            Amount = dto.Amount,
             Description = dto.Description.Trim(),
             ExpenseDate = dto.ExpenseDate.ToUniversalTime(),
             Notes = dto.Notes?.Trim(),
@@ -149,11 +156,13 @@ public class ExpenseService : IExpenseService
             CompanyAdminId = companyAdminId,
             CreatedAt = DateTime.UtcNow
         };
+        await ApplyAmountAsync(expense, dto);
 
         _context.Expenses.Add(expense);
         await _context.SaveChangesAsync();
+        await _context.Entry(expense).Reference(e => e.CreatedByUser).LoadAsync();
 
-        return MapToDto(expense);
+        return MapToDto(expense, expense.ExchangeRateToUzs!.Value);
     }
 
     public async Task DeleteOfficeExpenseAsync(Guid expenseId, Guid requestingUserId, UserRole requestingUserRole)
@@ -177,8 +186,9 @@ public class ExpenseService : IExpenseService
         await _context.SaveChangesAsync();
     }
 
-    private static ExpenseDto MapToDto(Expense e)
+    private static ExpenseDto MapToDto(Expense e, decimal fallbackRate)
     {
+        var rate = e.ExchangeRateToUzs is > 0 ? e.ExchangeRateToUzs.Value : fallbackRate;
         return new ExpenseDto
         {
             Id = e.Id,
@@ -188,6 +198,7 @@ public class ExpenseService : IExpenseService
             Frequency = e.Frequency,
             FrequencyName = e.Frequency.ToString(),
             Amount = e.Amount,
+            AmountUsd = e.Currency == "USD" && e.OriginalAmount.HasValue ? e.OriginalAmount.Value : Math.Round(e.Amount / rate, 2),
             Currency = e.Currency ?? "UZS",
             ExchangeRateToUzs = e.ExchangeRateToUzs,
             OriginalAmount = e.OriginalAmount,

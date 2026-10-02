@@ -250,68 +250,62 @@ public class DashboardService : IDashboardService
     public async Task<List<DashboardRecentActivityDto>> GetRecentActivitiesAsync(Guid requestingUserId, UserRole requestingUserRole, int limit = 10)
     {
         var accessibleIds = await GetAccessibleProjectIdsAsync(requestingUserId, requestingUserRole);
-        var activities = new List<DashboardRecentActivityDto>();
+        var defaultRate = await Money.CurrentRateAsync(_currencyService);
+        decimal RateOf(decimal? r) => r is > 0 ? r.Value : defaultRate;
 
-        // Payments
-        var payments = await _context.Payments
+        // Amount har doim USD, AmountUzs ? so'm ekvivalenti (yozuvdagi kurs bo'yicha)
+        var payments = (await _context.Payments
             .Where(p => accessibleIds.Contains(p.ProjectId))
-            .Include(p => p.Project)
-            .Include(p => p.ReceivedByUser)
             .OrderByDescending(p => p.CreatedAt)
             .Take(limit)
+            .Select(p => new { p.PaymentMethod, ProjectName = p.Project.Name, p.Amount, p.ExchangeRate, p.Currency, p.OriginalAmount, CreatedByName = p.ReceivedByUser.FullName, p.CreatedAt })
+            .ToListAsync())
             .Select(p => new DashboardRecentActivityDto
             {
                 ActivityType = "Payment",
                 Title = $"Mijoz to'lovi qabul qilindi ({p.PaymentMethod})",
-                ProjectName = p.Project.Name,
+                ProjectName = p.ProjectName,
                 Amount = p.Amount,
-                CreatedByName = p.ReceivedByUser.FullName,
+                AmountUzs = p.Currency == "UZS" && p.OriginalAmount.HasValue ? p.OriginalAmount.Value : Math.Round(p.Amount * RateOf(p.ExchangeRate), 2),
+                CreatedByName = p.CreatedByName,
                 CreatedAt = p.CreatedAt
-            })
-            .ToListAsync();
+            });
 
-        // Expenses
-        var expenses = await _context.Expenses
+        var expenses = (await _context.Expenses
             .Where(e => e.ProjectId != null && accessibleIds.Contains(e.ProjectId.Value))
-            .Include(e => e.Project)
-            .Include(e => e.CreatedByUser)
             .OrderByDescending(e => e.CreatedAt)
             .Take(limit)
+            .Select(e => new { e.Category, e.Description, ProjectName = e.Project != null ? e.Project.Name : "Ofis", e.Amount, e.ExchangeRateToUzs, CreatedByName = e.CreatedByUser.FullName, e.CreatedAt })
+            .ToListAsync())
             .Select(e => new DashboardRecentActivityDto
             {
                 ActivityType = "Expense",
                 Title = $"{e.Category} xarajati: {e.Description}",
-                ProjectName = e.Project != null ? e.Project.Name : "Ofis",
-                Amount = e.Amount,
-                CreatedByName = e.CreatedByUser.FullName,
+                ProjectName = e.ProjectName,
+                Amount = Math.Round(e.Amount / RateOf(e.ExchangeRateToUzs), 2),
+                AmountUzs = e.Amount,
+                CreatedByName = e.CreatedByName,
                 CreatedAt = e.CreatedAt
-            })
-            .ToListAsync();
+            });
 
-        // Material Purchases
-        var materials = await _context.MaterialPurchases
+        var materials = (await _context.MaterialPurchases
             .Where(mp => accessibleIds.Contains(mp.ProjectId))
-            .Include(mp => mp.Project)
-            .Include(mp => mp.Material)
-            .Include(mp => mp.CreatedByUser)
             .OrderByDescending(mp => mp.CreatedAt)
             .Take(limit)
+            .Select(mp => new { MaterialName = mp.Material.Name, mp.Quantity, mp.Unit, ProjectName = mp.Project.Name, mp.TotalCost, mp.ExchangeRateToUzs, CreatedByName = mp.CreatedByUser.FullName, mp.CreatedAt })
+            .ToListAsync())
             .Select(mp => new DashboardRecentActivityDto
             {
                 ActivityType = "MaterialPurchase",
-                Title = $"Material xaridi: {mp.Material.Name} ({mp.Quantity} {mp.Unit})",
-                ProjectName = mp.Project.Name,
-                Amount = mp.TotalCost,
-                CreatedByName = mp.CreatedByUser.FullName,
+                Title = $"Material xaridi: {mp.MaterialName} ({mp.Quantity} {mp.Unit})",
+                ProjectName = mp.ProjectName,
+                Amount = Math.Round(mp.TotalCost / RateOf(mp.ExchangeRateToUzs), 2),
+                AmountUzs = mp.TotalCost,
+                CreatedByName = mp.CreatedByName,
                 CreatedAt = mp.CreatedAt
-            })
-            .ToListAsync();
+            });
 
-        activities.AddRange(payments);
-        activities.AddRange(expenses);
-        activities.AddRange(materials);
-
-        return activities
+        return payments.Concat(expenses).Concat(materials)
             .OrderByDescending(a => a.CreatedAt)
             .Take(limit)
             .ToList();

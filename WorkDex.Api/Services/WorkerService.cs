@@ -8,10 +8,12 @@ namespace WorkDex.Api.Services;
 public class WorkerService : IWorkerService
 {
     private readonly AppDbContext _context;
+    private readonly ICurrencyService _currencyService;
 
-    public WorkerService(AppDbContext context)
+    public WorkerService(AppDbContext context, ICurrencyService currencyService)
     {
         _context = context;
+        _currencyService = currencyService;
     }
 
     public async Task<List<WorkerDto>> GetAllWorkersAsync(Guid requestingUserId, UserRole requestingUserRole)
@@ -168,16 +170,19 @@ public class WorkerService : IWorkerService
         if (user is null)
             throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
 
-        var isUsd = string.Equals(dto.Currency, "USD", StringComparison.OrdinalIgnoreCase) && dto.ExchangeRateToUzs.HasValue && dto.ExchangeRateToUzs.Value > 0;
-        var originalAgreed = dto.OriginalAgreedAmount ?? dto.AgreedAmount;
-        var effectiveAgreed = isUsd ? Math.Round(originalAgreed * dto.ExchangeRateToUzs!.Value, 2) : dto.AgreedAmount;
+        // Barcha summalar (kelishilgan, bajarilgan, to'langan) Currency da kiritiladi va so'mda saqlanadi
+        var currency = Money.Normalize(dto.Currency, "UZS");
+        var rate = await Money.CurrentRateAsync(_currencyService);
+        var effectiveAgreed = Money.ToUzs(dto.AgreedAmount, currency, rate);
+        var effectiveWork = Money.ToUzs(dto.WorkAmount, currency, rate);
+        var effectivePaid = Money.ToUzs(dto.PaidAmount, currency, rate);
 
-        if (dto.WorkAmount > effectiveAgreed)
+        if (effectiveWork > effectiveAgreed)
         {
-            throw new InvalidOperationException($"Ishlangan haq ({dto.WorkAmount:N0} so'm) kelishilgan umumiy summadan ({effectiveAgreed:N0} so'm) ko'p bo'lishi mumkin emas.");
+            throw new InvalidOperationException($"Ishlangan haq ({effectiveWork:N0} so'm) kelishilgan umumiy summadan ({effectiveAgreed:N0} so'm) ko'p bo'lishi mumkin emas.");
         }
 
-        if (dto.PaidAmount > effectiveAgreed)
+        if (effectivePaid > effectiveAgreed)
         {
             throw new InvalidOperationException($"Ustaga faqat {effectiveAgreed:N0} so'm gacha to'lash mumkin. Boshlang'ich to'lov kelishilgan umumiy summadan oshib ketmoqda.");
         }
@@ -188,11 +193,11 @@ public class WorkerService : IWorkerService
             WorkerId = dto.WorkerId,
             JobDescription = dto.JobDescription.Trim(),
             AgreedAmount = effectiveAgreed,
-            Currency = isUsd ? "USD" : "UZS",
-            ExchangeRateToUzs = isUsd ? dto.ExchangeRateToUzs : null,
-            OriginalAgreedAmount = isUsd ? originalAgreed : null,
-            WorkAmount = dto.WorkAmount,
-            PaidAmount = dto.PaidAmount,
+            Currency = currency,
+            ExchangeRateToUzs = rate,
+            OriginalAgreedAmount = dto.AgreedAmount,
+            WorkAmount = effectiveWork,
+            PaidAmount = effectivePaid,
             PaymentDate = dto.PaymentDate,
             Notes = dto.Notes?.Trim(),
             CreatedByUserId = createdByUserId,
@@ -202,26 +207,7 @@ public class WorkerService : IWorkerService
         _context.WorkerPayments.Add(workerPayment);
         await _context.SaveChangesAsync();
 
-        return new WorkerPaymentDto
-        {
-            Id = workerPayment.Id,
-            ProjectId = workerPayment.ProjectId,
-            WorkerId = workerPayment.WorkerId,
-            WorkerName = worker.FullName,
-            WorkerSpecialty = worker.Specialty,
-            JobDescription = workerPayment.JobDescription,
-            AgreedAmount = workerPayment.AgreedAmount,
-            Currency = workerPayment.Currency,
-            ExchangeRateToUzs = workerPayment.ExchangeRateToUzs,
-            OriginalAgreedAmount = workerPayment.OriginalAgreedAmount,
-            WorkAmount = workerPayment.WorkAmount,
-            PaidAmount = workerPayment.PaidAmount,
-            PaymentDate = workerPayment.PaymentDate,
-            Notes = workerPayment.Notes,
-            CreatedByUserId = workerPayment.CreatedByUserId,
-            CreatedByName = user.FullName,
-            CreatedAt = workerPayment.CreatedAt
-        };
+        return MapToDto(workerPayment, worker.FullName, worker.Specialty, user.FullName, rate);
     }
 
     public async Task<List<WorkerPaymentDto>> GetWorkerJobsByProjectAsync(Guid projectId)
@@ -237,26 +223,8 @@ public class WorkerService : IWorkerService
             .OrderByDescending(wp => wp.CreatedAt)
             .ToListAsync();
 
-        return jobs.Select(wp => new WorkerPaymentDto
-        {
-            Id = wp.Id,
-            ProjectId = wp.ProjectId,
-            WorkerId = wp.WorkerId,
-            WorkerName = wp.Worker?.FullName ?? "",
-            WorkerSpecialty = wp.Worker?.Specialty,
-            JobDescription = wp.JobDescription,
-            AgreedAmount = wp.AgreedAmount,
-            Currency = wp.Currency ?? "UZS",
-            ExchangeRateToUzs = wp.ExchangeRateToUzs,
-            OriginalAgreedAmount = wp.OriginalAgreedAmount,
-            WorkAmount = wp.WorkAmount,
-            PaidAmount = wp.PaidAmount,
-            PaymentDate = wp.PaymentDate,
-            Notes = wp.Notes,
-            CreatedByUserId = wp.CreatedByUserId,
-            CreatedByName = wp.CreatedByUser?.FullName ?? "",
-            CreatedAt = wp.CreatedAt
-        }).ToList();
+        var currentRate = await Money.CurrentRateAsync(_currencyService);
+        return jobs.Select(wp => MapToDto(wp, wp.Worker?.FullName ?? "", wp.Worker?.Specialty, wp.CreatedByUser?.FullName ?? "", currentRate)).ToList();
     }
 
     public async Task<WorkerPaymentDto> GetWorkerJobByIdAsync(Guid projectId, Guid paymentId)
@@ -269,26 +237,7 @@ public class WorkerService : IWorkerService
         if (job is null)
             throw new KeyNotFoundException("Usta ishi / to'lovi topilmadi.");
 
-        return new WorkerPaymentDto
-        {
-            Id = job.Id,
-            ProjectId = job.ProjectId,
-            WorkerId = job.WorkerId,
-            WorkerName = job.Worker?.FullName ?? "",
-            WorkerSpecialty = job.Worker?.Specialty,
-            JobDescription = job.JobDescription,
-            AgreedAmount = job.AgreedAmount,
-            Currency = job.Currency ?? "UZS",
-            ExchangeRateToUzs = job.ExchangeRateToUzs,
-            OriginalAgreedAmount = job.OriginalAgreedAmount,
-            WorkAmount = job.WorkAmount,
-            PaidAmount = job.PaidAmount,
-            PaymentDate = job.PaymentDate,
-            Notes = job.Notes,
-            CreatedByUserId = job.CreatedByUserId,
-            CreatedByName = job.CreatedByUser?.FullName ?? "",
-            CreatedAt = job.CreatedAt
-        };
+        return MapToDto(job, job.Worker?.FullName ?? "", job.Worker?.Specialty, job.CreatedByUser?.FullName ?? "", await Money.CurrentRateAsync(_currencyService));
     }
 
     public async Task<WorkerPaymentDto> UpdateWorkAmountAsync(Guid projectId, Guid paymentId, UpdateWorkerWorkAmountDto dto)
@@ -301,46 +250,34 @@ public class WorkerService : IWorkerService
         if (job is null)
             throw new KeyNotFoundException("Usta ishi / to'lovi topilmadi.");
 
-        if (dto.WorkAmount > job.AgreedAmount)
+        var currency = Money.Normalize(dto.Currency, "UZS");
+        var rate = await Money.CurrentRateAsync(_currencyService);
+        var workAmount = Money.ToUzs(dto.WorkAmount, currency, rate);
+        // USD dan o'girishdagi yaxlitlash farqi (1 sentgacha) kelishilgan summani "oshirib" yubormasligi uchun
+        if (currency == "USD" && workAmount > job.AgreedAmount && workAmount - job.AgreedAmount <= rate * 0.01m)
+            workAmount = job.AgreedAmount;
+
+        if (workAmount > job.AgreedAmount)
         {
-            throw new InvalidOperationException($"Ishlangan haq ({dto.WorkAmount:N0} so'm) kelishilgan umumiy summadan ({job.AgreedAmount:N0} so'm) ko'p bo'lishi mumkin emas.");
+            throw new InvalidOperationException($"Ishlangan haq ({workAmount:N0} so'm) kelishilgan umumiy summadan ({job.AgreedAmount:N0} so'm) ko'p bo'lishi mumkin emas.");
         }
 
-        if (dto.WorkAmount < job.PaidAmount)
+        if (workAmount < job.PaidAmount)
         {
             throw new InvalidOperationException($"Ishlangan haqni ({job.PaidAmount:N0} so'm) allaqachon to'langan summadan past qilib bo'lmaydi.");
         }
 
-        job.WorkAmount = dto.WorkAmount;
+        job.WorkAmount = workAmount;
         if (!string.IsNullOrWhiteSpace(dto.Notes))
         {
             job.Notes = string.IsNullOrWhiteSpace(job.Notes)
                 ? dto.Notes.Trim()
-                : $"{job.Notes} | Ish haqi yangilandi: {dto.WorkAmount:N0} so'm ({dto.Notes.Trim()})";
+                : $"{job.Notes} | Ish haqi yangilandi: {workAmount:N0} so'm ({dto.Notes.Trim()})";
         }
 
         await _context.SaveChangesAsync();
 
-        return new WorkerPaymentDto
-        {
-            Id = job.Id,
-            ProjectId = job.ProjectId,
-            WorkerId = job.WorkerId,
-            WorkerName = job.Worker?.FullName ?? "",
-            WorkerSpecialty = job.Worker?.Specialty,
-            JobDescription = job.JobDescription,
-            AgreedAmount = job.AgreedAmount,
-            Currency = job.Currency ?? "UZS",
-            ExchangeRateToUzs = job.ExchangeRateToUzs,
-            OriginalAgreedAmount = job.OriginalAgreedAmount,
-            WorkAmount = job.WorkAmount,
-            PaidAmount = job.PaidAmount,
-            PaymentDate = job.PaymentDate,
-            Notes = job.Notes,
-            CreatedByUserId = job.CreatedByUserId,
-            CreatedByName = job.CreatedByUser?.FullName ?? "",
-            CreatedAt = job.CreatedAt
-        };
+        return MapToDto(job, job.Worker?.FullName ?? "", job.Worker?.Specialty, job.CreatedByUser?.FullName ?? "", rate);
     }
 
     public async Task<WorkerPaymentDto> PayWorkerAsync(Guid projectId, Guid paymentId, PayWorkerDto dto)
@@ -353,15 +290,21 @@ public class WorkerService : IWorkerService
         if (job is null)
             throw new KeyNotFoundException("Usta ishi / to'lovi topilmadi.");
 
-        var isUsd = string.Equals(dto.Currency, "USD", StringComparison.OrdinalIgnoreCase) && dto.ExchangeRateToUzs.HasValue && dto.ExchangeRateToUzs.Value > 0;
-        var originalAmount = dto.OriginalAmount ?? dto.Amount;
-        var effectiveAmount = isUsd ? Math.Round(originalAmount * dto.ExchangeRateToUzs!.Value, 2) : dto.Amount;
+        var currency = Money.Normalize(dto.Currency, "UZS");
+        var isUsd = currency == "USD";
+        var rate = await Money.CurrentRateAsync(_currencyService);
+        var originalAmount = dto.Amount;
+        var effectiveAmount = Money.ToUzs(dto.Amount, currency, rate);
 
         var remainingAllowed = job.AgreedAmount - job.PaidAmount;
         if (remainingAllowed <= 0)
         {
             throw new InvalidOperationException($"Ustaga kelishilgan summa ({job.AgreedAmount:N0} so'm) allaqachon to'liq to'langan.");
         }
+
+        // USD dan o'girishdagi yaxlitlash farqi (1 sentgacha) qoldiqni "oshirib" yubormasligi uchun
+        if (isUsd && effectiveAmount > remainingAllowed && effectiveAmount - remainingAllowed <= rate * 0.01m)
+            effectiveAmount = remainingAllowed;
 
         if (effectiveAmount > remainingAllowed)
         {
@@ -371,7 +314,7 @@ public class WorkerService : IWorkerService
         job.PaidAmount += effectiveAmount;
         job.PaymentDate = dto.PaymentDate;
         var paymentNote = isUsd
-            ? $"To'lov: ${originalAmount:N0} USD (kurs: {dto.ExchangeRateToUzs:N0}) = {effectiveAmount:N0} so'm"
+            ? $"To'lov: ${originalAmount:N2} USD (CBU kursi: {rate:N2}) = {effectiveAmount:N0} so'm"
             : $"To'lov: {effectiveAmount:N0} so'm";
 
         if (!string.IsNullOrWhiteSpace(dto.Notes))
@@ -389,26 +332,7 @@ public class WorkerService : IWorkerService
 
         await _context.SaveChangesAsync();
 
-        return new WorkerPaymentDto
-        {
-            Id = job.Id,
-            ProjectId = job.ProjectId,
-            WorkerId = job.WorkerId,
-            WorkerName = job.Worker?.FullName ?? "",
-            WorkerSpecialty = job.Worker?.Specialty,
-            JobDescription = job.JobDescription,
-            AgreedAmount = job.AgreedAmount,
-            Currency = job.Currency ?? "UZS",
-            ExchangeRateToUzs = job.ExchangeRateToUzs,
-            OriginalAgreedAmount = job.OriginalAgreedAmount,
-            WorkAmount = job.WorkAmount,
-            PaidAmount = job.PaidAmount,
-            PaymentDate = job.PaymentDate,
-            Notes = job.Notes,
-            CreatedByUserId = job.CreatedByUserId,
-            CreatedByName = job.CreatedByUser?.FullName ?? "",
-            CreatedAt = job.CreatedAt
-        };
+        return MapToDto(job, job.Worker?.FullName ?? "", job.Worker?.Specialty, job.CreatedByUser?.FullName ?? "", rate);
     }
 
     public async Task DeleteWorkerJobAsync(Guid projectId, Guid paymentId)
@@ -447,5 +371,32 @@ public class WorkerService : IWorkerService
             .ToListAsync();
 
         return summary;
+    }
+
+    private static WorkerPaymentDto MapToDto(WorkerPayment wp, string workerName, string? specialty, string createdByName, decimal fallbackRate)
+    {
+        var rate = wp.ExchangeRateToUzs is > 0 ? wp.ExchangeRateToUzs.Value : fallbackRate;
+        return new WorkerPaymentDto
+        {
+            Id = wp.Id,
+            ProjectId = wp.ProjectId,
+            WorkerId = wp.WorkerId,
+            WorkerName = workerName,
+            WorkerSpecialty = specialty,
+            JobDescription = wp.JobDescription,
+            AgreedAmount = wp.AgreedAmount,
+            AgreedAmountUsd = wp.Currency == "USD" && wp.OriginalAgreedAmount.HasValue ? wp.OriginalAgreedAmount.Value : Math.Round(wp.AgreedAmount / rate, 2),
+            PaidAmountUsd = Math.Round(wp.PaidAmount / rate, 2),
+            Currency = wp.Currency ?? "UZS",
+            ExchangeRateToUzs = wp.ExchangeRateToUzs,
+            OriginalAgreedAmount = wp.OriginalAgreedAmount,
+            WorkAmount = wp.WorkAmount,
+            PaidAmount = wp.PaidAmount,
+            PaymentDate = wp.PaymentDate,
+            Notes = wp.Notes,
+            CreatedByUserId = wp.CreatedByUserId,
+            CreatedByName = createdByName,
+            CreatedAt = wp.CreatedAt
+        };
     }
 }

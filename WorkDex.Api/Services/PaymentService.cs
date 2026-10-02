@@ -8,10 +8,12 @@ namespace WorkDex.Api.Services;
 public class PaymentService : IPaymentService
 {
     private readonly AppDbContext _context;
+    private readonly ICurrencyService _currencyService;
 
-    public PaymentService(AppDbContext context)
+    public PaymentService(AppDbContext context, ICurrencyService currencyService)
     {
         _context = context;
+        _currencyService = currencyService;
     }
 
     public async Task<PaymentDto> AddPaymentAsync(Guid projectId, CreatePaymentDto dto, Guid receivedByUserId)
@@ -24,10 +26,16 @@ public class PaymentService : IPaymentService
         if (user is null)
             throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
 
+        var currency = Money.Normalize(dto.Currency, "USD");
+        var rate = await Money.CurrentRateAsync(_currencyService);
+
         var payment = new Payment
         {
             ProjectId = projectId,
-            Amount = dto.Amount,
+            Amount = Money.ToUsd(dto.Amount, currency, rate),
+            Currency = currency,
+            ExchangeRate = rate,
+            OriginalAmount = dto.Amount,
             PaymentMethod = dto.PaymentMethod,
             PaymentDate = dto.PaymentDate,
             Notes = dto.Notes?.Trim(),
@@ -38,19 +46,7 @@ public class PaymentService : IPaymentService
         _context.Payments.Add(payment);
         await _context.SaveChangesAsync();
 
-        return new PaymentDto
-        {
-            Id = payment.Id,
-            ProjectId = payment.ProjectId,
-            Amount = payment.Amount,
-            PaymentMethod = payment.PaymentMethod,
-            PaymentMethodName = payment.PaymentMethod.ToString(),
-            PaymentDate = payment.PaymentDate,
-            Notes = payment.Notes,
-            ReceivedByUserId = payment.ReceivedByUserId,
-            ReceivedByName = user.FullName,
-            CreatedAt = payment.CreatedAt
-        };
+        return MapToDto(payment, user.FullName, rate);
     }
 
     public async Task<List<PaymentDto>> GetPaymentsByProjectAsync(Guid projectId)
@@ -65,19 +61,8 @@ public class PaymentService : IPaymentService
             .OrderByDescending(p => p.PaymentDate)
             .ToListAsync();
 
-        return payments.Select(p => new PaymentDto
-        {
-            Id = p.Id,
-            ProjectId = p.ProjectId,
-            Amount = p.Amount,
-            PaymentMethod = p.PaymentMethod,
-            PaymentMethodName = p.PaymentMethod.ToString(),
-            PaymentDate = p.PaymentDate,
-            Notes = p.Notes,
-            ReceivedByUserId = p.ReceivedByUserId,
-            ReceivedByName = p.ReceivedByUser?.FullName ?? "",
-            CreatedAt = p.CreatedAt
-        }).ToList();
+        var currentRate = await Money.CurrentRateAsync(_currencyService);
+        return payments.Select(p => MapToDto(p, p.ReceivedByUser?.FullName ?? "", currentRate)).ToList();
     }
 
     public async Task<PaymentDto> GetPaymentByIdAsync(Guid projectId, Guid paymentId)
@@ -89,18 +74,28 @@ public class PaymentService : IPaymentService
         if (payment is null)
             throw new KeyNotFoundException("To'lov topilmadi.");
 
+        return MapToDto(payment, payment.ReceivedByUser?.FullName ?? "", await Money.CurrentRateAsync(_currencyService));
+    }
+
+    private static PaymentDto MapToDto(Payment p, string receivedByName, decimal fallbackRate)
+    {
+        var rate = p.ExchangeRate is > 0 ? p.ExchangeRate.Value : fallbackRate;
         return new PaymentDto
         {
-            Id = payment.Id,
-            ProjectId = payment.ProjectId,
-            Amount = payment.Amount,
-            PaymentMethod = payment.PaymentMethod,
-            PaymentMethodName = payment.PaymentMethod.ToString(),
-            PaymentDate = payment.PaymentDate,
-            Notes = payment.Notes,
-            ReceivedByUserId = payment.ReceivedByUserId,
-            ReceivedByName = payment.ReceivedByUser?.FullName ?? "",
-            CreatedAt = payment.CreatedAt
+            Id = p.Id,
+            ProjectId = p.ProjectId,
+            Amount = p.Amount,
+            Currency = p.Currency,
+            ExchangeRate = p.ExchangeRate,
+            OriginalAmount = p.OriginalAmount,
+            AmountUzs = p.Currency == "UZS" && p.OriginalAmount.HasValue ? p.OriginalAmount.Value : Math.Round(p.Amount * rate, 2),
+            PaymentMethod = p.PaymentMethod,
+            PaymentMethodName = p.PaymentMethod.ToString(),
+            PaymentDate = p.PaymentDate,
+            Notes = p.Notes,
+            ReceivedByUserId = p.ReceivedByUserId,
+            ReceivedByName = receivedByName,
+            CreatedAt = p.CreatedAt
         };
     }
 
