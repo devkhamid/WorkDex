@@ -54,4 +54,25 @@ public class ReportsController : ControllerBase
         var fileName = $"WorkDex_Yillik_Hisobot_{y}.xlsx";
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
     }
+
+    // Ixtiyoriy sana oralig'i bo'yicha moliyaviy tahlil (yillik hisobot bilan bir xil tuzilma, formulalar sana bo'yicha).
+    [HttpGet("range/excel")]
+    public async Task<IActionResult> ExportRangeExcel([FromQuery] DateTime? from, [FromQuery] DateTime? to)
+    {
+        if (from is null || to is null)
+            return BadRequest(new { message = "Boshlanish va tugash sanalarini kiriting." });
+
+        var start = from.Value.Date;
+        var end = to.Value.Date;
+        if (start.Year < 2000 || end.Year > 2100)
+            return BadRequest(new { message = "Sana noto'g'ri kiritilgan." });
+        if (start > end)
+            return BadRequest(new { message = "Boshlanish sanasi tugash sanasidan keyin bo'lishi mumkin emas." });
+        if ((end.Year - start.Year) * 12 + end.Month - start.Month >= 120)
+            return BadRequest(new { message = "Oraliq 10 yildan oshmasligi kerak." });
+
+        var bytes = await _excelService.ExportRangeReportAsync(start, end, User.GetUserId(), User.GetUserRole());
+        var fileName = $"WorkDex_Hisobot_{start:yyyy-MM-dd}_{end:yyyy-MM-dd}.xlsx";
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+    }
 }

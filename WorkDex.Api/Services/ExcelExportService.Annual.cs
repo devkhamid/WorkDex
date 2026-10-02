@@ -85,7 +85,76 @@ public partial class ExcelExportService
         $"SUMIFS('{sheet}'!{sumCol}:{sumCol}," +
         string.Join(",", criteria.Select(c => $"'{sheet}'!{c.Col}:{c.Col},{c.Crit}")) + ")";
 
-    public async Task<byte[]> ExportAnnualReportAsync(int year, Guid requestingUserId, UserRole requestingUserRole)
+    private static string SifsP(string sheet, string sumCol, (string Col, string Crit)[] period, params (string Col, string Crit)[] extra) =>
+        Sifs(sheet, sumCol, period.Concat(extra).ToArray());
+
+    // Locale'dan qat'i nazar "dd.mm.yyyy" ko'rinishidagi matn.
+    private static string DateText(string cell) =>
+        $"TEXT(DAY({cell}),\"00\")&\".\"&TEXT(MONTH({cell}),\"00\")&\".\"&YEAR({cell})";
+
+    // Davr oralig'i hisobotida Xulosa varag'idagi o'zgartiriladigan kataklar.
+    private const string StartRef = "'Xulosa'!$C$4";
+    private const string EndRef = "'Xulosa'!$C$5";
+    private const string RangeRateRef = "'Xulosa'!$C$6";
+
+    // Label: Excel formulasi qismi (matn), Criteria: shu oy/ustun katagiga havola bo'yicha SUMIFS shartlari.
+    private sealed record MonthSlot(string Label, bool IsFormula, Func<string, (string Col, string Crit)[]> Criteria);
+
+    // Yillik yoki ixtiyoriy sana oralig'i — tahlil varaqlari shu obyekt orqali filtrlanadi.
+    private sealed record ReportPeriod(
+        bool IsRange,
+        int Year,
+        DateTime From,
+        DateTime To,
+        string RateRef,
+        (string Col, string Crit)[] Cur,
+        (string Col, string Crit)[] Prev,
+        string Label,
+        string Note,
+        string Word,
+        IReadOnlyList<MonthSlot> Months);
+
+    private static ReportPeriod AnnualPeriod(int year) => new(
+        false, year, default, default, RateRef,
+        new[] { ("B", YearRef) },
+        new[] { ("B", YearRef + "-1") },
+        $"{YearRef}&\" YIL\"",
+        $"\"yil ustuni: \"&{YearRef}",
+        "Yil",
+        Enumerable.Range(1, 12)
+            .Select(m => new MonthSlot(MonthNames[m - 1], false, _ => new[] { ("B", YearRef), ("C", m.ToString()) }))
+            .ToList());
+
+    private static ReportPeriod RangePeriod(DateTime from, DateTime to)
+    {
+        var monthCount = (to.Year - from.Year) * 12 + to.Month - from.Month + 1;
+        var prevStart = $"({StartRef}-({EndRef}-{StartRef}+1))";
+        var label = $"{DateText(StartRef)}&\" — \"&{DateText(EndRef)}";
+        return new ReportPeriod(
+            true, 0, from.Date, to.Date, RangeRateRef,
+            new[] { ("A", $"\">=\"&{StartRef}"), ("A", $"\"<=\"&{EndRef}") },
+            new[] { ("A", $"\">=\"&{prevStart}"), ("A", $"\"<\"&{StartRef}") },
+            label,
+            $"\"davr ustuni: \"&{label}",
+            "Davr",
+            Enumerable.Range(0, monthCount)
+                .Select(i => new MonthSlot(
+                    $"EDATE(DATE(YEAR({StartRef}),MONTH({StartRef}),1),{i})", true,
+                    cell => new[]
+                    {
+                        ("A", $"\">=\"&MAX({cell},{StartRef})"),
+                        ("A", $"\"<=\"&MIN(EOMONTH({cell},0),{EndRef})")
+                    }))
+                .ToList());
+    }
+
+    public Task<byte[]> ExportAnnualReportAsync(int year, Guid requestingUserId, UserRole requestingUserRole) =>
+        ExportPeriodReportAsync(AnnualPeriod(year), requestingUserId, requestingUserRole);
+
+    public Task<byte[]> ExportRangeReportAsync(DateTime from, DateTime to, Guid requestingUserId, UserRole requestingUserRole) =>
+        ExportPeriodReportAsync(RangePeriod(from, to), requestingUserId, requestingUserRole);
+
+    private async Task<byte[]> ExportPeriodReportAsync(ReportPeriod period, Guid requestingUserId, UserRole requestingUserRole)
     {
         var ids = await GetAccessibleProjectIdsAsync(requestingUserId, requestingUserRole);
         var defaultRate = await _currencyService.GetUsdToUzsRateAsync();
@@ -287,13 +356,13 @@ public partial class ExcelExportService
 
         // ---------- TAHLIL VARAQLARI ----------
         var projectTotalRow = BuildAnnualProjectsSheet(wsProjects, projects.Count);
-        BuildAnnualSummarySheet(wsSummary, year, defaultRate, projectTotalRow);
-        BuildAnnualMonthlySheet(wsMonthly);
-        BuildAnnualCategoriesSheet(wsCategories);
-        BuildAnnualCustomersSheet(wsCustomers, projects, projectTotalRow);
-        BuildAnnualWorkersSheet(wsWorkers, workerPayments);
-        BuildAnnualMaterialsSheet(wsMaterials, purchases);
-        BuildAnnualOfficeSheet(wsOffice, officeExpenses);
+        BuildAnnualSummarySheet(wsSummary, period, defaultRate, projectTotalRow);
+        BuildAnnualMonthlySheet(wsMonthly, period);
+        BuildAnnualCategoriesSheet(wsCategories, period);
+        BuildAnnualCustomersSheet(wsCustomers, projects, projectTotalRow, period);
+        BuildAnnualWorkersSheet(wsWorkers, workerPayments, period);
+        BuildAnnualMaterialsSheet(wsMaterials, purchases, period);
+        BuildAnnualOfficeSheet(wsOffice, officeExpenses, period);
 
         wsSummary.SetTabActive();
         wb.CalculateMode = XLCalculateMode.Auto;
@@ -317,47 +386,80 @@ public partial class ExcelExportService
     }
 
     // ================= XULOSA =================
-    private static void BuildAnnualSummarySheet(IXLWorksheet ws, int year, decimal rate, int projectTotalRow)
+    private static void BuildAnnualSummarySheet(IXLWorksheet ws, ReportPeriod p, decimal rate, int projectTotalRow)
     {
         ws.TabColor = XLColor.FromHtml("#1E293B");
-        WriteTitle(ws, 2, 6, "WORKDEX — YILLIK MOLIYAVIY HISOBOT (OFIS + LOYIHALAR)");
+        WriteTitle(ws, 2, 6, p.IsRange
+            ? "WORKDEX — DAVR BO'YICHA MOLIYAVIY HISOBOT (OFIS + LOYIHALAR)"
+            : "WORKDEX — YILLIK MOLIYAVIY HISOBOT (OFIS + LOYIHALAR)");
 
-        ws.Cell(4, 2).Value = "Hisobot yili";
-        ws.Cell(4, 3).Value = year;
-        ws.Cell(5, 2).Value = "USD kursi (so'm)";
-        ws.Cell(5, 3).Value = rate;
-        ws.Cell(5, 3).Style.NumberFormat.Format = UzsFormat;
-        foreach (var c in new[] { ws.Cell(4, 3), ws.Cell(5, 3) })
+        IXLCell[] inputs;
+        int noteRow;
+        if (p.IsRange)
+        {
+            ws.Cell(4, 2).Value = "Boshlanish sanasi";
+            SetDate(ws.Cell(4, 3), p.From);
+            ws.Cell(5, 2).Value = "Tugash sanasi";
+            SetDate(ws.Cell(5, 3), p.To);
+            ws.Cell(6, 2).Value = "USD kursi (so'm)";
+            ws.Cell(6, 3).Value = rate;
+            ws.Cell(6, 3).Style.NumberFormat.Format = UzsFormat;
+            ws.Cell(4, 4).Value = "Kunlar soni:";
+            ws.Cell(4, 5).FormulaA1 = $"{EndRef}-{StartRef}+1";
+            ws.Cell(5, 4).Value = "Oldingi davr:";
+            ws.Cell(5, 5).FormulaA1 = $"{DateText($"({StartRef}-({EndRef}-{StartRef}+1))")}&\" — \"&{DateText($"({StartRef}-1)")}";
+            ws.Range(4, 4, 5, 4).Style.Font.FontColor = XLColor.FromHtml("#64748B");
+            ws.Range(4, 4, 5, 4).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+            ws.Range(4, 5, 5, 5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+            inputs = new[] { ws.Cell(4, 3), ws.Cell(5, 3), ws.Cell(6, 3) };
+            noteRow = 7;
+        }
+        else
+        {
+            ws.Cell(4, 2).Value = "Hisobot yili";
+            ws.Cell(4, 3).Value = p.Year;
+            ws.Cell(5, 2).Value = "USD kursi (so'm)";
+            ws.Cell(5, 3).Value = rate;
+            ws.Cell(5, 3).Style.NumberFormat.Format = UzsFormat;
+            inputs = new[] { ws.Cell(4, 3), ws.Cell(5, 3) };
+            noteRow = 6;
+        }
+        foreach (var c in inputs)
         {
             c.Style.Fill.BackgroundColor = XLColor.FromHtml("#FEF08A");
             c.Style.Font.Bold = true;
             c.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
             c.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
         }
-        ws.Range(4, 2, 5, 2).Style.Font.Bold = true;
-        ws.Cell(6, 2).Value = "Sariq kataklardagi yil yoki kursni o'zgartirsangiz, barcha varaqlar avtomatik qayta hisoblanadi.";
-        ws.Range(6, 2, 6, 6).Merge();
-        ws.Cell(6, 2).Style.Font.Italic = true;
-        ws.Cell(6, 2).Style.Font.FontColor = XLColor.FromHtml("#64748B");
+        ws.Range(4, 2, noteRow - 1, 2).Style.Font.Bold = true;
+        ws.Cell(noteRow, 2).Value = p.IsRange
+            ? "Sariq kataklardagi sanalar yoki kursni o'zgartirsangiz, barcha varaqlar avtomatik qayta hisoblanadi."
+            : "Sariq kataklardagi yil yoki kursni o'zgartirsangiz, barcha varaqlar avtomatik qayta hisoblanadi.";
+        ws.Range(noteRow, 2, noteRow, 6).Merge();
+        ws.Cell(noteRow, 2).Style.Font.Italic = true;
+        ws.Cell(noteRow, 2).Style.Font.FontColor = XLColor.FromHtml("#64748B");
 
-        StyleHeaderRow(ws, 8, 2, "#334155", "Ko'rsatkich", "Joriy yil (USD)", "Joriy yil (so'm)", "O'tgan yil (USD)", "O'zgarish");
+        if (p.IsRange)
+            StyleHeaderRow(ws, 8, 2, "#334155", "Ko'rsatkich", "Tanlangan davr (USD)", "Tanlangan davr (so'm)", "Oldingi davr (USD)", "O'zgarish");
+        else
+            StyleHeaderRow(ws, 8, 2, "#334155", "Ko'rsatkich", "Joriy yil (USD)", "Joriy yil (so'm)", "O'tgan yil (USD)", "O'zgarish");
 
-        const string cur = YearRef;
-        const string prev = YearRef + "-1";
-        var rows = new (string Label, Func<string, string, string> F, string Kind)[]
+        var cur = p.Cur;
+        var prev = p.Prev;
+        var rows = new (string Label, Func<string, (string Col, string Crit)[], string> F, string Kind)[]
         {
-            ("Olingan tushum (mijoz to'lovlari)", (c, y) => Sifs(ShPay, "G", ("B", y)), "income"),
-            ("Material xarajatlari", (c, y) => Sifs(ShExp, "K", ("B", y), ("D", Q("Loyiha")), ("H", Q("Material"))) + "+" + Sifs(ShMat, "M", ("B", y)), "cost"),
-            ("Ish haqi va usta to'lovlari", (c, y) => Sifs(ShExp, "K", ("B", y), ("D", Q("Loyiha")), ("H", Q("Ish haqi"))) + "+" + Sifs(ShWrk, "N", ("B", y)), "cost"),
-            ("Boshqa loyiha xarajatlari", (c, y) => Sifs(ShExp, "K", ("B", y), ("D", Q("Loyiha")), ("H", Q("Boshqa"))), "cost"),
-            ("Qo'shimcha ishlar tannarxi", (c, y) => Sifs(ShExt, "H", ("B", y), ("J", Q("Ha"))), "cost"),
+            ("Olingan tushum (mijoz to'lovlari)", (c, y) => SifsP(ShPay, "G", y), "income"),
+            ("Material xarajatlari", (c, y) => SifsP(ShExp, "K", y, ("D", Q("Loyiha")), ("H", Q("Material"))) + "+" + SifsP(ShMat, "M", y), "cost"),
+            ("Ish haqi va usta to'lovlari", (c, y) => SifsP(ShExp, "K", y, ("D", Q("Loyiha")), ("H", Q("Ish haqi"))) + "+" + SifsP(ShWrk, "N", y), "cost"),
+            ("Boshqa loyiha xarajatlari", (c, y) => SifsP(ShExp, "K", y, ("D", Q("Loyiha")), ("H", Q("Boshqa"))), "cost"),
+            ("Qo'shimcha ishlar tannarxi", (c, y) => SifsP(ShExt, "H", y, ("J", Q("Ha"))), "cost"),
             ("JAMI LOYIHA XARAJATLARI", (c, y) => $"SUM({c}10:{c}13)", "subtotal"),
             ("YALPI FOYDA (tushum − loyiha xarajatlari)", (c, y) => $"{c}9-{c}14", "subtotal"),
-            ("Ofis xarajatlari", (c, y) => Sifs(ShExp, "K", ("B", y), ("D", Q("Ofis"))), "cost"),
+            ("Ofis xarajatlari", (c, y) => SifsP(ShExp, "K", y, ("D", Q("Ofis"))), "cost"),
             ("JAMI CHIQIM", (c, y) => $"{c}14+{c}16", "subtotal"),
             ("SOF FOYDA", (c, y) => $"{c}9-{c}17", "profit"),
             ("Sof foyda marjasi", (c, y) => $"IF({c}9=0,0,{c}18/{c}9)", "pct"),
-            ("Qo'shimcha ishlar daromadi (tasdiqlangan)", (c, y) => Sifs(ShExt, "G", ("B", y), ("J", Q("Ha"))), "info"),
+            ("Qo'shimcha ishlar daromadi (tasdiqlangan)", (c, y) => SifsP(ShExt, "G", y, ("J", Q("Ha"))), "info"),
         };
 
         var r = 9;
@@ -373,7 +475,7 @@ public partial class ExcelExportService
             }
             else
             {
-                ws.Cell(r, 4).FormulaA1 = $"C{r}*{RateRef}";
+                ws.Cell(r, 4).FormulaA1 = $"C{r}*{p.RateRef}";
                 ws.Cell(r, 6).FormulaA1 = $"IF(E{r}=0,\"\",(C{r}-E{r})/ABS(E{r}))";
                 ws.Cell(r, 3).Style.NumberFormat.Format = UsdFormat;
                 ws.Cell(r, 4).Style.NumberFormat.Format = UzsFormat;
@@ -425,15 +527,15 @@ public partial class ExcelExportService
         }
         ApplyTableBorders(ws, statusStart - 1, r - 1, 3, 2);
 
-        // To'lov usullari (tanlangan yil)
+        // To'lov usullari (tanlangan yil / davr)
         r += 1;
-        StyleHeaderRow(ws, r, 2, "#059669", "To'lov usullari (yil)", "Summa (USD)", "Ulush");
+        StyleHeaderRow(ws, r, 2, "#059669", $"To'lov usullari ({p.Word.ToLowerInvariant()})", "Summa (USD)", "Ulush");
         r++;
         var payStart = r;
         foreach (var label in PaymentMethodLabels.Values)
         {
             ws.Cell(r, 2).Value = label;
-            ws.Cell(r, 3).FormulaA1 = Sifs(ShPay, "G", ("B", cur), ("H", Q(label)));
+            ws.Cell(r, 3).FormulaA1 = SifsP(ShPay, "G", cur, ("H", Q(label)));
             ws.Cell(r, 4).FormulaA1 = $"IF($C$9=0,0,C{r}/$C$9)";
             ws.Cell(r, 3).Style.NumberFormat.Format = UsdFormat;
             ws.Cell(r, 4).Style.NumberFormat.Format = PctFormat;
@@ -449,41 +551,52 @@ public partial class ExcelExportService
     }
 
     // ================= OYLIK =================
-    private static void BuildAnnualMonthlySheet(IXLWorksheet ws)
+    private static void BuildAnnualMonthlySheet(IXLWorksheet ws, ReportPeriod p)
     {
         ws.TabColor = XLColor.FromHtml("#2563EB");
-        WriteTitleFormula(ws, 1, 10, $"\"OYLIK TAHLIL — \"&{YearRef}&\" YIL (USD)\"");
+        WriteTitleFormula(ws, 1, 10, $"\"OYLIK TAHLIL — \"&{p.Label}&\" (USD)\"");
         StyleHeaderRow(ws, 3, 1, "#2563EB", "Oy", "Tushum", "Material", "Ish haqi", "Boshqa loyiha",
             "Ofis", "Jami chiqim", "Sof foyda", "Kumulyativ foyda", "Marja");
 
-        for (var m = 1; m <= 12; m++)
+        for (var i = 0; i < p.Months.Count; i++)
         {
-            var r = m + 3;
-            var mc = m.ToString();
-            ws.Cell(r, 1).Value = MonthNames[m - 1];
-            ws.Cell(r, 2).FormulaA1 = Sifs(ShPay, "G", ("B", YearRef), ("C", mc));
-            ws.Cell(r, 3).FormulaA1 = Sifs(ShExp, "K", ("B", YearRef), ("C", mc), ("D", Q("Loyiha")), ("H", Q("Material")))
-                + "+" + Sifs(ShMat, "M", ("B", YearRef), ("C", mc));
-            ws.Cell(r, 4).FormulaA1 = Sifs(ShExp, "K", ("B", YearRef), ("C", mc), ("D", Q("Loyiha")), ("H", Q("Ish haqi")))
-                + "+" + Sifs(ShWrk, "N", ("B", YearRef), ("C", mc));
-            ws.Cell(r, 5).FormulaA1 = Sifs(ShExp, "K", ("B", YearRef), ("C", mc), ("D", Q("Loyiha")), ("H", Q("Boshqa")))
-                + "+" + Sifs(ShExt, "H", ("B", YearRef), ("C", mc), ("J", Q("Ha")));
-            ws.Cell(r, 6).FormulaA1 = Sifs(ShExp, "K", ("B", YearRef), ("C", mc), ("D", Q("Ofis")));
+            var r = i + 4;
+            var slot = p.Months[i];
+            if (slot.IsFormula)
+            {
+                ws.Cell(r, 1).FormulaA1 = slot.Label;
+                ws.Cell(r, 1).Style.DateFormat.Format = "mm.yyyy";
+                ws.Cell(r, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+            }
+            else
+            {
+                ws.Cell(r, 1).Value = slot.Label;
+            }
+            var mk = slot.Criteria($"$A{r}");
+            ws.Cell(r, 2).FormulaA1 = SifsP(ShPay, "G", mk);
+            ws.Cell(r, 3).FormulaA1 = SifsP(ShExp, "K", mk, ("D", Q("Loyiha")), ("H", Q("Material")))
+                + "+" + SifsP(ShMat, "M", mk);
+            ws.Cell(r, 4).FormulaA1 = SifsP(ShExp, "K", mk, ("D", Q("Loyiha")), ("H", Q("Ish haqi")))
+                + "+" + SifsP(ShWrk, "N", mk);
+            ws.Cell(r, 5).FormulaA1 = SifsP(ShExp, "K", mk, ("D", Q("Loyiha")), ("H", Q("Boshqa")))
+                + "+" + SifsP(ShExt, "H", mk, ("J", Q("Ha")));
+            ws.Cell(r, 6).FormulaA1 = SifsP(ShExp, "K", mk, ("D", Q("Ofis")));
             ws.Cell(r, 7).FormulaA1 = $"SUM(C{r}:F{r})";
             ws.Cell(r, 8).FormulaA1 = $"B{r}-G{r}";
-            ws.Cell(r, 9).FormulaA1 = m == 1 ? $"H{r}" : $"I{r - 1}+H{r}";
+            ws.Cell(r, 9).FormulaA1 = i == 0 ? $"H{r}" : $"I{r - 1}+H{r}";
             ws.Cell(r, 10).FormulaA1 = $"IF(B{r}=0,\"\",H{r}/B{r})";
         }
 
-        const int tot = 16;
+        var lastM = p.Months.Count + 3;
+        var tot = lastM + 1;
         ws.Cell(tot, 1).Value = "JAMI";
         for (var c = 2; c <= 8; c++)
         {
             var col = ColLetter(c);
-            ws.Cell(tot, c).FormulaA1 = $"SUM({col}4:{col}15)";
-            ws.Cell(tot + 1, c).FormulaA1 = $"AVERAGE({col}4:{col}15)";
+            ws.Cell(tot, c).FormulaA1 = $"SUM({col}4:{col}{lastM})";
+            ws.Cell(tot + 1, c).FormulaA1 = $"AVERAGE({col}4:{col}{lastM})";
         }
-        ws.Cell(tot, 9).FormulaA1 = "I15";
+        ws.Cell(tot, 9).FormulaA1 = $"I{lastM}";
         ws.Cell(tot, 10).FormulaA1 = $"IF(B{tot}=0,\"\",H{tot}/B{tot})";
         ws.Cell(tot + 1, 1).Value = "O'rtacha oylik";
 
@@ -492,9 +605,9 @@ public partial class ExcelExportService
         StyleTotalRow(ws.Range(tot, 1, tot, 10));
         ws.Range(tot + 1, 1, tot + 1, 10).Style.Font.Italic = true;
 
-        ws.Range(4, 2, 15, 2).AddConditionalFormat().DataBar(XLColor.FromHtml("#34D399")).LowestValue().HighestValue();
-        ws.Range(4, 7, 15, 7).AddConditionalFormat().DataBar(XLColor.FromHtml("#F87171")).LowestValue().HighestValue();
-        AddRedGreenScale(ws.Range(4, 8, 15, 8));
+        ws.Range(4, 2, lastM, 2).AddConditionalFormat().DataBar(XLColor.FromHtml("#34D399")).LowestValue().HighestValue();
+        ws.Range(4, 7, lastM, 7).AddConditionalFormat().DataBar(XLColor.FromHtml("#F87171")).LowestValue().HighestValue();
+        AddRedGreenScale(ws.Range(4, 8, lastM, 8));
 
         ApplyTableBorders(ws, 3, tot + 1, 10);
         ws.Column(1).Width = 16;
@@ -581,25 +694,25 @@ public partial class ExcelExportService
     }
 
     // ================= KATEGORIYALAR =================
-    private static void BuildAnnualCategoriesSheet(IXLWorksheet ws)
+    private static void BuildAnnualCategoriesSheet(IXLWorksheet ws, ReportPeriod p)
     {
         ws.TabColor = XLColor.FromHtml("#DC2626");
-        WriteTitleFormula(ws, 1, 5, $"\"XARAJATLAR KATEGORIYALAR BO'YICHA — \"&{YearRef}&\" YIL (USD)\"");
+        WriteTitleFormula(ws, 1, 5, $"\"XARAJATLAR KATEGORIYALAR BO'YICHA — \"&{p.Label}&\" (USD)\"");
         StyleHeaderRow(ws, 3, 1, "#DC2626", "Kategoriya", "Loyiha xarajati", "Ofis xarajati", "Jami", "Ulush");
 
         var r = 4;
         foreach (var label in CategoryLabels.Values)
         {
             ws.Cell(r, 1).Value = label;
-            ws.Cell(r, 2).FormulaA1 = Sifs(ShExp, "K", ("B", YearRef), ("D", Q("Loyiha")), ("G", Q(label)));
-            ws.Cell(r, 3).FormulaA1 = Sifs(ShExp, "K", ("B", YearRef), ("D", Q("Ofis")), ("G", Q(label)));
+            ws.Cell(r, 2).FormulaA1 = SifsP(ShExp, "K", p.Cur, ("D", Q("Loyiha")), ("G", Q(label)));
+            ws.Cell(r, 3).FormulaA1 = SifsP(ShExp, "K", p.Cur, ("D", Q("Ofis")), ("G", Q(label)));
             r++;
         }
         var extras = new (string Label, string Formula)[]
         {
-            ("Material xaridlari (katalogdan)", Sifs(ShMat, "M", ("B", YearRef))),
-            ("Usta to'lovlari", Sifs(ShWrk, "N", ("B", YearRef))),
-            ("Qo'shimcha ishlar tannarxi", Sifs(ShExt, "H", ("B", YearRef), ("J", Q("Ha")))),
+            ("Material xaridlari (katalogdan)", SifsP(ShMat, "M", p.Cur)),
+            ("Usta to'lovlari", SifsP(ShWrk, "N", p.Cur)),
+            ("Qo'shimcha ishlar tannarxi", SifsP(ShExt, "H", p.Cur, ("J", Q("Ha")))),
         };
         foreach (var (label, formula) in extras)
         {
@@ -635,12 +748,12 @@ public partial class ExcelExportService
     }
 
     // ================= MIJOZLAR =================
-    private static void BuildAnnualCustomersSheet(IXLWorksheet ws, List<Project> projects, int projectTotalRow)
+    private static void BuildAnnualCustomersSheet(IXLWorksheet ws, List<Project> projects, int projectTotalRow, ReportPeriod p)
     {
         ws.TabColor = XLColor.FromHtml("#7C3AED");
-        WriteTitleFormula(ws, 1, 8, $"\"MIJOZLAR TAHLILI (USD) — yil ustuni: \"&{YearRef}");
+        WriteTitleFormula(ws, 1, 8, $"\"MIJOZLAR TAHLILI (USD) — \"&{p.Note}");
         StyleHeaderRow(ws, 3, 1, "#7C3AED", "Mijoz", "Loyihalar soni", "Jami daromad", "Olingan", "Qarz",
-            "Kutilayotgan foyda", "Yil tushumi", "Yil tushumi ulushi");
+            "Kutilayotgan foyda", $"{p.Word} tushumi", $"{p.Word} tushumi ulushi");
 
         var customers = projects.Select(p => p.Customer?.FullName ?? "-").Distinct().OrderBy(x => x).ToList();
         var pLast = Math.Max(projectTotalRow - 1, 4);
@@ -656,7 +769,7 @@ public partial class ExcelExportService
             ws.Cell(r, 4).FormulaA1 = $"SUMIF({Rng("C")},{key},{Rng("H")})";
             ws.Cell(r, 5).FormulaA1 = $"SUMIF({Rng("C")},{key},{Rng("I")})";
             ws.Cell(r, 6).FormulaA1 = $"SUMIF({Rng("C")},{key},{Rng("O")})";
-            ws.Cell(r, 7).FormulaA1 = Sifs(ShPay, "G", ("F", key), ("B", YearRef));
+            ws.Cell(r, 7).FormulaA1 = SifsP(ShPay, "G", new[] { ("F", key) }, p.Cur);
             r++;
         }
         var last = r - 1;
@@ -682,12 +795,12 @@ public partial class ExcelExportService
     }
 
     // ================= USTALAR =================
-    private static void BuildAnnualWorkersSheet(IXLWorksheet ws, List<WorkerPayment> workerPayments)
+    private static void BuildAnnualWorkersSheet(IXLWorksheet ws, List<WorkerPayment> workerPayments, ReportPeriod p)
     {
         ws.TabColor = XLColor.FromHtml("#0D9488");
-        WriteTitleFormula(ws, 1, 10, $"\"USTALAR VA ISH HAQI TAHLILI — yil ustuni: \"&{YearRef}");
+        WriteTitleFormula(ws, 1, 10, $"\"USTALAR VA ISH HAQI TAHLILI — \"&{p.Note}");
         StyleHeaderRow(ws, 3, 1, "#0D9488", "Usta", "Mutaxassislik", "Ishlar soni", "Kelishilgan (so'm)",
-            "Bajarilgan (so'm)", "To'langan (so'm)", "Qoldiq (so'm)", "To'langan (USD)", "Yil to'lovi (USD)", "To'lov %");
+            "Bajarilgan (so'm)", "To'langan (so'm)", "Qoldiq (so'm)", "To'langan (USD)", $"{p.Word} to'lovi (USD)", "To'lov %");
 
         var workers = workerPayments
             .GroupBy(w => w.Worker?.FullName ?? "-")
@@ -707,7 +820,7 @@ public partial class ExcelExportService
             ws.Cell(r, 6).FormulaA1 = $"SUMIF('{ShWrk}'!F:F,{key},'{ShWrk}'!K:K)";
             ws.Cell(r, 7).FormulaA1 = $"SUMIF('{ShWrk}'!F:F,{key},'{ShWrk}'!L:L)";
             ws.Cell(r, 8).FormulaA1 = $"SUMIF('{ShWrk}'!F:F,{key},'{ShWrk}'!N:N)";
-            ws.Cell(r, 9).FormulaA1 = Sifs(ShWrk, "N", ("F", key), ("B", YearRef));
+            ws.Cell(r, 9).FormulaA1 = SifsP(ShWrk, "N", new[] { ("F", key) }, p.Cur);
             ws.Cell(r, 10).FormulaA1 = $"IF(D{r}=0,0,F{r}/D{r})";
             r++;
         }
@@ -735,12 +848,12 @@ public partial class ExcelExportService
     }
 
     // ================= MATERIALLAR =================
-    private static void BuildAnnualMaterialsSheet(IXLWorksheet ws, List<MaterialPurchase> purchases)
+    private static void BuildAnnualMaterialsSheet(IXLWorksheet ws, List<MaterialPurchase> purchases, ReportPeriod p)
     {
         ws.TabColor = XLColor.FromHtml("#D97706");
-        WriteTitleFormula(ws, 1, 8, $"\"MATERIALLAR TAHLILI — yil ustuni: \"&{YearRef}");
+        WriteTitleFormula(ws, 1, 8, $"\"MATERIALLAR TAHLILI — \"&{p.Note}");
         StyleHeaderRow(ws, 3, 1, "#D97706", "Material", "Birlik", "Xaridlar soni", "Jami miqdor",
-            "Jami (so'm)", "Jami (USD)", "O'rtacha narx (so'm)", "Yil xarajati (USD)");
+            "Jami (so'm)", "Jami (USD)", "O'rtacha narx (so'm)", $"{p.Word} xarajati (USD)");
 
         var materials = purchases
             .GroupBy(m => m.Material?.Name ?? "-")
@@ -759,7 +872,7 @@ public partial class ExcelExportService
             ws.Cell(r, 5).FormulaA1 = $"SUMIF('{ShMat}'!F:F,{key},'{ShMat}'!K:K)";
             ws.Cell(r, 6).FormulaA1 = $"SUMIF('{ShMat}'!F:F,{key},'{ShMat}'!M:M)";
             ws.Cell(r, 7).FormulaA1 = $"IF(D{r}=0,0,E{r}/D{r})";
-            ws.Cell(r, 8).FormulaA1 = Sifs(ShMat, "M", ("F", key), ("B", YearRef));
+            ws.Cell(r, 8).FormulaA1 = SifsP(ShMat, "M", new[] { ("F", key) }, p.Cur);
             r++;
         }
         var last = r - 1;
@@ -782,7 +895,7 @@ public partial class ExcelExportService
 
         // Yetkazib beruvchilar
         var sHead = tot + 3;
-        StyleHeaderRow(ws, sHead, 1, "#92400E", "Yetkazib beruvchi", "Xaridlar soni", "Jami (USD)", "Yil xarajati (USD)", "Ulush (jami)");
+        StyleHeaderRow(ws, sHead, 1, "#92400E", "Yetkazib beruvchi", "Xaridlar soni", "Jami (USD)", $"{p.Word} xarajati (USD)", "Ulush (jami)");
         var suppliers = purchases
             .Select(m => string.IsNullOrWhiteSpace(m.Supplier) ? "Noma'lum" : m.Supplier.Trim())
             .Distinct()
@@ -795,7 +908,7 @@ public partial class ExcelExportService
             ws.Cell(r, 1).Value = s;
             ws.Cell(r, 2).FormulaA1 = $"COUNTIF('{ShMat}'!N:N,{key})";
             ws.Cell(r, 3).FormulaA1 = $"SUMIF('{ShMat}'!N:N,{key},'{ShMat}'!M:M)";
-            ws.Cell(r, 4).FormulaA1 = Sifs(ShMat, "M", ("N", key), ("B", YearRef));
+            ws.Cell(r, 4).FormulaA1 = SifsP(ShMat, "M", new[] { ("N", key) }, p.Cur);
             r++;
         }
         var sLast = r - 1;
@@ -819,42 +932,56 @@ public partial class ExcelExportService
     }
 
     // ================= OFIS =================
-    private static void BuildAnnualOfficeSheet(IXLWorksheet ws, List<Expense> officeExpenses)
+    private static void BuildAnnualOfficeSheet(IXLWorksheet ws, List<Expense> officeExpenses, ReportPeriod p)
     {
+        var n = p.Months.Count;
+        var sumCol = n + 2;
+        var avgCol = n + 3;
+        var lastMonthCol = ColLetter(n + 1);
         ws.TabColor = XLColor.FromHtml("#475569");
-        WriteTitleFormula(ws, 1, 15, $"\"OFIS XARAJATLARI OYLAR BO'YICHA — \"&{YearRef}&\" YIL (USD)\"");
+        WriteTitleFormula(ws, 1, avgCol, $"\"OFIS XARAJATLARI OYLAR BO'YICHA — \"&{p.Label}&\" (USD)\"");
         var headers = new List<string> { "Kategoriya" };
-        headers.AddRange(MonthNames);
+        headers.AddRange(p.Months.Select(m => m.IsFormula ? "" : m.Label));
         headers.Add("Jami");
         headers.Add("O'rtacha oylik");
         StyleHeaderRow(ws, 3, 1, "#475569", headers.ToArray());
+        for (var i = 0; i < n; i++)
+        {
+            if (!p.Months[i].IsFormula) continue;
+            var cell = ws.Cell(3, i + 2);
+            cell.FormulaA1 = p.Months[i].Label;
+            cell.Style.DateFormat.Format = "mm.yyyy";
+        }
 
         var categories = officeExpenses.Select(e => CategoryLabel(e.Category)).Distinct().OrderBy(x => x).ToList();
         var r = 4;
         foreach (var cat in categories)
         {
             ws.Cell(r, 1).Value = cat;
-            for (var m = 1; m <= 12; m++)
-                ws.Cell(r, m + 1).FormulaA1 = Sifs(ShExp, "K", ("D", Q("Ofis")), ("G", $"$A{r}"), ("B", YearRef), ("C", m.ToString()));
-            ws.Cell(r, 14).FormulaA1 = $"SUM(B{r}:M{r})";
-            ws.Cell(r, 15).FormulaA1 = $"N{r}/12";
+            for (var i = 0; i < n; i++)
+            {
+                var monthCell = $"{ColLetter(i + 2)}$3";
+                ws.Cell(r, i + 2).FormulaA1 = SifsP(ShExp, "K", new[] { ("D", Q("Ofis")), ("G", $"$A{r}") }, p.Months[i].Criteria(monthCell));
+            }
+            ws.Cell(r, sumCol).FormulaA1 = $"SUM(B{r}:{lastMonthCol}{r})";
+            ws.Cell(r, avgCol).FormulaA1 = $"{ColLetter(sumCol)}{r}/{n}";
             r++;
         }
         var last = r - 1;
         var tot = r;
         ws.Cell(tot, 1).Value = "JAMI";
-        for (var c = 2; c <= 15; c++)
+        for (var c = 2; c <= avgCol; c++)
         {
             var col = ColLetter(c);
             ws.Cell(tot, c).FormulaA1 = $"SUM({col}4:{col}{last})";
         }
-        ws.Range(4, 2, tot, 15).Style.NumberFormat.Format = UsdFormat;
+        ws.Range(4, 2, tot, avgCol).Style.NumberFormat.Format = UsdFormat;
         if (categories.Count > 0)
-            AddRedGreenScale(ws.Range(4, 2, last, 13), reverse: true);
-        StyleTotalRow(ws.Range(tot, 1, tot, 15));
-        ApplyTableBorders(ws, 3, tot, 15);
+            AddRedGreenScale(ws.Range(4, 2, last, n + 1), reverse: true);
+        StyleTotalRow(ws.Range(tot, 1, tot, avgCol));
+        ApplyTableBorders(ws, 3, tot, avgCol);
         ws.Column(1).Width = 24;
-        ws.Columns(2, 15).Width = 13;
+        ws.Columns(2, avgCol).Width = 13;
         ws.SheetView.Freeze(3, 1);
     }
 

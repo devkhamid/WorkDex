@@ -438,6 +438,34 @@ export const reportsApi = {
     } catch (err: any) {
       alert("Yillik hisobotni yuklab olishda xatolik yuz berdi");
     }
+  },
+  downloadRangeExcel: async (from: string, to: string) => {
+    try {
+      const response = await apiClient.get('/reports/range/excel', {
+        params: { from, to },
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `WorkDex_Hisobot_${from}_${to}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      let message = "Davr bo'yicha hisobotni yuklab olishda xatolik yuz berdi";
+      const data = err?.response?.data;
+      if (data instanceof Blob) {
+        try {
+          const parsed = JSON.parse(await data.text());
+          if (parsed?.message) message = parsed.message;
+        } catch {
+          // javob JSON emas — umumiy xabar ko'rsatiladi
+        }
+      }
+      alert(message);
+    }
   }
 };
 

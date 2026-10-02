@@ -14,11 +14,18 @@ const ANNUAL_SHEETS = [
   { name: 'Ofis', desc: "Ofis xarajatlari kategoriya × oy matritsasi" },
 ];
 
+const toInputDate = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 export const ReportsPage: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const [downloading, setDownloading] = useState(false);
+  const [rangeFrom, setRangeFrom] = useState(() => toInputDate(new Date(currentYear, 0, 1)));
+  const [rangeTo, setRangeTo] = useState(() => toInputDate(new Date()));
+  const [downloadingRange, setDownloadingRange] = useState(false);
+  const rangeInvalid = !rangeFrom || !rangeTo || rangeFrom > rangeTo;
 
   useEffect(() => {
     projectsApi.getAll().then(setProjects);
@@ -30,6 +37,16 @@ export const ReportsPage: React.FC = () => {
       await reportsApi.downloadAnnualExcel(year);
     } finally {
       setDownloading(false);
+    }
+  };
+
+  const downloadRange = async () => {
+    if (rangeInvalid) return;
+    setDownloadingRange(true);
+    try {
+      await reportsApi.downloadRangeExcel(rangeFrom, rangeTo);
+    } finally {
+      setDownloadingRange(false);
     }
   };
 
@@ -82,6 +99,47 @@ export const ReportsPage: React.FC = () => {
             >
               {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               <span>{downloading ? 'Tayyorlanmoqda...' : 'Yillik hisobotni yuklash'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Ixtiyoriy sana oralig'i */}
+        <div className="mt-5 pt-4 border-t border-white/10 flex flex-wrap items-end justify-between gap-4">
+          <div className="max-w-xl">
+            <div className="text-sm font-bold">Tanlangan davr bo'yicha hisobot</div>
+            <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+              Xuddi shu varaqlar, lekin istalgan sanadan istalgan sanagacha. Excelda boshlanish/tugash sanalarini
+              o'zgartirsangiz ham formulalar qayta hisoblanadi; oldingi teng davr bilan solishtiriladi.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="flex flex-col gap-1 text-[10px] font-semibold text-slate-300">
+              Boshlanish
+              <input
+                type="date"
+                value={rangeFrom}
+                max={rangeTo || undefined}
+                onChange={(e) => setRangeFrom(e.target.value)}
+                className="h-9 px-2.5 rounded-lg text-xs font-semibold text-[#171b25] bg-white outline-none"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-[10px] font-semibold text-slate-300">
+              Tugash
+              <input
+                type="date"
+                value={rangeTo}
+                min={rangeFrom || undefined}
+                onChange={(e) => setRangeTo(e.target.value)}
+                className="h-9 px-2.5 rounded-lg text-xs font-semibold text-[#171b25] bg-white outline-none"
+              />
+            </label>
+            <button
+              onClick={downloadRange}
+              disabled={downloadingRange || rangeInvalid}
+              className="h-9 px-4 bg-[#ff7a16] hover:bg-[#e86807] disabled:opacity-60 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors"
+            >
+              {downloadingRange ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              <span>{downloadingRange ? 'Tayyorlanmoqda...' : 'Davr hisobotini yuklash'}</span>
             </button>
           </div>
         </div>
