@@ -141,6 +141,30 @@ public static class DbInitializer
         // Ofis xarajatlari ro'yxati har doim ProjectId IS NULL bo'yicha filtrlanadi.
         await context.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS \"IX_Expenses_ProjectId\" ON \"Expenses\" (\"ProjectId\");");
 
+        // Bildirishnomalar (kompaniya ichidagi o'zgarishlar lentasi)
+        await context.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS ""Notifications"" (
+                ""Id"" UUID PRIMARY KEY,
+                ""CompanyAdminId"" UUID NOT NULL,
+                ""ActorUserId"" UUID NOT NULL,
+                ""ActorName"" VARCHAR(200) NOT NULL,
+                ""Action"" INTEGER NOT NULL,
+                ""EntityType"" VARCHAR(50) NOT NULL,
+                ""Message"" VARCHAR(500) NOT NULL,
+                ""ProjectId"" UUID,
+                ""CreatedAt"" TIMESTAMP WITH TIME ZONE NOT NULL
+            );
+        ");
+        await context.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS \"IX_Notifications_Company_CreatedAt\" ON \"Notifications\" (\"CompanyAdminId\", \"CreatedAt\");");
+        await context.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS ""NotificationReadStates"" (
+                ""UserId"" UUID PRIMARY KEY,
+                ""LastReadAt"" TIMESTAMP WITH TIME ZONE NOT NULL
+            );
+        ");
+        // Lenta cheksiz o'smasligi uchun 90 kundan eski yozuvlar o'chiriladi.
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Notifications\" WHERE \"CreatedAt\" < NOW() - INTERVAL '90 days';");
+
         var configuredPassword = configuration["Seed:SuperAdminPassword"];
         var seedPassword = string.IsNullOrWhiteSpace(configuredPassword)
             ? DefaultSeedPassword

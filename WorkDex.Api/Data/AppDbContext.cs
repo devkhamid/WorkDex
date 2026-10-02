@@ -26,6 +26,8 @@ public class AppDbContext : DbContext
     public DbSet<ProjectPhoto> Photos { get; set; }
     public DbSet<ProjectUpdate> ProjectUpdates { get; set; }
     public DbSet<Agreement> Agreements { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
+    public DbSet<NotificationReadState> NotificationReadStates { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -684,6 +686,22 @@ public class AppDbContext : DbContext
 
             entity.HasIndex(a => a.CompanyAdminId)
                 .HasDatabaseName("IX_Agreements_CompanyAdminId");
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(n => n.Id);
+            entity.Property(n => n.ActorName).IsRequired().HasMaxLength(200);
+            entity.Property(n => n.EntityType).IsRequired().HasMaxLength(50);
+            entity.Property(n => n.Message).IsRequired().HasMaxLength(500);
+            entity.Property(n => n.Action).HasConversion<int>();
+            entity.HasIndex(n => new { n.CompanyAdminId, n.CreatedAt })
+                .HasDatabaseName("IX_Notifications_Company_CreatedAt");
+        });
+
+        modelBuilder.Entity<NotificationReadState>(entity =>
+        {
+            entity.HasKey(s => s.UserId);
         });
     }
 }

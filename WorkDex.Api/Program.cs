@@ -60,8 +60,11 @@ if (string.IsNullOrWhiteSpace(connectionString) ||
         "Database ulanishi sozlanmagan (Host yo'q). DATABASE_URL yoki CONNECTIONSTRINGS__DEFAULTCONNECTION environment variable bering.");
 }
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<NotificationInterceptor>();
+builder.Services.AddDbContext<AppDbContext>((sp, options) =>
+    options.UseNpgsql(connectionString)
+        .AddInterceptors(sp.GetRequiredService<NotificationInterceptor>()));
 
 // =============================================
 // AUTHENTICATION — JWT

@@ -1,7 +1,9 @@
 import React from 'react';
-import { Calendar, Bell, Plus, Menu } from 'lucide-react';
+import { Calendar, Plus, Menu } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
+import { NotificationBell } from './NotificationBell';
+import { useCbuRate } from '../utils/money';
 
 interface HeaderProps {
   title: string;
@@ -12,6 +14,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ title, onOpenNewProject, onOpenMenu }) => {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === UserRole.SuperAdmin;
+  const cbuRate = useCbuRate();
 
   return (
     <header className="no-print sticky top-0 z-30 lg:static h-[56px] lg:h-[66px] bg-white border-b border-[#e4e7ec] flex items-center px-3 sm:px-6 gap-2 sm:gap-3">
@@ -32,17 +35,26 @@ export const Header: React.FC<HeaderProps> = ({ title, onOpenNewProject, onOpenM
 
       <div className="flex-1" />
 
+      {/* CBU kursi */}
+      {cbuRate > 0 && (
+        <div
+          title="O'zbekiston Markaziy banki (CBU) bugungi kursi"
+          className="hidden sm:flex flex-shrink-0 border border-[#e4e7ec] bg-white rounded-lg h-[34px] px-2.5 text-xs text-[#4f5663] items-center gap-1.5"
+        >
+          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 rounded px-1 py-0.5">CBU</span>
+          <span className="whitespace-nowrap">
+            1$ = <b className="font-semibold text-[#171b25]">{cbuRate.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}</b> so'm
+          </span>
+        </div>
+      )}
+
       {/* Date filter pill */}
       <button className="hidden md:flex border border-[#e4e7ec] bg-white hover:bg-[#f7f8fa] rounded-lg h-[34px] px-3 text-xs text-[#4f5663] items-center gap-2 transition-colors">
         <Calendar className="w-3.5 h-3.5 text-gray-500" />
         <span>1 Avgust — 31 Avgust 2026</span>
       </button>
 
-      {/* Notification button */}
-      <button className="flex-shrink-0 border border-[#e4e7ec] bg-white hover:bg-[#f7f8fa] rounded-lg h-[34px] w-[36px] flex items-center justify-center text-gray-600 relative transition-colors">
-        <Bell className="w-4 h-4 text-gray-600" />
-        <span className="absolute w-2 h-2 bg-[#ef5350] rounded-full right-2 top-2 ring-2 ring-white" />
-      </button>
+      {!isSuperAdmin && <NotificationBell />}
 
       {/* New Project Primary Button (Only for Company Admins / Managers, not SuperAdmin) */}
       {!isSuperAdmin && (

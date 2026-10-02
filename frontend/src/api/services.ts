@@ -539,6 +539,29 @@ export const agreementsApi = {
   }
 };
 
+export interface AppNotification {
+  id: string;
+  actorUserId: string;
+  actorName: string;
+  action: 1 | 2 | 3;
+  entityType: string;
+  message: string;
+  projectId?: string | null;
+  createdAt: string;
+  isOwn: boolean;
+  isUnread: boolean;
+}
+
+export const notificationsApi = {
+  getAll: async (take = 30): Promise<{ items: AppNotification[]; unreadCount: number }> => {
+    const res = await apiClient.get<{ items: AppNotification[]; unreadCount: number }>('/notifications', { params: { take } });
+    return res.data;
+  },
+  markAllRead: async (): Promise<void> => {
+    await apiClient.post('/notifications/read');
+  }
+};
+
 export const currencyApi = {
   getRate: async (): Promise<{ rate: number; currency: string; toCurrency: string; date: string }> => {
     const res = await apiClient.get<{ rate: number; currency: string; toCurrency: string; date: string }>('/currency/rate');
