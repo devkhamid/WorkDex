@@ -31,7 +31,7 @@ public class AgreementsController : ControllerBase
     [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var a = await _agreementService.GetByIdAsync(id);
+        var a = await _agreementService.GetByIdAsync(id, User.GetUserId(), User.GetUserRole());
         if (a == null) return NotFound();
         return Ok(a);
     }
@@ -58,7 +58,7 @@ public class AgreementsController : ControllerBase
     {
         try
         {
-            var result = await _agreementService.UpdateAsync(id, dto);
+            var result = await _agreementService.UpdateAsync(id, dto, User.GetUserId(), User.GetUserRole());
             return Ok(result);
         }
         catch (KeyNotFoundException ex)
@@ -73,7 +73,7 @@ public class AgreementsController : ControllerBase
     {
         try
         {
-            var result = await _agreementService.FinalizeAsync(id, dto, User.GetUserId());
+            var result = await _agreementService.FinalizeAsync(id, dto, User.GetUserId(), User.GetUserRole());
             return Ok(result);
         }
         catch (KeyNotFoundException ex)
@@ -92,7 +92,7 @@ public class AgreementsController : ControllerBase
     {
         try
         {
-            await _agreementService.DeleteAsync(id);
+            await _agreementService.DeleteAsync(id, User.GetUserId(), User.GetUserRole());
             return NoContent();
         }
         catch (KeyNotFoundException ex)

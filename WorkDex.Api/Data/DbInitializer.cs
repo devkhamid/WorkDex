@@ -1,15 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
 using WorkDex.Api.Models;
 
 namespace WorkDex.Api.Data;
 
 public static class DbInitializer
 {
-    // Faqat birinchi ishga tushirishda ishlatiladigan zaxira parol.
-    // Haqiqiy parolni "Seed:SuperAdminPassword" konfiguratsiyasi (yoki
-    // SEED__SUPERADMINPASSWORD environment variable) orqali bering.
-    private const string DefaultSeedPassword = "ChangeMe!123";
-
     public static async Task InitializeAsync(AppDbContext context, IConfiguration configuration)
     {
         await context.Database.EnsureCreatedAsync();
@@ -165,15 +161,10 @@ public static class DbInitializer
         // Lenta cheksiz o'smasligi uchun 90 kundan eski yozuvlar o'chiriladi.
         await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Notifications\" WHERE \"CreatedAt\" < NOW() - INTERVAL '90 days';");
 
-        var configuredPassword = configuration["Seed:SuperAdminPassword"];
-        var seedPassword = string.IsNullOrWhiteSpace(configuredPassword)
-            ? DefaultSeedPassword
-            : configuredPassword;
-
         // 1. Agar baza butunlay bo'sh bo'lsa, to'liq boshlang'ich ma'lumotlar yuklanadi
         if (!await context.Users.AnyAsync())
         {
-            await SeedFullDataAsync(context, seedPassword);
+            await SeedFullDataAsync(context, RequireSeedPassword(configuration["Seed:SuperAdminPassword"]));
             return;
         }
 
@@ -182,6 +173,7 @@ public static class DbInitializer
         var superAdminExists = await context.Users.AnyAsync(u => u.Role == UserRole.SuperAdmin);
         if (!superAdminExists)
         {
+            var seedPassword = RequireSeedPassword(configuration["Seed:SuperAdminPassword"]);
             context.Users.Add(new User
             {
                 Id = Guid.NewGuid(),
@@ -200,8 +192,9 @@ public static class DbInitializer
         }
     }
 
-    public static async Task ResetAndSeedAsync(AppDbContext context, string? seedPassword = null)
+    public static async Task ResetAndSeedAsync(AppDbContext context, string seedPassword)
     {
+        seedPassword = RequireSeedPassword(seedPassword);
         await context.Database.EnsureCreatedAsync();
 
         // 1. Delete all existing data
@@ -224,13 +217,26 @@ public static class DbInitializer
 
         await context.SaveChangesAsync();
 
-        await SeedFullDataAsync(context, seedPassword ?? DefaultSeedPassword);
+        await SeedFullDataAsync(context, seedPassword);
+    }
+
+    private static string RequireSeedPassword(string? seedPassword)
+    {
+        if (string.IsNullOrWhiteSpace(seedPassword) || seedPassword.Length < 16)
+            throw new InvalidOperationException(
+                "SuperAdmin yaratish uchun kamida 16 belgili Seed:SuperAdminPassword (SEED__SUPERADMINPASSWORD) sozlang.");
+        return seedPassword;
+    }
+
+    private static string CreateUnsharedSeedPasswordHash()
+    {
+        var unsharedPassword = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        return BCrypt.Net.BCrypt.HashPassword(unsharedPassword);
     }
 
     private static async Task SeedFullDataAsync(AppDbContext context, string seedPassword)
     {
-        var passwordHash = BCrypt.Net.BCrypt.HashPassword(seedPassword);
-        var superAdminHash = passwordHash;
+        var superAdminHash = BCrypt.Net.BCrypt.HashPassword(seedPassword);
 
         // 1. Super Admin (WorkDex Platform Egasi / Barcha adminlarni boshqaradi)
         var superAdmin = new User
@@ -256,7 +262,7 @@ public static class DbInitializer
             LastName = "Hakimov",
             Email = "admin@wordex.uz",
             CompanyName = "Grand Stroy Qurilish MCHJ",
-            PasswordHash = passwordHash,
+            PasswordHash = CreateUnsharedSeedPasswordHash(),
             PhoneNumber = "+998901234567",
             Role = UserRole.Admin,
             CreatedAt = DateTime.UtcNow
@@ -270,7 +276,7 @@ public static class DbInitializer
             LastName = "Rahimov",
             Email = "pm@workdex.uz",
             CompanyName = "Grand Stroy Qurilish MCHJ",
-            PasswordHash = passwordHash,
+            PasswordHash = CreateUnsharedSeedPasswordHash(),
             PhoneNumber = "+998902345678",
             Role = UserRole.ProjectManager,
             CompanyAdminId = adminUser.Id,
@@ -285,7 +291,7 @@ public static class DbInitializer
             LastName = "Nazarov",
             Email = "worker@workdex.uz",
             CompanyName = "Grand Stroy Qurilish MCHJ",
-            PasswordHash = passwordHash,
+            PasswordHash = CreateUnsharedSeedPasswordHash(),
             PhoneNumber = "+998903456789",
             Role = UserRole.FieldWorker,
             CompanyAdminId = adminUser.Id,
@@ -300,7 +306,7 @@ public static class DbInitializer
             LastName = "Karimova",
             Email = "finance@workdex.uz",
             CompanyName = "Grand Stroy Qurilish MCHJ",
-            PasswordHash = passwordHash,
+            PasswordHash = CreateUnsharedSeedPasswordHash(),
             PhoneNumber = "+998904567890",
             Role = UserRole.Finance,
             CompanyAdminId = adminUser.Id,
@@ -314,7 +320,7 @@ public static class DbInitializer
             FirstName = "Ahmad",
             LastName = "Yusupov",
             Email = "customer@workdex.uz",
-            PasswordHash = passwordHash,
+            PasswordHash = CreateUnsharedSeedPasswordHash(),
             PhoneNumber = "+998901112233",
             Role = UserRole.Customer,
             CompanyAdminId = adminUser.Id,

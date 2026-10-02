@@ -23,7 +23,7 @@ import { RenameProjectModal } from '../components/RenameProjectModal';
 import { AiAnalysisPanel } from '../components/AiAnalysisPanel';
 import { useAuth } from '../context/AuthContext';
 import { formatUsd, formatUzs, useCbuRate } from '../utils/money';
-import { getFileUrl } from '../api/client';
+import { apiClient, getFileUrl } from '../api/client';
 import {
   Project,
   ProjectSummary,
@@ -1554,6 +1554,7 @@ export const ProjectDetailPage: React.FC = () => {
                     <span className="truncate">{selectedDocFile ? selectedDocFile.name : 'Faylni tanlang...'}</span>
                     <input
                       type="file"
+                      accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg,.webp"
                       className="hidden"
                       onChange={(e) => {
                         const file = e.target.files?.[0] || null;
@@ -1652,6 +1653,30 @@ export const ProjectDetailPage: React.FC = () => {
                           target="_blank"
                           rel="noreferrer"
                           download
+                          onClick={async (event) => {
+                            if (!d.filePath.startsWith('/api/projects/')) return;
+                            event.preventDefault();
+                            try {
+                              const apiPath = d.filePath.replace(/^\/api/, '');
+                              const response = await apiClient.get(apiPath, { responseType: 'blob' });
+                              const fileUrl = URL.createObjectURL(response.data);
+                              const link = document.createElement('a');
+                              link.href = fileUrl;
+                              const title = d.title.replace(/[\\/:*?"<>|]/g, '_');
+                              const disposition = response.headers['content-disposition'] as string | undefined;
+                              const encodedName = disposition?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+                              const plainName = disposition?.match(/filename="?([^";]+)"?/i)?.[1];
+                              link.download = encodedName
+                                ? decodeURIComponent(encodedName)
+                                : plainName || `${title}.${d.fileType || 'bin'}`;
+                              document.body.appendChild(link);
+                              link.click();
+                              link.remove();
+                              window.setTimeout(() => URL.revokeObjectURL(fileUrl), 1000);
+                            } catch {
+                              alert("Hujjatni yuklab bo'lmadi. Ruxsatingizni tekshirib, qayta urinib ko'ring.");
+                            }
+                          }}
                           className="px-2.5 py-1 bg-[#ff7a16] text-white rounded text-[11px] font-semibold hover:bg-[#e86807] transition-colors"
                         >
                           Ochish →
@@ -2273,4 +2298,3 @@ export const ProjectDetailPage: React.FC = () => {
     </div>
   );
 };
-

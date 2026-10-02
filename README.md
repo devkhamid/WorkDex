@@ -97,18 +97,14 @@ ASP.NET Core 8 Web API, PostgreSQL, Entity Framework Core va JWT autentifikatsiy
    cd WorkDex/WorkDex.Api
    ```
 
-2. **Ma'lumotlar bazasini sozlash (`appsettings.Development.json`):**
-   ```json
-   "ConnectionStrings": {
-     "DefaultConnection": "Host=localhost;Port=5432;Database=WorkDexDb;Username=postgres;Password=YOUR_PASSWORD"
-   }
+2. **Mahalliy maxfiy sozlamalarni User Secrets orqali kiriting:**
+   ```powershell
+   dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=WorkDexDb;Username=postgres;Password=<DB_PASSWORD>"
+   dotnet user-secrets set "JwtSettings:SecretKey" "<kamida 32 baytli tasodifiy kalit>"
+   dotnet user-secrets set "Seed:SuperAdminPassword" "<kamida 16 belgili parol>"
    ```
 
-3. **Migratsiyalarni qo'llash:**
-   ```bash
-   dotnet ef database update
-   ```
-
+3. **Baza sxemasi:** API ishga tushganda `DbInitializer` orqali yaratiladi va yangilanadi.
 4. **Loyihani ishga tushirish:**
    ```bash
    dotnet run
@@ -116,3 +112,15 @@ ASP.NET Core 8 Web API, PostgreSQL, Entity Framework Core va JWT autentifikatsiy
 
 5. **Swagger UI ga kirish:**
    Brauzeringizda oching: `http://localhost:5082/swagger`
+
+## 🔐 Production xavfsizlik sozlamalari
+
+Yayinga chiqarishdan oldin quyidagi maxfiy sozlamalarni hosting platformasining secret/environment variable bo'limida kiriting; ularni Git'ga qo'shmang:
+
+- `JWTSETTINGS__SECRETKEY` — kamida 32 baytli tasodifiy kalit.
+- `SEED__SUPERADMINPASSWORD` — kamida 16 belgili parol. Bo'sh bazada yoki SuperAdmin mavjud bo'lmaganda bu sozlama berilmasa, API ishga tushmaydi. Seed qilingan namuna foydalanuvchilariga alohida tasodifiy parollar beriladi; kompaniya foydalanuvchilarini SuperAdmin sifatida tizimga kirgach yarating yoki parolini yangilang.
+- `DATABASE_URL` yoki `ConnectionStrings__DefaultConnection` — PostgreSQL ulanishi.
+
+Mavjud bazadagi SuperAdmin paroli seed sozlamasi bilan avtomatik almashtirilmaydi. Eski o'rnatishda umumiy yoki avvalgi seed paroli ishlatilgan bo'lishi mumkin bo'lsa, chiqarishdan oldin SuperAdmin va seed qilingan foydalanuvchilarning parollarini alohida almashtiring.
+
+Loyiha hujjatlari ommaviy statik URL orqali berilmaydi: yuklangan fayllar loyiha ruxsati tekshiriladigan API orqali ilova qilinib yuklab olinadi. Foydalanuvchi faolligi va roli har bir JWT so'rovida qayta tekshiriladi.

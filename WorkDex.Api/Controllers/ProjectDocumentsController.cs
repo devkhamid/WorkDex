@@ -52,7 +52,7 @@ public class ProjectDocumentsController : ControllerBase
     [HttpPost("upload")]
     [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
     [Consumes("multipart/form-data")]
-    [DisableRequestSizeLimit]
+    [RequestSizeLimit(26 * 1024 * 1024)]
     public async Task<IActionResult> UploadDocument(
         Guid projectId,
         [FromForm] UploadDocumentDto dto)
@@ -71,6 +71,19 @@ public class ProjectDocumentsController : ControllerBase
         {
             return NotFound(new { message = ex.Message });
         }
+    }
+
+    [HttpGet("{documentId:guid}/file")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager,FieldWorker")]
+    public async Task<IActionResult> DownloadDocument(Guid projectId, Guid documentId)
+    {
+        var document = await _mediaService.GetDocumentFileAsync(projectId, documentId);
+        if (document is null)
+            return NotFound(new { message = "Hujjat topilmadi." });
+
+        Response.Headers["X-Content-Type-Options"] = "nosniff";
+        Response.Headers["Content-Security-Policy"] = "sandbox";
+        return PhysicalFile(document.Value.FullPath, "application/octet-stream", document.Value.FileName);
     }
 
     [HttpDelete("{documentId:guid}")]

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Security.Claims;
 using System.Text;
 using WorkDex.Api.Data;
 using WorkDex.Api.Filters;
@@ -86,6 +87,36 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
         ClockSkew = TimeSpan.Zero  // Token muddatini aniq belgilaymiz
+    };
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async context =>
+        {
+            var principal = context.Principal;
+            var userIdValue = principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? principal?.FindFirst("sub")?.Value;
+            if (!Guid.TryParse(userIdValue, out var userId))
+            {
+                context.Fail("Token foydalanuvchi identifikatori noto'g'ri.");
+                return;
+            }
+
+            var db = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+            var user = await db.Users
+                .AsNoTracking()
+                .Where(candidate => candidate.Id == userId)
+                .Select(candidate => new { candidate.IsActive, candidate.Role })
+                .SingleOrDefaultAsync(context.HttpContext.RequestAborted);
+            if (user is null || !user.IsActive)
+            {
+                context.Fail("Foydalanuvchi faol emas.");
+                return;
+            }
+
+            var tokenRole = principal?.FindFirst(ClaimTypes.Role)?.Value;
+            if (!string.Equals(tokenRole, user.Role.ToString(), StringComparison.Ordinal))
+                context.Fail("Foydalanuvchi roli token bilan mos kelmadi.");
+        }
     };
 });
 
@@ -212,6 +243,16 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("WorkDexCors");
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/uploads", StringComparison.OrdinalIgnoreCase))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+
+    await next();
+});
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();

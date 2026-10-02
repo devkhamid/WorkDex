@@ -9,6 +9,12 @@ namespace WorkDex.Api.Services;
 
 public class ProjectMediaService : IProjectMediaService
 {
+    private const long MaxDocumentSizeBytes = 25 * 1024 * 1024;
+    private static readonly HashSet<string> AllowedDocumentExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".pdf", ".docx", ".xlsx", ".png", ".jpg", ".jpeg", ".webp"
+    };
+
     private readonly AppDbContext _context;
     private readonly IWebHostEnvironment _env;
 
@@ -23,6 +29,14 @@ public class ProjectMediaService : IProjectMediaService
     {
         if (file == null || file.Length == 0)
             throw new ArgumentException("Fayl tanlanmagan.");
+        if (file.Length > MaxDocumentSizeBytes)
+            throw new ArgumentException("Fayl hajmi 25 MB dan oshmasligi kerak.");
+
+        var ext = Path.GetExtension(file.FileName);
+        if (!AllowedDocumentExtensions.Contains(ext))
+            throw new ArgumentException("Faqat PDF, DOCX, XLSX, PNG, JPG yoki WEBP fayllariga ruxsat beriladi.");
+        if (!await HasExpectedSignatureAsync(file, ext))
+            throw new ArgumentException("Fayl kengaytmasi uning tarkibiga mos kelmaydi.");
 
         var project = await _context.Projects.FindAsync(projectId);
         if (project is null)
@@ -32,25 +46,21 @@ public class ProjectMediaService : IProjectMediaService
         if (user is null)
             throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
 
-        var rootPath = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-        var folder = Path.Combine(rootPath, "uploads", "documents", projectId.ToString());
-        if (!Directory.Exists(folder))
-        {
-            Directory.CreateDirectory(folder);
-        }
-
-        var ext = Path.GetExtension(file.FileName);
-        var safeFileName = $"{Guid.NewGuid():N}_{Path.GetFileNameWithoutExtension(file.FileName)}{ext}";
+        var folder = Path.Combine(_env.ContentRootPath, "App_Data", "uploads", "documents", projectId.ToString());
+        Directory.CreateDirectory(folder);
+        var safeFileName = $"{Guid.NewGuid():N}{ext.ToLowerInvariant()}";
         var fullPath = Path.Combine(folder, safeFileName);
 
-        using (var stream = new FileStream(fullPath, FileMode.Create))
+        await using (var stream = new FileStream(fullPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
         {
             await file.CopyToAsync(stream);
         }
 
         var relativePath = $"/uploads/documents/{projectId}/{safeFileName}";
         var finalTitle = !string.IsNullOrWhiteSpace(title) ? title.Trim() : Path.GetFileNameWithoutExtension(file.FileName);
-        var finalType = !string.IsNullOrWhiteSpace(fileType) ? fileType.Trim() : ext.TrimStart('.').ToLowerInvariant();
+        var finalType = !string.IsNullOrWhiteSpace(fileType)
+            ? fileType.Trim()
+            : ext.TrimStart('.').ToLowerInvariant();
 
         var doc = new ProjectDocument
         {
@@ -71,7 +81,7 @@ public class ProjectMediaService : IProjectMediaService
             Id = doc.Id,
             ProjectId = doc.ProjectId,
             Title = doc.Title,
-            FilePath = doc.FilePath,
+            FilePath = GetClientFilePath(doc),
             FileType = doc.FileType,
             FileSizeBytes = doc.FileSizeBytes,
             UploadedByUserId = doc.UploadedByUserId,
@@ -109,7 +119,7 @@ public class ProjectMediaService : IProjectMediaService
             Id = doc.Id,
             ProjectId = doc.ProjectId,
             Title = doc.Title,
-            FilePath = doc.FilePath,
+            FilePath = GetClientFilePath(doc),
             FileType = doc.FileType,
             FileSizeBytes = doc.FileSizeBytes,
             UploadedByUserId = doc.UploadedByUserId,
@@ -135,7 +145,7 @@ public class ProjectMediaService : IProjectMediaService
             Id = d.Id,
             ProjectId = d.ProjectId,
             Title = d.Title,
-            FilePath = d.FilePath,
+            FilePath = GetClientFilePath(d),
             FileType = d.FileType,
             FileSizeBytes = d.FileSizeBytes,
             UploadedByUserId = d.UploadedByUserId,
@@ -152,25 +162,84 @@ public class ProjectMediaService : IProjectMediaService
         if (doc is null)
             throw new KeyNotFoundException("Hujjat topilmadi.");
 
-        if (!string.IsNullOrEmpty(doc.FilePath) && doc.FilePath.StartsWith("/uploads/"))
-        {
-            try
-            {
-                var rootPath = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-                var diskPath = Path.Combine(rootPath, doc.FilePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
-                if (File.Exists(diskPath))
-                {
-                    File.Delete(diskPath);
-                }
-            }
-            catch
-            {
-                // Silently ignore disk cleanup errors to avoid blocking DB deletion
-            }
-        }
+        var diskPath = ResolveUploadedDocumentPath(projectId, doc.FilePath);
+        if (diskPath is not null && File.Exists(diskPath))
+            File.Delete(diskPath);
 
         _context.Documents.Remove(doc);
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<(string FullPath, string FileName)?> GetDocumentFileAsync(Guid projectId, Guid documentId)
+    {
+        var document = await _context.Documents
+            .AsNoTracking()
+            .FirstOrDefaultAsync(d => d.Id == documentId && d.ProjectId == projectId);
+        if (document is null)
+            return null;
+
+        var fullPath = ResolveUploadedDocumentPath(projectId, document.FilePath);
+        if (fullPath is null || !File.Exists(fullPath))
+            return null;
+
+        var extension = Path.GetExtension(fullPath);
+        var title = string.Concat(document.Title.Select(character =>
+            char.IsLetterOrDigit(character) || character is ' ' or '-' or '_' ? character : '_')).Trim();
+        if (string.IsNullOrWhiteSpace(title))
+            title = "hujjat";
+
+        return (fullPath, $"{title}{extension}");
+    }
+
+    private string? ResolveUploadedDocumentPath(Guid projectId, string filePath)
+    {
+        var normalizedPath = filePath.Replace('\\', '/').TrimStart('/');
+        var expectedPrefix = $"uploads/documents/{projectId:D}/";
+        if (!normalizedPath.StartsWith(expectedPrefix, StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var fileName = normalizedPath[expectedPrefix.Length..];
+        if (string.IsNullOrWhiteSpace(fileName)
+            || fileName is "." or ".."
+            || Path.GetFileName(fileName) != fileName
+            || fileName.IndexOfAny(['/', '\\']) >= 0)
+        {
+            return null;
+        }
+
+        var privatePath = Path.Combine(_env.ContentRootPath, "App_Data", "uploads", "documents", projectId.ToString(), fileName);
+        if (File.Exists(privatePath))
+            return privatePath;
+
+        var legacyRoot = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
+        var legacyPath = Path.Combine(legacyRoot, "uploads", "documents", projectId.ToString(), fileName);
+        return File.Exists(legacyPath) ? legacyPath : null;
+    }
+
+    private static string GetClientFilePath(ProjectDocument document)
+    {
+        if (document.FilePath.Replace('\\', '/').StartsWith("/uploads/documents/", StringComparison.OrdinalIgnoreCase))
+            return $"/api/projects/{document.ProjectId}/documents/{document.Id}/file";
+        return document.FilePath;
+    }
+
+    private static async Task<bool> HasExpectedSignatureAsync(IFormFile file, string extension)
+    {
+        var header = new byte[12];
+        await using var stream = file.OpenReadStream();
+        var bytesRead = await stream.ReadAsync(header);
+
+        return extension.ToLowerInvariant() switch
+        {
+            ".pdf" => bytesRead >= 5 && header.AsSpan(0, 5).SequenceEqual("%PDF-"u8),
+            ".png" => bytesRead >= 8 && header.AsSpan(0, 8).SequenceEqual(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }),
+            ".jpg" or ".jpeg" => bytesRead >= 3 && header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF,
+            ".webp" => bytesRead >= 12
+                && header.AsSpan(0, 4).SequenceEqual("RIFF"u8)
+                && header.AsSpan(8, 4).SequenceEqual("WEBP"u8),
+            ".docx" or ".xlsx" => bytesRead >= 4 && header.AsSpan(0, 4).SequenceEqual(new byte[] { 0x50, 0x4B, 0x03, 0x04 }),
+            _ => false
+        };
     }
 
     // Photos

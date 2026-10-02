@@ -23,24 +23,28 @@ public class AgreementService : IAgreementService
             .Include(a => a.Customer)
             .AsQueryable();
 
-        if (requestingUserRole == UserRole.SuperAdmin)
-        {
-            // barchasi
-        }
-        else
+        if (requestingUserRole != UserRole.SuperAdmin)
         {
             var user = await _context.Users.FindAsync(requestingUserId);
             var adminId = user?.CompanyAdminId ?? requestingUserId;
-            query = query.Where(a => a.CompanyAdminId == adminId);
+            query = ApplyTenantScope(query, adminId);
         }
 
         var list = await query.OrderByDescending(a => a.CreatedAt).ToListAsync();
         return list.Select(MapToDto).ToList();
     }
 
-    public async Task<AgreementDto?> GetByIdAsync(Guid id)
+    public async Task<AgreementDto?> GetByIdAsync(Guid id, Guid requestingUserId, UserRole requestingUserRole)
     {
-        var a = await _context.Agreements.Include(x => x.Customer).FirstOrDefaultAsync(x => x.Id == id);
+        var companyAdminId = requestingUserRole == UserRole.SuperAdmin
+            ? (Guid?)null
+            : await GetCompanyAdminIdAsync(requestingUserId);
+        var query = _context.Agreements
+            .Include(x => x.Customer)
+            .AsQueryable();
+        if (requestingUserRole != UserRole.SuperAdmin)
+            query = ApplyTenantScope(query, companyAdminId!.Value);
+        var a = await query.FirstOrDefaultAsync(x => x.Id == id);
         return a == null ? null : MapToDto(a);
     }
 
@@ -50,12 +54,14 @@ public class AgreementService : IAgreementService
         if (role != UserRole.SuperAdmin)
         {
             var user = await _context.Users.FindAsync(createdByUserId);
-            companyAdminId = role == UserRole.Admin
-                ? (user?.CompanyAdminId ?? createdByUserId)
-                : user?.CompanyAdminId;
+            if (user is null)
+                throw new UnauthorizedAccessException("Foydalanuvchi topilmadi.");
+            companyAdminId = user.CompanyAdminId ?? createdByUserId;
         }
 
         Guid? customerId = dto.CustomerId;
+        if (customerId.HasValue)
+            await EnsureCustomerAccessAsync(customerId.Value, companyAdminId);
         if (customerId == null)
         {
             if (dto.ClientType == (int)ClientType.LegalEntity && !string.IsNullOrWhiteSpace(dto.CompanyName))
@@ -156,12 +162,22 @@ public class AgreementService : IAgreementService
         return MapToDto(agreement);
     }
 
-    public async Task<AgreementDto> UpdateAsync(Guid id, UpdateAgreementDto dto)
+    public async Task<AgreementDto> UpdateAsync(Guid id, UpdateAgreementDto dto, Guid requestingUserId, UserRole requestingUserRole)
     {
-        var agreement = await _context.Agreements.Include(a => a.Customer).FirstOrDefaultAsync(a => a.Id == id)
+        var companyAdminId = requestingUserRole == UserRole.SuperAdmin
+            ? (Guid?)null
+            : await GetCompanyAdminIdAsync(requestingUserId);
+        var query = _context.Agreements
+            .Include(a => a.Customer)
+            .AsQueryable();
+        if (requestingUserRole != UserRole.SuperAdmin)
+            query = ApplyTenantScope(query, companyAdminId!.Value);
+        var agreement = await query.FirstOrDefaultAsync(a => a.Id == id)
             ?? throw new KeyNotFoundException("Shartnoma topilmadi");
 
         Guid? customerId = dto.CustomerId;
+        if (customerId.HasValue)
+            await EnsureCustomerAccessAsync(customerId.Value, requestingUserRole == UserRole.SuperAdmin ? null : agreement.CompanyAdminId);
         if (customerId == null)
         {
             if (dto.ClientType == (int)ClientType.LegalEntity && !string.IsNullOrWhiteSpace(dto.CompanyName))
@@ -254,17 +270,45 @@ public class AgreementService : IAgreementService
         return MapToDto(agreement);
     }
 
-    public async Task<AgreementDto> FinalizeAsync(Guid id, FinalizeAgreementDto dto, Guid createdByUserId)
+    public async Task<AgreementDto> FinalizeAsync(Guid id, FinalizeAgreementDto dto, Guid createdByUserId, UserRole requestingUserRole)
     {
         var projectName = dto.ProjectName?.Trim();
         if (string.IsNullOrEmpty(projectName))
             throw new ArgumentException("Loyiha nomini kiriting.");
 
-        var agreement = await _context.Agreements.Include(a => a.Customer).FirstOrDefaultAsync(a => a.Id == id)
+        var companyAdminId = requestingUserRole == UserRole.SuperAdmin
+            ? (Guid?)null
+            : await GetCompanyAdminIdAsync(createdByUserId);
+        var query = _context.Agreements
+            .Include(a => a.Customer)
+            .AsQueryable();
+        if (requestingUserRole != UserRole.SuperAdmin)
+            query = ApplyTenantScope(query, companyAdminId!.Value);
+        var agreement = await query.FirstOrDefaultAsync(a => a.Id == id)
             ?? throw new KeyNotFoundException("Shartnoma topilmadi");
 
+        var managerIds = dto.ManagerIds.Distinct().ToList();
+        if (managerIds.Count > 0)
+        {
+            var eligibleManagerCount = await _context.Users.CountAsync(user =>
+                managerIds.Contains(user.Id)
+                && user.Role == UserRole.ProjectManager
+                && user.IsActive
+                && (requestingUserRole == UserRole.SuperAdmin || user.CompanyAdminId == companyAdminId));
+            if (eligibleManagerCount != managerIds.Count)
+                throw new KeyNotFoundException("Tanlangan menejerlardan biri topilmadi.");
+        }
+
         // Agar mijoz belgilanmagan bo'lsa yoki bazadan o'chirilgan bo'lsa, avtomatik yaratamiz
-        if (!agreement.CustomerId.HasValue || !await _context.Customers.AnyAsync(c => c.Id == agreement.CustomerId.Value))
+        var customerExists = agreement.CustomerId.HasValue
+            && await _context.Customers.AnyAsync(c => c.Id == agreement.CustomerId.Value);
+        if (customerExists)
+        {
+            await EnsureCustomerAccessAsync(
+                agreement.CustomerId!.Value,
+                requestingUserRole == UserRole.SuperAdmin ? null : agreement.CompanyAdminId);
+        }
+        else
         {
             var fallbackCustomer = new Customer
             {
@@ -314,7 +358,7 @@ public class AgreementService : IAgreementService
         }
 
         // Menejerlarni qo'shish
-        foreach (var managerId in dto.ManagerIds)
+        foreach (var managerId in managerIds)
         {
             var member = new ProjectMember
             {
@@ -334,22 +378,54 @@ public class AgreementService : IAgreementService
         return MapToDto(agreement);
     }
 
-    public async Task DeleteAsync(Guid id)
+    public async Task DeleteAsync(Guid id, Guid requestingUserId, UserRole requestingUserRole)
     {
-        var agreement = await _context.Agreements.FindAsync(id)
+        var companyAdminId = requestingUserRole == UserRole.SuperAdmin
+            ? (Guid?)null
+            : await GetCompanyAdminIdAsync(requestingUserId);
+        var query = _context.Agreements.AsQueryable();
+        if (requestingUserRole != UserRole.SuperAdmin)
+            query = ApplyTenantScope(query, companyAdminId!.Value);
+        var agreement = await query.FirstOrDefaultAsync(a => a.Id == id)
             ?? throw new KeyNotFoundException("Shartnoma topilmadi");
         _context.Agreements.Remove(agreement);
         await _context.SaveChangesAsync();
     }
 
+    private async Task<Guid> GetCompanyAdminIdAsync(Guid userId)
+    {
+        var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId)
+            ?? throw new UnauthorizedAccessException("Foydalanuvchi topilmadi.");
+        return user.CompanyAdminId ?? user.Id;
+    }
+
+    private IQueryable<Agreement> ApplyTenantScope(IQueryable<Agreement> query, Guid companyAdminId)
+    {
+        return query.Where(agreement =>
+            agreement.CompanyAdminId == companyAdminId
+            && (!agreement.CustomerId.HasValue
+                || _context.Customers.Any(customer =>
+                    customer.Id == agreement.CustomerId && customer.CompanyAdminId == companyAdminId))
+            && (!agreement.ProjectId.HasValue
+                || _context.Projects.Any(project =>
+                    project.Id == agreement.ProjectId && project.CompanyAdminId == companyAdminId)));
+    }
+
+    private async Task EnsureCustomerAccessAsync(Guid customerId, Guid? companyAdminId)
+    {
+        var query = _context.Customers.Where(customer => customer.Id == customerId);
+        if (companyAdminId.HasValue)
+            query = query.Where(customer => customer.CompanyAdminId == companyAdminId);
+
+        if (!await query.AnyAsync())
+            throw new KeyNotFoundException("Mijoz topilmadi.");
+    }
+
     public async Task<int> GetNextContractNumberAsync(Guid userId, UserRole role)
     {
-        Guid? companyAdminId = null;
-        if (role == UserRole.Admin)
-        {
-            var user = await _context.Users.FindAsync(userId);
-            companyAdminId = user?.CompanyAdminId ?? userId;
-        }
+        Guid? companyAdminId = role == UserRole.SuperAdmin
+            ? null
+            : await GetCompanyAdminIdAsync(userId);
 
         var query = _context.Agreements.AsQueryable();
         if (companyAdminId.HasValue)
@@ -413,4 +489,3 @@ public class AgreementService : IAgreementService
         UpdatedAt = a.UpdatedAt
     };
 }
-
