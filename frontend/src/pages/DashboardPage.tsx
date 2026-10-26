@@ -20,14 +20,13 @@ import { UserRole } from '../types';
 import { UsdWithUzs } from '../components/Money';
 import { formatUsd } from '../utils/money';
 
-// ---- Add User Modal ----
 const AddUserModal: React.FC<{ onClose: () => void; onSuccess: () => void }> = ({ onClose, onSuccess }) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState(2); // default: ProjectManager
+  const [role, setRole] = useState(2);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -56,7 +55,6 @@ const AddUserModal: React.FC<{ onClose: () => void; onSuccess: () => void }> = (
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4">
       <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[92vh] overflow-y-auto p-4 sm:p-6">
-        {/* Header */}
         <div className="flex items-center justify-between gap-3 mb-5">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 bg-[#fff3e8] rounded-lg flex items-center justify-center">
@@ -171,7 +169,6 @@ const AddUserModal: React.FC<{ onClose: () => void; onSuccess: () => void }> = (
   );
 };
 
-// ---- Main Dashboard ----
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -231,7 +228,6 @@ export const DashboardPage: React.FC = () => {
   
   return (
     <div className="p-4 sm:p-6 space-y-5">
-      {/* Add User Modal */}
       {isAddUserModalOpen && (
         <AddUserModal
           onClose={() => setIsAddUserModalOpen(false)}
@@ -239,7 +235,6 @@ export const DashboardPage: React.FC = () => {
         />
       )}
 
-      {/* Top Action Bar — Admin uchun "Xodim qo'shish" tugmasi */}
       {canAddUser && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="min-w-0">
@@ -256,9 +251,7 @@ export const DashboardPage: React.FC = () => {
         </div>
       )}
 
-      {/* 4 KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* KPI 1: Faol Loyihalar */}
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between">
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#ff7a16]" />
           <div>
@@ -273,7 +266,6 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* KPI 2: Olingan Tushum */}
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between">
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#3b82f6]" />
           <div>
@@ -290,7 +282,6 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* KPI 3: Jami Xarajatlar */}
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between">
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#ef5350]" />
           <div>
@@ -308,7 +299,6 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* KPI 4: Net Balans */}
         {(() => {
           const netBal = stats?.netBalance ?? ((stats?.totalRevenueReceived ?? 0) - (stats?.totalExpenses ?? 0));
           const netBalUzs = stats?.netBalanceUzs ?? ((stats?.totalRevenueReceivedUzs ?? 0) - (stats?.totalExpensesUzs ?? 0));
@@ -343,9 +333,7 @@ export const DashboardPage: React.FC = () => {
         })()}
       </div>
 
-      {/* Dashboard Grid (2 Columns) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* Left: Loyihalar holati grafigi (real ma'lumot) */}
         {(() => {
           const statusMeta = [
             { status: ProjectStatus.InProgress, label: 'Faol', color: '#21bd68' },
@@ -356,7 +344,6 @@ export const DashboardPage: React.FC = () => {
           ].map(s => ({ ...s, count: projects.filter(p => p.status === s.status).length }));
           const total = projects.length;
 
-          // Muddatga ko'ra kutilgan bajarilish: boshlanish va tugash sanasi orasidagi o'tgan vaqt ulushi.
           const expectedPercent = (p: Project): number | null => {
             if (!p.startDate || !p.endDate) return null;
             const start = new Date(p.startDate).getTime();
@@ -394,7 +381,6 @@ export const DashboardPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Status taqsimoti */}
               <div className="pt-4">
                 <div className="flex h-2.5 rounded-full overflow-hidden bg-[#edf0f3]">
                   {total > 0 && statusMeta.filter(s => s.count > 0).map(s => (
@@ -418,7 +404,6 @@ export const DashboardPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Loyihalar bo'yicha bajarilish grafigi */}
               {chartProjects.length === 0 ? (
                 <div className="flex-1 flex items-center justify-center text-xs text-gray-400 py-12">
                   Hali loyihalar mavjud emas
@@ -456,7 +441,6 @@ export const DashboardPage: React.FC = () => {
           );
         })()}
 
-        {/* Right: Loyiha holati */}
         <div className="lg:col-span-5 bg-white border border-[#e4e7ec] rounded-xl shadow-xs p-4 sm:p-5 flex flex-col justify-between space-y-3">
           <div>
             <div className="pb-3 border-b border-[#f0f2f5]">
@@ -502,9 +486,7 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Table Card */}
       <div className="bg-white border border-[#e4e7ec] rounded-xl shadow-xs overflow-hidden">
-        {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-2 px-4 sm:px-5 py-3.5 border-b border-[#e4e7ec] bg-white">
           <input
             type="text"
@@ -529,7 +511,6 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full min-w-[820px] text-left text-xs">
             <thead>

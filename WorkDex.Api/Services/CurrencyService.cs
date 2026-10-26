@@ -1,32 +1,19 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Collections.Concurrent;
 using System.Globalization;
 using WorkDex.Api.DTOs.Currency;
 
 namespace WorkDex.Api.Services;
 
-/// <summary>
-/// O'zbekiston Markaziy Banki (CBU) kurs ma'lumotlarini olish va kunlik kesh qilish.
-/// </summary>
 public interface ICurrencyService
 {
-    /// <summary>
-    /// Bugungi USD → UZS kursini qaytaradi (1 USD = ? UZS).
-    /// Agar CBU API javob bermasa, avvalgi keshlangan qiymat qaytariladi.
-    /// </summary>
-    Task<decimal> GetUsdToUzsRateAsync();
+        Task<decimal> GetUsdToUzsRateAsync();
 
-    /// <summary>
-    /// Tanlangan davr uchun USD → UZS tarixiy kurslarini qaytaradi.
-    /// </summary>
-    Task<IReadOnlyList<CurrencyRateHistoryPointDto>> GetUsdToUzsHistoryAsync(
+        Task<IReadOnlyList<CurrencyRateHistoryPointDto>> GetUsdToUzsHistoryAsync(
         int days,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// UZS summasini USD ga o'giradi.
-    /// </summary>
-    Task<decimal> ConvertUzsToUsdAsync(decimal amountInUzs);
+        Task<decimal> ConvertUzsToUsdAsync(decimal amountInUzs);
 }
 
 public class CurrencyService : ICurrencyService
@@ -34,9 +21,7 @@ public class CurrencyService : ICurrencyService
     private readonly HttpClient _httpClient;
     private readonly ILogger<CurrencyService> _logger;
 
-    // Kunlik kesh: sanasi + kurs
-    private static decimal _cachedRate = 12700m; // Zaxira kurs (agar internet yo'q bo'lsa)
-    private static DateTime _cacheDate = DateTime.MinValue;
+    private static decimal _cachedRate = 12700m;    private static DateTime _cacheDate = DateTime.MinValue;
     private static readonly SemaphoreSlim _lock = new(1, 1);
     private static readonly ConcurrentDictionary<DateOnly, CurrencyRateHistoryPointDto> _historyCache = new();
 
@@ -50,14 +35,12 @@ public class CurrencyService : ICurrencyService
 
     public async Task<decimal> GetUsdToUzsRateAsync()
     {
-        // Agar bugun kesh yangilangan bo'lsa, to'g'ridan-to'g'ri qaytaramiz
         if (_cacheDate.Date == DateTime.UtcNow.Date && _cachedRate > 0)
             return _cachedRate;
 
         await _lock.WaitAsync();
         try
         {
-            // Double-check locking
             if (_cacheDate.Date == DateTime.UtcNow.Date && _cachedRate > 0)
                 return _cachedRate;
 
@@ -162,7 +145,6 @@ public class CurrencyService : ICurrencyService
         {
             var json = await _httpClient.GetStringAsync(CbuApiUrl);
 
-            // CBU API JSON formati: [{"id":"...", "Code":"USD", "Ccy":"USD", "Rate":"12737.55", ...}]
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
 

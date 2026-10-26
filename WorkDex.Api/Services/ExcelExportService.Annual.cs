@@ -1,11 +1,9 @@
-using ClosedXML.Excel;
+﻿using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using WorkDex.Api.Models;
 
 namespace WorkDex.Api.Services;
 
-// Yillik hisobot: "D_" varaqlarida xom ma'lumot, qolgan barcha tahlil varaqlari
-// shu ma'lumotdan Excel formulalari (SUMIFS, COUNTIF...) orqali hisoblanadi.
 public partial class ExcelExportService
 {
     private const string ShPay = "D_Tushumlar";
@@ -15,7 +13,6 @@ public partial class ExcelExportService
     private const string ShExt = "D_QoshimchaIshlar";
     private const string ShPrj = "D_Loyihalar";
 
-    // Xulosa varag'idagi foydalanuvchi o'zgartira oladigan kataklar.
     private const string YearRef = "'Xulosa'!$C$4";
     private const string RateRef = "'Xulosa'!$C$5";
 
@@ -80,7 +77,6 @@ public partial class ExcelExportService
 
     private static string Q(string text) => "\"" + text.Replace("\"", "\"\"") + "\"";
 
-    // SUMIFS('Varaq'!K:K,'Varaq'!B:B,kriteriy,...)
     private static string Sifs(string sheet, string sumCol, params (string Col, string Crit)[] criteria) =>
         $"SUMIFS('{sheet}'!{sumCol}:{sumCol}," +
         string.Join(",", criteria.Select(c => $"'{sheet}'!{c.Col}:{c.Col},{c.Crit}")) + ")";
@@ -88,19 +84,15 @@ public partial class ExcelExportService
     private static string SifsP(string sheet, string sumCol, (string Col, string Crit)[] period, params (string Col, string Crit)[] extra) =>
         Sifs(sheet, sumCol, period.Concat(extra).ToArray());
 
-    // Locale'dan qat'i nazar "dd.mm.yyyy" ko'rinishidagi matn.
     private static string DateText(string cell) =>
         $"TEXT(DAY({cell}),\"00\")&\".\"&TEXT(MONTH({cell}),\"00\")&\".\"&YEAR({cell})";
 
-    // Davr oralig'i hisobotida Xulosa varag'idagi o'zgartiriladigan kataklar.
     private const string StartRef = "'Xulosa'!$C$4";
     private const string EndRef = "'Xulosa'!$C$5";
     private const string RangeRateRef = "'Xulosa'!$C$6";
 
-    // Label: Excel formulasi qismi (matn), Criteria: shu oy/ustun katagiga havola bo'yicha SUMIFS shartlari.
     private sealed record MonthSlot(string Label, bool IsFormula, Func<string, (string Col, string Crit)[]> Criteria);
 
-    // Yillik yoki ixtiyoriy sana oralig'i — tahlil varaqlari shu obyekt orqali filtrlanadi.
     private sealed record ReportPeriod(
         bool IsRange,
         int Year,
@@ -197,7 +189,6 @@ public partial class ExcelExportService
 
         using var wb = new XLWorkbook();
 
-        // Tahlil varaqlari birinchi ko'rinadi, xom ma'lumot varaqlari oxirida.
         var wsSummary = wb.Worksheets.Add("Xulosa");
         var wsMonthly = wb.Worksheets.Add("Oylik");
         var wsProjects = wb.Worksheets.Add("Loyihalar");
@@ -207,7 +198,6 @@ public partial class ExcelExportService
         var wsMaterials = wb.Worksheets.Add("Materiallar");
         var wsOffice = wb.Worksheets.Add("Ofis");
 
-        // ---------- XOM MA'LUMOT VARAQLARI ----------
         {
             var ws = wb.Worksheets.Add(ShPrj);
             WriteDataHeader(ws, "Kod", "Loyiha", "Mijoz", "Holat", "Progress", "Boshlanish", "Tugash",
@@ -354,7 +344,6 @@ public partial class ExcelExportService
             FinishDataSheet(ws, r - 1, 10);
         }
 
-        // ---------- TAHLIL VARAQLARI ----------
         var projectTotalRow = BuildAnnualProjectsSheet(wsProjects, projects.Count);
         BuildAnnualSummarySheet(wsSummary, period, defaultRate, projectTotalRow);
         BuildAnnualMonthlySheet(wsMonthly, period);
@@ -385,7 +374,6 @@ public partial class ExcelExportService
         return await query.OrderBy(e => e.ExpenseDate).ToListAsync();
     }
 
-    // ================= XULOSA =================
     private static void BuildAnnualSummarySheet(IXLWorksheet ws, ReportPeriod p, decimal rate, int projectTotalRow)
     {
         ws.TabColor = XLColor.FromHtml("#1E293B");
@@ -499,7 +487,6 @@ public partial class ExcelExportService
         }
         ApplyTableBorders(ws, 8, r - 1, 6, 2);
 
-        // Umumiy holat (barcha davr)
         r += 1;
         StyleHeaderRow(ws, r, 2, "#0F766E", "Umumiy holat (barcha davr)", "Qiymat");
         r++;
@@ -527,7 +514,6 @@ public partial class ExcelExportService
         }
         ApplyTableBorders(ws, statusStart - 1, r - 1, 3, 2);
 
-        // To'lov usullari (tanlangan yil / davr)
         r += 1;
         StyleHeaderRow(ws, r, 2, "#059669", $"To'lov usullari ({p.Word.ToLowerInvariant()})", "Summa (USD)", "Ulush");
         r++;
@@ -550,7 +536,6 @@ public partial class ExcelExportService
         ws.SheetView.FreezeRows(8);
     }
 
-    // ================= OYLIK =================
     private static void BuildAnnualMonthlySheet(IXLWorksheet ws, ReportPeriod p)
     {
         ws.TabColor = XLColor.FromHtml("#2563EB");
@@ -615,7 +600,6 @@ public partial class ExcelExportService
         ws.SheetView.FreezeRows(3);
     }
 
-    // ================= LOYIHALAR (barcha davr) =================
     private static int BuildAnnualProjectsSheet(IXLWorksheet ws, int count)
     {
         ws.TabColor = XLColor.FromHtml("#EA580C");
@@ -693,7 +677,6 @@ public partial class ExcelExportService
         return tot;
     }
 
-    // ================= KATEGORIYALAR =================
     private static void BuildAnnualCategoriesSheet(IXLWorksheet ws, ReportPeriod p)
     {
         ws.TabColor = XLColor.FromHtml("#DC2626");
@@ -747,7 +730,6 @@ public partial class ExcelExportService
         ws.SheetView.FreezeRows(3);
     }
 
-    // ================= MIJOZLAR =================
     private static void BuildAnnualCustomersSheet(IXLWorksheet ws, List<Project> projects, int projectTotalRow, ReportPeriod p)
     {
         ws.TabColor = XLColor.FromHtml("#7C3AED");
@@ -794,7 +776,6 @@ public partial class ExcelExportService
         ws.SheetView.FreezeRows(3);
     }
 
-    // ================= USTALAR =================
     private static void BuildAnnualWorkersSheet(IXLWorksheet ws, List<WorkerPayment> workerPayments, ReportPeriod p)
     {
         ws.TabColor = XLColor.FromHtml("#0D9488");
@@ -847,7 +828,6 @@ public partial class ExcelExportService
         ws.SheetView.FreezeRows(3);
     }
 
-    // ================= MATERIALLAR =================
     private static void BuildAnnualMaterialsSheet(IXLWorksheet ws, List<MaterialPurchase> purchases, ReportPeriod p)
     {
         ws.TabColor = XLColor.FromHtml("#D97706");
@@ -893,7 +873,6 @@ public partial class ExcelExportService
         StyleTotalRow(ws.Range(tot, 1, tot, 8));
         ApplyTableBorders(ws, 3, tot, 8);
 
-        // Yetkazib beruvchilar
         var sHead = tot + 3;
         StyleHeaderRow(ws, sHead, 1, "#92400E", "Yetkazib beruvchi", "Xaridlar soni", "Jami (USD)", $"{p.Word} xarajati (USD)", "Ulush (jami)");
         var suppliers = purchases
@@ -931,7 +910,6 @@ public partial class ExcelExportService
         ws.SheetView.FreezeRows(3);
     }
 
-    // ================= OFIS =================
     private static void BuildAnnualOfficeSheet(IXLWorksheet ws, List<Expense> officeExpenses, ReportPeriod p)
     {
         var n = p.Months.Count;
@@ -985,7 +963,6 @@ public partial class ExcelExportService
         ws.SheetView.Freeze(3, 1);
     }
 
-    // ================= YORDAMCHI =================
     private static void WriteDataHeader(IXLWorksheet ws, params string[] headers)
     {
         ws.TabColor = XLColor.FromHtml("#94A3B8");
@@ -1007,7 +984,6 @@ public partial class ExcelExportService
         cell.Style.DateFormat.Format = "dd.MM.yyyy";
     }
 
-    // A: sana, B: =YEAR(A), C: =MONTH(A)
     private static void WriteDateCols(IXLWorksheet ws, int r, DateTime date)
     {
         SetDate(ws.Cell(r, 1), date);

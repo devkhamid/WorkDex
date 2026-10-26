@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using WorkDex.Api.Data;
 using WorkDex.Api.DTOs.ExtraWorks;
 using WorkDex.Api.Models;
@@ -16,7 +16,6 @@ public class ExtraWorkService : IExtraWorkService
         _currencyService = currencyService;
     }
 
-    // CustomerAmount/ActualCost har doim USD da saqlanadi; asl summa va CBU kursi alohida
     private async Task ApplyAmountsAsync(ExtraWork ew, string? currencyInput, decimal customerAmount, decimal actualCost)
     {
         var currency = Money.Normalize(currencyInput, "USD");

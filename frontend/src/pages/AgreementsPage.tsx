@@ -77,7 +77,6 @@ export const AgreementsPage: React.FC = () => {
 
   return (
     <div className="flex-1 overflow-auto bg-[#f8f9fb] p-4 sm:p-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl font-bold text-[#171b25]">Shartnomalar</h1>
@@ -92,7 +91,6 @@ export const AgreementsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Tabs & Search */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
         <div className="flex gap-1 border-b border-gray-200 overflow-x-auto scrollbar-none max-w-full">
           <button className="px-4 py-2 text-sm font-semibold text-[#7c3aed] border-b-2 border-[#7c3aed] whitespace-nowrap flex-shrink-0">
@@ -137,7 +135,6 @@ export const AgreementsPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredAgreements.map(agreement => (
             <div key={agreement.id} className="bg-[#1a1d27] rounded-xl p-4 sm:p-5 flex flex-col gap-3 min-w-0">
-              {/* Card Header */}
               <div className="flex items-start justify-between gap-3 min-w-0">
                 <div>
                   <div className="text-white font-semibold text-sm leading-tight break-words">
@@ -165,12 +162,10 @@ export const AgreementsPage: React.FC = () => {
                 </span>
               </div>
 
-              {/* Amount */}
               <div className="text-[#7c3aed] font-bold text-base break-words">
                 {formatAmount(agreement.totalAmountUZS)}
               </div>
 
-              {/* Meta */}
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-[#a0a5b5]">
                 <span>№ {agreement.contractNumber}</span>
                 <span>
@@ -179,7 +174,6 @@ export const AgreementsPage: React.FC = () => {
                 {getStatusBadge(agreement.statusCode)}
               </div>
 
-              {/* Actions */}
               <div className="flex flex-wrap items-center gap-2 mt-1">
                 {agreement.statusCode !== 3 && isAdmin ? (
                   <button
@@ -197,7 +191,6 @@ export const AgreementsPage: React.FC = () => {
                   </button>
                 ) : null}
 
-                {/* Edit */}
                 <button
                   onClick={() => navigate(`/agreements/${agreement.id}/edit`)}
                   className="w-8 h-8 flex items-center justify-center bg-[#ffffff15] rounded-lg text-[#a0a5b5] hover:text-white transition-colors"
@@ -206,7 +199,6 @@ export const AgreementsPage: React.FC = () => {
                   <FileText className="w-3.5 h-3.5" />
                 </button>
 
-                {/* Print */}
                 <button
                   onClick={() => navigate(`/agreements/${agreement.id}/preview`)}
                   className="w-8 h-8 flex items-center justify-center bg-[#ffffff15] rounded-lg text-[#a0a5b5] hover:text-white transition-colors"
@@ -215,7 +207,6 @@ export const AgreementsPage: React.FC = () => {
                   <Printer className="w-3.5 h-3.5" />
                 </button>
 
-                {/* Delete */}
                 {isAdmin && (
                   <button
                     onClick={() => handleDelete(agreement.id)}

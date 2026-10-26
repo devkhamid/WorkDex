@@ -88,7 +88,6 @@ export const ProjectDetailPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'finance' | 'tasks' | 'materials' | 'workers' | 'expenses' | 'extraworks' | 'photos' | 'documents' | 'ai'>('overview');
   const [loading, setLoading] = useState(true);
 
-  // Tab Data States
   const [tasks, setTasks] = useState<ProjectTask[]>([]);
   const [stages, setStages] = useState<ProjectStage[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -101,7 +100,6 @@ export const ProjectDetailPage: React.FC = () => {
   const [photos, setPhotos] = useState<ProjectPhoto[]>([]);
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
 
-  // Modals state
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
@@ -110,29 +108,24 @@ export const ProjectDetailPage: React.FC = () => {
   const [isExtraWorkModalOpen, setIsExtraWorkModalOpen] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
 
-  // Catalogs
   const [catalogMaterials, setCatalogMaterials] = useState<Material[]>([]);
   const [catalogWorkers, setCatalogWorkers] = useState<Worker[]>([]);
 
-  // Task Form State
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskWeight, setNewTaskWeight] = useState(1);
   const [newTaskStageId, setNewTaskStageId] = useState('');
 
-  // Payment Form State
   const [newPayAmount, setNewPayAmount] = useState<number | ''>('');
   const [newPayCurrency, setNewPayCurrency] = useState<Currency>('USD');
   const [newPayMethod, setNewPayMethod] = useState(1);
   const [newPayNotes, setNewPayNotes] = useState('');
 
-  // Expense Form State
-  const [newExpCategory, setNewExpCategory] = useState(9); // Default: Yuklarni tashish / Ko'tarish
+  const [newExpCategory, setNewExpCategory] = useState(9);
   const [newExpAmount, setNewExpAmount] = useState<number | ''>('');
   const [newExpCurrency, setNewExpCurrency] = useState<Currency>('UZS');
   const [newExpDesc, setNewExpDesc] = useState('');
   const [newExpDate, setNewExpDate] = useState(new Date().toISOString().split('T')[0]);
 
-  // Purchase Form State
   const [newPurMatName, setNewPurMatName] = useState('');
   const [newPurMatBrand, setNewPurMatBrand] = useState('');
   const [newPurMatUnit, setNewPurMatUnit] = useState('dona');
@@ -141,7 +134,6 @@ export const ProjectDetailPage: React.FC = () => {
   const [newPurCurrency, setNewPurCurrency] = useState<Currency>('UZS');
   const [newPurSupplier, setNewPurSupplier] = useState('');
 
-  // Worker Payment Form State
   const [isNewWorker, setIsNewWorker] = useState(false);
   const [newWorkerFullName, setNewWorkerFullName] = useState('');
   const [newWorkerPhone, setNewWorkerPhone] = useState('');
@@ -151,7 +143,6 @@ export const ProjectDetailPage: React.FC = () => {
   const [newWorkAgreed, setNewWorkAgreed] = useState<number | ''>('');
   const [newWorkCurrency, setNewWorkCurrency] = useState<Currency>('UZS');
 
-  // Pay Worker Modal State
   const [isPayWorkerModalOpen, setIsPayWorkerModalOpen] = useState(false);
   const [selectedWorkerForPay, setSelectedWorkerForPay] = useState<WorkerPayment | null>(null);
   const [payWorkerAmount, setPayWorkerAmount] = useState<number | ''>('');
@@ -159,26 +150,22 @@ export const ProjectDetailPage: React.FC = () => {
   const [payWorkerDate, setPayWorkerDate] = useState(new Date().toISOString().split('T')[0]);
   const [payWorkerNotes, setPayWorkerNotes] = useState('');
 
-  // Document Upload State
   const [selectedDocFile, setSelectedDocFile] = useState<File | null>(null);
   const [docUploadMode, setDocUploadMode] = useState<'file' | 'url'>('file');
   const [isUploadingDoc, setIsUploadingDoc] = useState(false);
   const [isAttachingAgreementPdf, setIsAttachingAgreementPdf] = useState(false);
 
-  // Update Work Amount (Hakediş) Modal State
   const [isWorkAmountModalOpen, setIsWorkAmountModalOpen] = useState(false);
   const [selectedWorkerForWorkAmount, setSelectedWorkerForWorkAmount] = useState<WorkerPayment | null>(null);
   const [workAmountInput, setWorkAmountInput] = useState<number | ''>('');
   const [workAmountCurrency, setWorkAmountCurrency] = useState<Currency>('UZS');
   const [workAmountNotes, setWorkAmountNotes] = useState('');
 
-  // Extra Work Form State
   const [newExtraTitle, setNewExtraTitle] = useState('');
   const [newExtraCustAmt, setNewExtraCustAmt] = useState<number | ''>('');
   const [newExtraCost, setNewExtraCost] = useState<number | ''>('');
   const [newExtraCurrency, setNewExtraCurrency] = useState<Currency>('USD');
 
-  // Photo Form State
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
   const [newPhotoCaption, setNewPhotoCaption] = useState('');
   const [newPhotoVisible, setNewPhotoVisible] = useState(true);
@@ -372,7 +359,6 @@ export const ProjectDetailPage: React.FC = () => {
     }
 
     try {
-      // Server katalogdan nom+brend bo'yicha topadi, bo'lmasa yangi material yaratadi
       await projectsApi.createPurchase(id, {
         materialName: newPurMatName.trim(),
         brand: newPurMatBrand.trim() || undefined,
@@ -459,7 +445,6 @@ export const ProjectDetailPage: React.FC = () => {
 
     const maxAllowed = selectedWorkerForPay.agreedAmount - selectedWorkerForPay.paidAmount;
     const isUsd = payWorkerCurrency === 'USD';
-    // USD kiritilganda 1 sentlik yaxlitlash farqiga ruxsat (server qoldiqqa tenglashtiradi)
     const exceeds = isUsd
       ? cbuRate > 0 && amountVal > maxAllowed / cbuRate + 0.01
       : amountVal > maxAllowed;
@@ -580,7 +565,6 @@ export const ProjectDetailPage: React.FC = () => {
 
   return (
     <div className="p-4 sm:p-6 space-y-4 bg-white min-w-0">
-      {/* Detail Head */}
       <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
         <button
           onClick={() => navigate('/projects')}
@@ -611,7 +595,6 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
-          {/* Excel Export Button */}
           <button
             onClick={() => reportsApi.downloadProjectExcel(project.id)}
             className="border border-emerald-200 bg-white hover:bg-emerald-50 text-emerald-700 rounded-lg h-[34px] px-3 text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors"
@@ -622,7 +605,6 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Detail Navigation Tabs */}
       <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-1 border-b border-[#e4e7ec]">
         {[
           { id: 'overview', label: 'Umumiy ko‘rinish' },
@@ -650,7 +632,6 @@ export const ProjectDetailPage: React.FC = () => {
         ))}
       </div>
 
-      {/* 4 Finance Cards — asosiy USD, ostida so'm */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-3.5 shadow-xs">
           <small className="block text-[9px] font-bold text-[#8e95a0] uppercase tracking-wider">SHARTNOMA</small>
@@ -716,11 +697,9 @@ export const ProjectDetailPage: React.FC = () => {
         })()}
       </div>
 
-      {/* TAB 1: OVERVIEW */}
       {activeTab === 'overview' && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
-            {/* Timeline Progress Card */}
             <div className="lg:col-span-7 bg-white border border-[#e4e7ec] rounded-xl p-4 sm:p-5 shadow-xs flex flex-col justify-between space-y-4 min-w-0">
               <div>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
@@ -733,7 +712,6 @@ export const ProjectDetailPage: React.FC = () => {
                   </span>
                 </div>
 
-                {/* Progress bar */}
                 <div className="my-3.5">
                   <div className="h-2.5 bg-[#edf0f3] rounded-full overflow-hidden">
                     <div
@@ -743,7 +721,6 @@ export const ProjectDetailPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Timeline Dates */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs pt-1">
                   <div>
                     <span className="block text-[10px] text-[#8c929d]">Boshlanish</span>
@@ -760,7 +737,6 @@ export const ProjectDetailPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Mini Stats Footer */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2.5 border-t border-gray-100 bg-gray-50/70 p-2.5 rounded-lg text-xs">
                 <div>
                   <span className="block text-[10px] text-gray-500">Jami vazifalar:</span>
@@ -777,7 +753,6 @@ export const ProjectDetailPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Recent Financial Movements */}
             <div className="lg:col-span-5 bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs min-w-0">
               <h3 className="font-bold text-xs text-[#171b25] mb-2.5">So'nggi Moliya Harakatlari</h3>
               <div className="divide-y divide-[#eef0f3] text-xs">
@@ -810,7 +785,6 @@ export const ProjectDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Tasks in this project */}
           <div className="bg-white border border-[#e4e7ec] rounded-xl shadow-xs overflow-hidden">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border-b border-[#e4e7ec]">
               <div>
@@ -882,7 +856,6 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 2: FINANCE & PAYMENTS (Mijoz To'lovlari / Kirim) */}
       {activeTab === 'finance' && (
         <div className="space-y-4">
           <div className="bg-white border border-[#e4e7ec] rounded-xl shadow-xs overflow-hidden">
@@ -936,7 +909,6 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* Loyiha Qo'shimcha Xarajatlari — ustalar ishiga kirmaydigan qo'shimcha xarajatlar (Yuk tashish, Tozalash va b.) */}
       {activeTab === 'expenses' && (
         <div className="space-y-4">
           <div className="bg-white border border-[#e4e7ec] rounded-xl shadow-xs overflow-hidden">
@@ -999,7 +971,6 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 3: TASKS */}
       {activeTab === 'tasks' && (
         <div className="bg-white border border-[#e4e7ec] rounded-xl shadow-xs p-4 space-y-3">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pb-3 border-b border-[#e4e7ec]">
@@ -1047,7 +1018,6 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 4: MATERIALS */}
       {activeTab === 'materials' && (
         <div className="space-y-4">
           <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs">
@@ -1154,10 +1124,8 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 5: WORKERS & WORK PAYMENTS */}
       {activeTab === 'workers' && (
         <div className="space-y-4">
-          {/* TOP BANNER: SUMMARY CARDS & RULES */}
           <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center pb-3 border-b border-[#e4e7ec] gap-3">
               <div>
@@ -1173,7 +1141,6 @@ export const ProjectDetailPage: React.FC = () => {
               </button>
             </div>
 
-            {/* WORKER CARDS GRID */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {workersSummary.map((w) => {
                 const debt = w.totalAgreedAmount - w.totalPaidAmount;
@@ -1232,7 +1199,6 @@ export const ProjectDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {/* TABLE OF WORKER JOBS */}
           <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs">
             <h3 className="font-bold text-xs text-[#171b25] mb-3">Bajarilayotgan Ishlar Ro'yxati</h3>
             <div className="overflow-x-auto scrollbar-none">
@@ -1331,7 +1297,6 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 6: EXTRA WORKS */}
       {activeTab === 'extraworks' && (
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs space-y-3">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pb-3 border-b border-[#e4e7ec]">
@@ -1379,7 +1344,6 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 7: PHOTOS */}
       {activeTab === 'photos' && (
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs space-y-3">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pb-3 border-b border-[#e4e7ec]">
@@ -1425,7 +1389,6 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 8: DOCUMENTS & SHARTNOMALAR */}
       {activeTab === 'ai' && id && canUseAi && <AiAnalysisPanel key={id} projectId={id} />}
 
       {activeTab === 'documents' && (
@@ -1477,7 +1440,6 @@ export const ProjectDetailPage: React.FC = () => {
             </div>
           )}
 
-          {/* Add Document Form */}
           <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
@@ -1610,7 +1572,6 @@ export const ProjectDetailPage: React.FC = () => {
             </form>
           </div>
 
-          {/* Documents Table */}
           <div className="overflow-x-auto scrollbar-none">
             <table className="w-full min-w-[720px] text-left text-xs">
               <thead>
@@ -1716,7 +1677,6 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL 1: ADD TASK */}
       {isTaskModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
           <div className="bg-white rounded-t-2xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-md max-h-[92vh] overflow-y-auto shadow-xl border border-gray-200 space-y-4">
@@ -1754,7 +1714,6 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL 2: ADD PAYMENT */}
       {isPaymentModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
           <div className="bg-white rounded-t-2xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-md max-h-[92vh] overflow-y-auto shadow-xl border border-gray-200 space-y-4">
@@ -1800,7 +1759,6 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL 3: ADD EXPENSE */}
       {isExpenseModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
           <div className="bg-white rounded-t-2xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-md max-h-[92vh] overflow-y-auto shadow-xl border border-gray-200 space-y-4">
@@ -1865,7 +1823,6 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL 4: ADD MATERIAL PURCHASE */}
       {isPurchaseModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
           <div className="bg-white rounded-t-2xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-md max-h-[92vh] overflow-y-auto shadow-xl border border-gray-200 space-y-4">
@@ -1932,7 +1889,6 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL 5: ADD WORKER */}
       {isWorkerModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
           <div className="bg-white rounded-t-2xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-md max-h-[92vh] overflow-y-auto shadow-xl border border-gray-200 space-y-4">
@@ -2033,7 +1989,6 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL 6: ADD EXTRA WORK */}
       {isExtraWorkModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
           <div className="bg-white rounded-t-2xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-md max-h-[92vh] overflow-y-auto shadow-xl border border-gray-200 space-y-4">
@@ -2077,7 +2032,6 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL 7: ADD PHOTO */}
       {isPhotoModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
           <div className="bg-white rounded-t-2xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-md max-h-[92vh] overflow-y-auto shadow-xl border border-gray-200 space-y-4">
@@ -2123,7 +2077,6 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL 8: PAY WORKER */}
       {isPayWorkerModalOpen && selectedWorkerForPay && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
           <div className="bg-white rounded-t-2xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-md max-h-[92vh] overflow-y-auto shadow-xl border border-gray-200 space-y-4">
@@ -2135,7 +2088,6 @@ export const ProjectDetailPage: React.FC = () => {
               <button onClick={() => setIsPayWorkerModalOpen(false)} className="w-8 h-8 inline-flex items-center justify-center text-gray-400 hover:text-gray-600 text-sm">✕</button>
             </div>
 
-            {/* Worker Info Card */}
             <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-1 text-xs">
               <div className="font-bold text-gray-900">{selectedWorkerForPay.workerName} ({selectedWorkerForPay.workerSpecialty || 'Usta'})</div>
               <div className="text-gray-600">Ish tavsifi: <b className="text-gray-800">{selectedWorkerForPay.jobDescription}</b></div>
@@ -2217,7 +2169,6 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL 9: UPDATE WORK AMOUNT (HAKEDİŞ) */}
       {isWorkAmountModalOpen && selectedWorkerForWorkAmount && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
           <div className="bg-white rounded-t-2xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-md max-h-[92vh] overflow-y-auto shadow-xl border border-gray-200 space-y-4">
@@ -2229,7 +2180,6 @@ export const ProjectDetailPage: React.FC = () => {
               <button onClick={() => setIsWorkAmountModalOpen(false)} className="w-8 h-8 inline-flex items-center justify-center text-gray-400 hover:text-gray-600 text-sm">✕</button>
             </div>
 
-            {/* Worker Info Card */}
             <div className="p-3 bg-purple-50/50 border border-purple-200 rounded-lg space-y-1 text-xs">
               <div className="font-bold text-purple-950">{selectedWorkerForWorkAmount.workerName}</div>
               <div className="text-gray-600">Ish: <b className="text-gray-800">{selectedWorkerForWorkAmount.jobDescription}</b></div>

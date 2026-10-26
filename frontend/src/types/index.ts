@@ -7,9 +7,6 @@ export enum UserRole {
   Customer = 5
 }
 
-// DIQQAT: qiymatlar backenddagi WorkDex.Api/Models/ProjectStatus.cs bilan
-// aynan bir xil bo'lishi shart — bu enum yorliq rangi, matni va status
-// filtriga to'g'ridan-to'g'ri raqam sifatida uzatiladi.
 export enum ProjectStatus {
   Planning = 1,
   InProgress = 2,
@@ -94,10 +91,10 @@ export interface Project {
   customerName: string;
   customerPhone?: string;
   contractAmount: number;
-  contractAmountUzs?: number; // UZS da kiritilgan asl shartnoma summasi
+  contractAmountUzs?: number;
   budget: number;
   currency: string;
-  exchangeRate?: number; // Loyiha yaratilgan paytdagi CBU kursi
+  exchangeRate?: number;
   startDate: string;
   endDate?: string;
   actualEndDate?: string;
@@ -107,7 +104,7 @@ export interface Project {
   location?: string;
   notes?: string;
   createdAt: string;
-  agreementId?: string | null; // Loyiha shartnomadan yaratilgan bo'lsa
+  agreementId?: string | null;
   stages?: ProjectStage[];
   members?: ProjectMember[];
 }
@@ -136,7 +133,7 @@ export interface ProjectSummary {
   projectName: string;
   customerName: string;
   contractAmount: number;
-  contractAmountUzs?: number; // UZS da kiritilgan asl shartnoma summasi
+  contractAmountUzs?: number;
   currency: string;
   exchangeRate?: number;
   totalPaid: number;
@@ -166,7 +163,7 @@ export interface ProjectSummary {
 export interface Payment {
   id: string;
   projectId: string;
-  amount: number; // USD
+  amount: number;
   currency?: Currency;
   exchangeRate?: number;
   originalAmount?: number;
@@ -187,7 +184,7 @@ export interface Expense {
   categoryName: string;
   frequency?: ExpenseFrequency;
   frequencyName?: string;
-  amount: number; // so'm
+  amount: number;
   amountUsd?: number;
   currency?: string;
   exchangeRateToUzs?: number;
@@ -219,7 +216,7 @@ export interface MaterialPurchase {
   quantity: number;
   unit: string;
   unitPrice: number;
-  totalCost: number; // so'm
+  totalCost: number;
   totalCostUsd?: number;
   currency?: string;
   exchangeRateToUzs?: number;
@@ -252,9 +249,9 @@ export interface MaterialUsage {
   projectId: string;
   projectName: string;
   totalQuantity: number;
-  totalCost: number; // so'm
+  totalCost: number;
   totalCostUsd: number;
-  averageUnitPrice: number; // so'm
+  averageUnitPrice: number;
   purchaseCount: number;
   lastPurchaseDate: string;
 }
@@ -311,8 +308,8 @@ export interface ExtraWork {
   projectId: string;
   title: string;
   description?: string;
-  customerAmount: number; // USD
-  actualCost: number; // USD
+  customerAmount: number;
+  actualCost: number;
   currency?: Currency;
   exchangeRate?: number;
   originalCustomerAmount?: number;
@@ -407,7 +404,7 @@ export interface DashboardRecentActivity {
   activityType: string;
   title: string;
   projectName: string;
-  amount?: number; // USD
+  amount?: number;
   amountUzs?: number;
   createdByName: string;
   createdAt: string;

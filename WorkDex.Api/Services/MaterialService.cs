@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using WorkDex.Api.Data;
@@ -24,7 +24,6 @@ public class MaterialService : IMaterialService
 
         if (requestingUserRole == UserRole.SuperAdmin)
         {
-            // SuperAdmin barcha materiallarni ko'radi
         }
         else
         {
@@ -147,8 +146,6 @@ public class MaterialService : IMaterialService
         await _context.SaveChangesAsync();
     }
 
-    // Takroriy (yozuv xatosi bilan kiritilgan) materialni boshqasiga birlashtiradi:
-    // barcha xaridlar target ga o'tkaziladi va source o'chiriladi
     public async Task<MaterialDto> MergeMaterialAsync(Guid sourceId, Guid targetId, Guid requestingUserId, UserRole requestingUserRole)
     {
         if (sourceId == targetId)
@@ -205,7 +202,6 @@ public class MaterialService : IMaterialService
             throw new KeyNotFoundException("Material topilmadi.");
     }
 
-    // Ortiqcha bo'shliqlarni olib tashlaydi; bo'sh bo'lsa null
     private static string? Clean(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return null;
@@ -216,7 +212,6 @@ public class MaterialService : IMaterialService
     {
         var cleaned = Clean(value);
         if (cleaned is null) return string.Empty;
-        // Katta-kichik harf, diakritika (ı/i, ç/c, ş/s, ğ/g, ö/o, ü/u) va apostrof turlari farqlanmaydi
         var decomposed = cleaned.ToLowerInvariant().Replace('\u0131', 'i').Normalize(NormalizationForm.FormD);
         var sb = new StringBuilder(decomposed.Length);
         foreach (var ch in decomposed)
@@ -227,7 +222,6 @@ public class MaterialService : IMaterialService
         return sb.ToString();
     }
 
-    // Bir kompaniya katalogi kichik, shuning uchun solishtirish xotirada bajariladi
     private async Task<Material?> FindMaterialAsync(Guid? companyAdminId, string name, string? brand, Guid? excludeId = null)
     {
         var nameKey = MatchKey(name);
@@ -285,16 +279,13 @@ public class MaterialService : IMaterialService
             material = await _context.Materials.FindAsync(dto.MaterialId.Value)
                 ?? throw new KeyNotFoundException("Material topilmadi.");
 
-            // Material o'z kompaniyasiga tegishli ekanini tekshirish
             if (project.CompanyAdminId != null && material.CompanyAdminId != null && material.CompanyAdminId != project.CompanyAdminId)
                 throw new InvalidOperationException("Tanlangan material boshqa kompaniyaga tegishli.");
 
-            // Brend boshqacha yozilgan bo'lsa — bu boshqa (nom+brend) material
             if (brand is not null && MatchKey(brand) != MatchKey(material.Brand))
                 material = await FindOrCreateMaterialAsync(material.CompanyAdminId, material.Name, brand, material.Unit);
         }
 
-        // UnitPrice/TotalCost har doim so'mda saqlanadi; kurs bugungi CBU kursi
         var currency = Money.Normalize(dto.Currency, "UZS");
         var rate = await Money.CurrentRateAsync(_currencyService);
         var effectiveUnitPrice = Money.ToUzs(dto.UnitPrice, currency, rate);

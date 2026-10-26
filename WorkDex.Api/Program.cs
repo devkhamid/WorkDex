@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -9,19 +9,13 @@ using WorkDex.Api.Filters;
 using WorkDex.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
-// Hosting platformlari (Railway, Render, Heroku...) portni PORT env orqali beradi.
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5082";
 builder.WebHost.UseUrls($"http://*:{port}");
 
-// =============================================
-// CONFIGURATION
-// =============================================
 var configuration = builder.Configuration;
 var jwtSettings = configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"];
 
-// HMAC-SHA256 uchun kalit kamida 32 bayt bo'lishi kerak. Bo'sh yoki qisqa kalit
-// bilan ishga tushishga yo'l qo'ymaymiz — aks holda tokenlarni oson qalbakilashtirish mumkin.
 if (string.IsNullOrWhiteSpace(secretKey) || Encoding.UTF8.GetByteCount(secretKey) < 32)
 {
     throw new InvalidOperationException(
@@ -29,16 +23,12 @@ if (string.IsNullOrWhiteSpace(secretKey) || Encoding.UTF8.GetByteCount(secretKey
         "Uni user-secrets yoki JWTSETTINGS__SECRETKEY environment variable orqali bering.");
 }
 
-// =============================================
-// DATABASE
-// =============================================
 var connectionString = configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrWhiteSpace(connectionString))
 {
     connectionString = Environment.GetEnvironmentVariable("DATABASE_URL");
 }
 
-// Railway Postgres URL ni postgresql://user:pass@host:port/db ko'rinishida beradi.
 if (!string.IsNullOrWhiteSpace(connectionString) &&
     (connectionString.StartsWith("postgres://") || connectionString.StartsWith("postgresql://")))
 {
@@ -67,9 +57,6 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
     options.UseNpgsql(connectionString)
         .AddInterceptors(sp.GetRequiredService<NotificationInterceptor>()));
 
-// =============================================
-// AUTHENTICATION — JWT
-// =============================================
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -86,8 +73,7 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = jwtSettings["Issuer"],
         ValidAudience = jwtSettings["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
-        ClockSkew = TimeSpan.Zero  // Token muddatini aniq belgilaymiz
-    };
+        ClockSkew = TimeSpan.Zero    };
     options.Events = new JwtBearerEvents
     {
         OnTokenValidated = async context =>
@@ -122,9 +108,6 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// =============================================
-// SERVICES
-// =============================================
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IProjectAccessGuard, ProjectAccessGuard>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -147,18 +130,11 @@ builder.Services.AddScoped<IAiAnalysisService, AiAnalysisService>();
 builder.Services.AddHttpClient("Groq", c => c.Timeout = TimeSpan.FromSeconds(120));
 builder.Services.AddHttpClient("CBU", c => c.Timeout = TimeSpan.FromSeconds(15));
 
-// =============================================
-// CONTROLLERS
-// =============================================
-// Marshrutida projectId bo'lgan barcha endpointlarda loyiha egaligini tekshiramiz.
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<ProjectAccessFilter>();
 });
 
-// =============================================
-// SWAGGER / OPENAPI
-// =============================================
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -169,7 +145,6 @@ builder.Services.AddSwaggerGen(c =>
         Description = "WorkDex — Loyiha boshqaruvi tizimi API"
     });
 
-    // Swagger orqali JWT token kiritish imkoniyati
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -196,11 +171,6 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// =============================================
-// CORS
-// =============================================
-// Development'da lokal tarmoqdagi bir nechta qurilmadan kirish uchun ochiq qoldiramiz.
-// Production'da esa faqat "Cors:AllowedOrigins" da sanalgan manzillar ruxsat oladi.
 var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
     ?? Array.Empty<string>();
 
@@ -224,14 +194,8 @@ builder.Services.AddCors(options =>
     });
 });
 
-// =============================================
-// BUILD
-// =============================================
 var app = builder.Build();
 
-// =============================================
-// MIDDLEWARE PIPELINE
-// =============================================
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -257,12 +221,8 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-// Frontend (React) build wwwroot ichida — React Router sahifalari uchun index.html qaytariladi.
 app.MapFallbackToFile("index.html");
 
-// =============================================
-// DATABASE SEEDING
-// =============================================
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();

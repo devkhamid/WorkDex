@@ -35,9 +35,8 @@ export const OfficeExpensesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Form state
-  const [category, setCategory] = useState(11); // Electricity default
-  const [frequency, setFrequency] = useState(3); // Monthly default
+  const [category, setCategory] = useState(11);
+  const [frequency, setFrequency] = useState(3);
   const [amount, setAmount] = useState<number | ''>('');
   const [currency, setCurrency] = useState<Currency>('UZS');
   const [description, setDescription] = useState('');
@@ -67,11 +66,6 @@ export const OfficeExpensesPage: React.FC = () => {
         amount: Number(amount),
         currency,
         description: description.trim(),
-        // <input type="date"> "YYYY-MM-DD" beradi; uni to'g'ridan-to'g'ri yuborsak
-        // backendda DateTime.Kind=Unspecified bo'lib, ToUniversalTime() uni server
-        // mahalliy vaqti deb hisoblaydi — natijada saqlangan payt serverning
-        // timezone iga bog'lanib qoladi. ISO (UTC) ga o'girib yuboramiz, xuddi
-        // NewProjectModal va ProjectDetailPage dagi boshqa sana maydonlari kabi.
         expenseDate: new Date(expenseDate).toISOString(),
         notes: notes.trim() || undefined
       });
@@ -110,7 +104,6 @@ export const OfficeExpensesPage: React.FC = () => {
 
   return (
     <div className="p-4 sm:p-6 space-y-5">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-lg font-bold text-[#171b25]">Mening Ofisim</h2>
@@ -125,7 +118,6 @@ export const OfficeExpensesPage: React.FC = () => {
         </button>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden">
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#ef5350]" />
@@ -144,7 +136,6 @@ export const OfficeExpensesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Table */}
       <div className="bg-white border border-[#e4e7ec] rounded-xl shadow-xs overflow-hidden">
         <div className="px-4 sm:px-5 py-3.5 border-b border-[#e4e7ec] flex items-center justify-between gap-3">
           <span className="text-xs font-bold text-[#171b25]">Ofis Xarajatlari Jadvali</span>
@@ -202,7 +193,6 @@ export const OfficeExpensesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Add Expense Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4">
           <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[92vh] overflow-y-auto p-4 sm:p-6">

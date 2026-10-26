@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using WorkDex.Api.Models;
 
 namespace WorkDex.Api.DTOs.Payments;
@@ -9,7 +9,6 @@ public class CreatePaymentDto
     [Range(0.01, double.MaxValue, ErrorMessage = "To'lov summasi 0 dan katta bo'lishi kerak.")]
     public decimal Amount { get; set; }
 
-    // "USD" yoki "UZS" — Amount shu valyutada; kurs serverda CBU dan olinadi
     [MaxLength(3)]
     public string Currency { get; set; } = "USD";
 

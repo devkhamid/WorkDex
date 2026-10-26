@@ -1,4 +1,4 @@
-namespace WorkDex.Api.DTOs.Agreements;
+﻿namespace WorkDex.Api.DTOs.Agreements;
 
 public class AgreementDto
 {
@@ -25,10 +25,8 @@ public class AgreementDto
     public int IntermediatePercent { get; set; }
     public int FinalPercent { get; set; }
 
-    public int ClientType { get; set; } = 1; // 1 = Individual, 2 = LegalEntity
-    public string ClientTypeName { get; set; } = "Individual";
+    public int ClientType { get; set; } = 1;    public string ClientTypeName { get; set; } = "Individual";
 
-    // Yuridik shaxs (Zakazchik) rekvizitlari
     public string? CompanyName { get; set; }
     public string? DirectorName { get; set; }
     public string? DirectorTitle { get; set; }
@@ -45,7 +43,6 @@ public class AgreementDto
     public string? Okpo { get; set; }
     public string? NdsRegNumber { get; set; }
 
-    // Podryadchik (Bajaruvchi firma) rekvizitlari
     public string? ContractorCompanyName { get; set; }
     public string? ContractorDirectorName { get; set; }
     public string? ContractorAddress { get; set; }
@@ -74,14 +71,12 @@ public class CreateAgreementDto
 
     public int ClientType { get; set; } = 1;
 
-    // Jismoniy shaxs
     public Guid? CustomerId { get; set; }
     public string? CustomerFullName { get; set; }
     public string? CustomerPassportSeries { get; set; }
     public string? CustomerAddress { get; set; }
     public string? CustomerPhone { get; set; }
 
-    // Yuridik shaxs
     public string? CompanyName { get; set; }
     public string? DirectorName { get; set; }
     public string? DirectorTitle { get; set; }
@@ -98,7 +93,6 @@ public class CreateAgreementDto
     public string? Okpo { get; set; }
     public string? NdsRegNumber { get; set; }
 
-    // Podryadchik rekvizitlari
     public string? ContractorCompanyName { get; set; }
     public string? ContractorDirectorName { get; set; }
     public string? ContractorAddress { get; set; }
@@ -129,14 +123,12 @@ public class UpdateAgreementDto
 
     public int ClientType { get; set; } = 1;
 
-    // Jismoniy shaxs
     public Guid? CustomerId { get; set; }
     public string? CustomerFullName { get; set; }
     public string? CustomerPassportSeries { get; set; }
     public string? CustomerAddress { get; set; }
     public string? CustomerPhone { get; set; }
 
-    // Yuridik shaxs
     public string? CompanyName { get; set; }
     public string? DirectorName { get; set; }
     public string? DirectorTitle { get; set; }
@@ -153,7 +145,6 @@ public class UpdateAgreementDto
     public string? Okpo { get; set; }
     public string? NdsRegNumber { get; set; }
 
-    // Podryadchik rekvizitlari
     public string? ContractorCompanyName { get; set; }
     public string? ContractorDirectorName { get; set; }
     public string? ContractorAddress { get; set; }
@@ -176,11 +167,9 @@ public class UpdateAgreementDto
 
 public class FinalizeAgreementDto
 {
-    // WorkDex ichidagi loyiha nomi; shartnomadagi "loyiha nomi" esa ob'ekt joyini bildiradi
     [System.ComponentModel.DataAnnotations.MaxLength(300)]
     public string? ProjectName { get; set; }
 
-    // Kurs endi serverda CBU dan olinadi; eski klientlar uchun maydon qoldirilgan, lekin e'tiborga olinmaydi
     public decimal? ExchangeRate { get; set; }
     public DateTime? Deadline { get; set; }
     public List<Guid> ManagerIds { get; set; } = new();

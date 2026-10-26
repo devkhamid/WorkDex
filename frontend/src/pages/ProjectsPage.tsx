@@ -61,13 +61,11 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenNewProject }) 
 
   return (
     <div className="p-4 sm:p-6 space-y-4">
-      {/* Page Title */}
       <div>
         <h2 className="text-xl font-bold text-[#171b25]">Loyihalar</h2>
         <p className="text-xs text-[#7b8190] mt-0.5 break-words">Barcha ta’mirlash va qurilish loyihalaringizni bir joydan boshqaring.</p>
       </div>
 
-      {/* Toolbar */}
       <div className="bg-white border border-[#e4e7ec] rounded-xl p-3 flex flex-wrap items-center gap-3 shadow-xs">
         <div className="relative flex-1 min-w-full sm:min-w-[240px]">
           <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
@@ -98,7 +96,6 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenNewProject }) 
         </span>
       </div>
 
-      {/* Projects Grid matching prototype */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map((p) => (
           <div
@@ -130,7 +127,6 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenNewProject }) 
                 {p.customerName || 'Mijoz'} · {p.location || 'Toshkent'}
               </p>
 
-              {/* Progress bar */}
               <div className="space-y-1 mb-3.5">
                 <div className="h-2 bg-[#edf0f3] rounded-full overflow-hidden">
                   <div
@@ -144,7 +140,6 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenNewProject }) 
                 </div>
               </div>
 
-              {/* Stats */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 bg-gray-50/80 rounded-lg border border-gray-100 mb-4">
                 <div>
                   <small className="block text-[10px] font-semibold text-[#9a9faa]">Shartnoma</small>

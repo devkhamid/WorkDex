@@ -29,9 +29,7 @@ export const FinancePage: React.FC = () => {
         </button>
       </div>
 
-      {/* 4 Financial KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Loyiha Daromadi (Shartnoma) */}
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between min-h-[110px]">
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#ff7a16]" />
           <div>
@@ -47,7 +45,6 @@ export const FinancePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Kutilayotgan Qoldiq Tushum */}
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between min-h-[110px]">
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#3b82f6]" />
           <div>
@@ -62,7 +59,6 @@ export const FinancePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Jami Loyiha Xarajatlari */}
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between min-h-[110px]">
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#ef5350]" />
           <div>
@@ -78,7 +74,6 @@ export const FinancePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Net Balans */}
         {(() => {
           const netBal = stats?.netBalance ?? ((stats?.totalRevenueReceived ?? 0) - (stats?.totalExpenses ?? 0));
           const netBalUzs = stats?.netBalanceUzs ?? ((stats?.totalRevenueReceivedUzs ?? 0) - (stats?.totalExpensesUzs ?? 0));
@@ -109,7 +104,6 @@ export const FinancePage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* Left: Kompaniya Moliya Xulosasi */}
         <div className="lg:col-span-8 bg-white border border-[#e4e7ec] rounded-xl p-4 sm:p-6 shadow-xs space-y-4">
           <div className="pb-3 border-b border-gray-100">
             <h3 className="font-bold text-xs text-[#171b25]">Kompaniya Moliya Xulosasi</h3>
@@ -174,7 +168,6 @@ export const FinancePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: Kutilayotgan To'lovlar */}
         <div className="lg:col-span-4 bg-white border border-[#e4e7ec] rounded-xl p-4 sm:p-6 shadow-xs space-y-4">
           <div className="pb-3 border-b border-gray-100">
             <h3 className="font-bold text-xs text-[#171b25]">Loyiha Majburiyatlari</h3>
@@ -198,7 +191,6 @@ export const FinancePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Projects Financial Table */}
       <div className="bg-white border border-[#e4e7ec] rounded-xl shadow-xs overflow-hidden">
         <div className="p-4 sm:p-5 border-b border-[#e4e7ec] bg-white flex justify-between items-center gap-3">
           <h3 className="font-bold text-xs text-[#171b25]">Loyihalar Kesimida Moliyaviy Holat</h3>

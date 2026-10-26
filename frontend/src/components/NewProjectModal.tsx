@@ -15,7 +15,6 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
   const [loading, setLoading] = useState(false);
   const [isNewCustomer, setIsNewCustomer] = useState(false);
 
-  // Form State
   const [name, setName] = useState('');
   const [projectType, setProjectType] = useState('');
   const [customerId, setCustomerId] = useState('');
@@ -27,7 +26,6 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
 
-  // Inline New Customer State
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
 
@@ -127,7 +125,6 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
             </div>
           </div>
 
-          {/* Customer Selection / New Customer */}
           <div className="p-3 border border-gray-100 rounded-lg bg-gray-50/70">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
               <label className="text-xs font-semibold text-gray-700">Mijoz (Buyurtmachi) *</label>
@@ -176,7 +173,6 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
             )}
           </div>
 
-          {/* Financials — summa so'm yoki USD da, bugungi CBU kursi bilan konvertatsiya qilinadi */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <MoneyInput
               label="Shartnoma Summasi"
@@ -198,7 +194,6 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
             />
           </div>
 
-          {/* Dates in Day.Month.Year format */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">

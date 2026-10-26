@@ -5,7 +5,6 @@ import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { NewProjectModal } from './components/NewProjectModal';
 
-// Pages
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProjectsPage } from './pages/ProjectsPage';
@@ -27,38 +26,19 @@ import { ThemeProvider } from './context/ThemeContext';
 import { UserRole } from './types';
 import { ShieldAlert, FileQuestion } from 'lucide-react';
 
-// Har bir sahifa uchun ruxsat etilgan rollar. Ro'yxatlar backenddagi
-// [Authorize(Roles = ...)] atributlaridan ko'chirilgan: sahifaning ASOSIY
-// o'qish (GET) endpointi qaysi rollarga ochiq bo'lsa, sahifa ham aynan shu
-// rollarga ochiq. Backend ruxsatlari o'zgartirilmagan — bu faqat UI tomonda
-// bo'sh sahifa yoki tushunarsiz "Xatolik yuz berdi" o'rniga aniq xabar
-// ko'rsatish uchun. Backendda rollar o'zgarsa, bu ro'yxat ham yangilanishi kerak.
 const ROUTE_ROLES: Record<string, UserRole[]> = {
-  // GET /api/dashboard/* → DashboardController
   '/': [UserRole.SuperAdmin, UserRole.Admin, UserRole.Finance, UserRole.ProjectManager],
-  // GET /api/users → UsersController:40
   '/superadmin': [UserRole.SuperAdmin, UserRole.Admin],
-  // GET /api/projects → ProjectsController:32
   '/projects': [UserRole.SuperAdmin, UserRole.Admin, UserRole.ProjectManager, UserRole.Finance, UserRole.FieldWorker],
-  // GET /api/projects/{id} → ProjectsController:42 (SuperAdmin bu yerda yo'q)
   '/projects/:id': [UserRole.Admin, UserRole.ProjectManager, UserRole.Finance, UserRole.FieldWorker],
-  // GET /api/customers → CustomersController:24
   '/customers': [UserRole.SuperAdmin, UserRole.Admin, UserRole.ProjectManager, UserRole.Finance],
-  // GET /api/materials → MaterialsController:23
   '/materials': [UserRole.SuperAdmin, UserRole.Admin, UserRole.Finance, UserRole.ProjectManager, UserRole.FieldWorker],
-  // GET /api/workers → WorkersController:23
   '/workers': [UserRole.SuperAdmin, UserRole.Admin, UserRole.Finance, UserRole.ProjectManager, UserRole.FieldWorker],
-  // GET /api/users/team → UsersController
   '/team': [UserRole.Admin],
-  // dashboard/stats + reports → DashboardController & ReportsController
   '/finance': [UserRole.SuperAdmin, UserRole.Admin, UserRole.Finance, UserRole.ProjectManager],
-  // GET /api/projects/{id}/tasks → TasksController:21
   '/tasks': [UserRole.Admin, UserRole.Finance, UserRole.ProjectManager, UserRole.FieldWorker],
-  // ReportsController:10
   '/reports': [UserRole.SuperAdmin, UserRole.Admin, UserRole.Finance, UserRole.ProjectManager],
-  // OfficeExpensesController:11
   '/office': [UserRole.SuperAdmin, UserRole.Admin, UserRole.Finance],
-  // AgreementsController
   '/agreements': [UserRole.SuperAdmin, UserRole.Admin, UserRole.ProjectManager],
 };
 
@@ -85,9 +65,6 @@ const EmptyState: React.FC<{
   );
 };
 
-// Rol yetarli bo'lmasa sahifa o'rniga tushunarli xabar chiqaradi.
-// `user` hali yuklanmagan bo'lsa hech narsa to'smaymiz — haqiqiy himoya
-// baribir backendda, bu qatlam faqat foydalanuvchiga tushuntirish uchun.
 const RoleRoute: React.FC<{ allow: UserRole[]; children: React.ReactElement }> = ({ allow, children }) => {
   const { user } = useAuth();
 
@@ -168,14 +145,12 @@ const ProtectedLayout: React.FC = () => {
 
   return (
     <div className="flex min-h-screen max-w-[1500px] mx-auto bg-white lg:border-x border-[#f0f2f5] shadow-xs">
-      {/* Sidebar matching prototype */}
       <Sidebar
         onOpenNewProject={() => setIsNewProjectModalOpen(true)}
         mobileOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
       />
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 bg-white">
         <Header
           title={getPageTitle(location.pathname)}
@@ -183,7 +158,6 @@ const ProtectedLayout: React.FC = () => {
           onOpenMenu={() => setIsMobileMenuOpen(true)}
         />
 
-        {/* Persistent Sub-header Navigation Tabs (Never disappears) */}
         <div className="no-print h-[44px] lg:h-[48px] bg-white flex items-end px-2 sm:px-6 border-b border-[#e4e7ec] gap-1 overflow-x-auto scrollbar-none">
           {navTabs.map((tab) => {
             const active = isTabActive(tab.path);
@@ -261,7 +235,6 @@ const ProtectedLayout: React.FC = () => {
               <RoleRoute allow={ROUTE_ROLES['/agreements']}><FinalizeAgreementPage /></RoleRoute>
             } />
             <Route path="/settings" element={<SettingsPage />} />
-            {/* Noma'lum manzil — ilgari bo'sh oq sahifa chiqardi */}
             <Route path="*" element={
               <EmptyState
                 icon={<FileQuestion className="w-10 h-10 text-gray-300" />}

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using WorkDex.Api.Data;
 using WorkDex.Api.DTOs.Projects;
 using WorkDex.Api.Models;
@@ -25,12 +25,9 @@ public class ProjectService : IProjectService
             .Include(p => p.Stages)
             .AsQueryable();
 
-        // 1. SuperAdmin barcha platformadagi loyihalarni ko'radi
         if (requestingUserRole == UserRole.SuperAdmin)
         {
-            // Barcha loyihalar
         }
-        // 2. Admin faqat o'z kompaniyasining loyihalarini ko'radi
         else if (requestingUserRole == UserRole.Admin)
         {
             var admin = await _context.Users.FindAsync(requestingUserId);
@@ -41,7 +38,6 @@ public class ProjectService : IProjectService
                 p.CompanyAdminId == adminId ||
                 (p.CreatedByUser != null && p.CreatedByUser.CompanyAdminId == adminId));
         }
-        // 3. ProjectManager, FieldWorker, Finance faqat o'z kompaniyasi/a'zo bo'lgan loyihalarni ko'radi
         else
         {
             var user = await _context.Users.FindAsync(requestingUserId);
@@ -74,7 +70,6 @@ public class ProjectService : IProjectService
 
     public async Task<ProjectDto> CreateAsync(CreateProjectDto dto, Guid createdByUserId)
     {
-        // Mijoz mavjudligini va kompaniyaga tegishli ekanini tekshiramiz
         var customer = await _context.Customers.FindAsync(dto.CustomerId);
         if (customer is null)
             throw new KeyNotFoundException("Tanlangan mijoz topilmadi.");
@@ -85,7 +80,6 @@ public class ProjectService : IProjectService
         if (requestingUser?.Role != UserRole.SuperAdmin && customer.CompanyAdminId != null && customer.CompanyAdminId != companyAdminId)
             throw new InvalidOperationException("Tanlangan mijoz boshqa kompaniyaga tegishli.");
 
-        // Valyuta konvertatsiyasi: summalar har doim USD da saqlanadi, kurs bugungi CBU kursi
         var inputCurrency = Money.Normalize(dto.Currency, "USD");
         var exchangeRate = await Money.CurrentRateAsync(_currencyService);
         decimal contractAmountUsd = Money.ToUsd(dto.ContractAmount, inputCurrency, exchangeRate);
@@ -137,12 +131,10 @@ public class ProjectService : IProjectService
         if (newCustomer is null)
             throw new KeyNotFoundException("Tanlangan mijoz topilmadi.");
 
-        // Yangi mijoz ham kompaniyaga tegishli ekanini tekshirish
         if (project.CompanyAdminId != null && newCustomer.CompanyAdminId != null && newCustomer.CompanyAdminId != project.CompanyAdminId)
             throw new InvalidOperationException("Tanlangan mijoz boshqa kompaniyaga tegishli.");
 
         var inputCurrency = Money.Normalize(dto.Currency, "USD");
-        // Shartnoma summasi o'zgarmagan bo'lsa, eski kurs saqlanadi (summalar "suzib" ketmasligi uchun)
         var contractUnchanged = inputCurrency == project.Currency &&
             (inputCurrency == "UZS" ? project.ContractAmountUzs == dto.ContractAmount : project.ContractAmount == dto.ContractAmount);
         var rate = contractUnchanged && project.ExchangeRate is > 0
@@ -184,7 +176,6 @@ public class ProjectService : IProjectService
 
         project.Status = dto.Status;
 
-        // Tugallanganda haqiqiy tugash sanasini belgilaymiz
         if (dto.Status == ProjectStatus.Completed && project.ActualEndDate is null)
             project.ActualEndDate = DateTime.UtcNow;
 
@@ -374,7 +365,6 @@ public class ProjectService : IProjectService
         if (user is null)
             throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
 
-        // Foydalanuvchi kompaniyaga tegishli ekanini tekshirish
         if (project.CompanyAdminId != null && user.CompanyAdminId != project.CompanyAdminId && user.Id != project.CompanyAdminId)
             throw new InvalidOperationException("Tanlangan foydalanuvchi boshqa kompaniyaga tegishli.");
 

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using WorkDex.Api.Data;
 using WorkDex.Api.DTOs.Auth;
 using WorkDex.Api.Models;
@@ -18,10 +18,6 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto, UserRole callerRole, Guid callerId)
     {
-        // Kim kimni yaratishi mumkin:
-        //   SuperAdmin -> Admin (yangi kompaniya)
-        //   Admin      -> Admin (yordamchi admin / direktor o'rinbosari), ProjectManager, FieldWorker, Finance, Customer (o'z kompaniyasida)
-        // SuperAdmin rolini hech kim yaratib bo'lmaydi.
         if (dto.Role == UserRole.SuperAdmin)
             throw new UnauthorizedAccessException("SuperAdmin rolini yaratish taqiqlangan! Tizimda faqat yagona SuperAdmin mavjud bo'ladi.");
 
@@ -33,12 +29,10 @@ public class AuthService : IAuthService
             case UserRole.SuperAdmin:
                 if (dto.Role != UserRole.Admin)
                     throw new UnauthorizedAccessException("SuperAdmin faqat kompaniya Admin hisobini yarata oladi.");
-                // Admin — kompaniyaning ildizi, u hech kimga bo'ysunmaydi.
                 companyAdminId = null;
                 break;
 
             case UserRole.Admin:
-                // Yordamchi admin yaratgan xodimlar ham asosiy admin kompaniyasiga bog'lanadi.
                 var caller = await _context.Users.FindAsync(callerId);
                 companyAdminId = caller?.CompanyAdminId ?? callerId;
                 if (dto.Role == UserRole.Admin && string.IsNullOrWhiteSpace(companyName))
@@ -49,7 +43,6 @@ public class AuthService : IAuthService
                 throw new UnauthorizedAccessException("Yangi foydalanuvchi yaratish uchun ruxsatingiz yo'q.");
         }
 
-        // Email allaqachon mavjudligini tekshiramiz
         var emailExists = await _context.Users
             .AnyAsync(u => u.Email.ToLower() == dto.Email.ToLower());
 
@@ -81,8 +74,6 @@ public class AuthService : IAuthService
     {
         var searchInput = dto.Email.Trim().ToLower();
 
-        // "superadmin" qisqa taxallusi bilan kirishga ruxsat beramiz, lekin parol
-        // har doim odatdagidek tekshiriladi — hech qanday zaxira parol yo'q.
         var isSuperAdminAlias = searchInput is "superadmin" or "super admin";
 
         var user = await _context.Users

@@ -84,7 +84,6 @@ export const MaterialsPage: React.FC = () => {
     (m.brand && normalizeText(m.brand).includes(normalizeText(search)))
   );
 
-  // ===== Takrorlarni birlashtirish =====
   const dupMap = useMemo(() => {
     const map = new Map<string, Material[]>();
     materials.forEach((m) => map.set(m.id, findDuplicateCandidates(materials, m)));
@@ -125,7 +124,6 @@ export const MaterialsPage: React.FC = () => {
 
   const label = (m: Material) => `${m.name}${m.brand ? ` [${m.brand}]` : ''} · ${m.unit}`;
 
-  // ===== Sarf hisoboti =====
   const brandOptions = useMemo(
     () => [...new Set(usage.map((u) => u.brand).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b)),
     [usage],

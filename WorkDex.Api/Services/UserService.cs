@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using WorkDex.Api.Data;
 using WorkDex.Api.DTOs.Users;
 using WorkDex.Api.Models;
@@ -30,7 +30,6 @@ public class UserService : IUserService
 
         if (requestingUserRole == UserRole.SuperAdmin)
         {
-            // SuperAdmin barcha foydalanuvchilarni ko'radi
         }
         else
         {
@@ -116,7 +115,6 @@ public class UserService : IUserService
 
         if (IsCompanyOwner(user))
         {
-            // Kompaniya admini va unga tegishli barcha loyihalar va xodimlarni to'liq tozalash
             var companyUserIds = await _context.Users
                 .Where(u => u.CompanyAdminId == id || u.Id == id)
                 .Select(u => u.Id)
@@ -183,7 +181,6 @@ public class UserService : IUserService
         }
         else
         {
-            // Alohida xodimni o'chirish
             var members = await _context.ProjectMembers.Where(m => m.UserId == id).ToListAsync();
             _context.ProjectMembers.RemoveRange(members);
 
@@ -205,7 +202,6 @@ public class UserService : IUserService
         return user?.CompanyAdminId ?? requestingUserId;
     }
 
-    // Kompaniya loyihalari — ProjectAccessGuard dagi Admin qoidasi bilan bir xil
     private IQueryable<ProjectTask> CompanyTasks(Guid companyAdminId) =>
         _context.Tasks.Where(t =>
             t.Project.CompanyAdminId == companyAdminId ||
@@ -304,7 +300,6 @@ public class UserService : IUserService
         await _context.SaveChangesAsync();
     }
 
-    // Asosiy (kompaniya egasi) admin — CompanyAdminId bo'sh; yordamchi adminlarda u to'ldirilgan.
     private static bool IsCompanyOwner(User user) =>
         user.Role == UserRole.Admin && user.CompanyAdminId == null;
 
@@ -322,7 +317,6 @@ public class UserService : IUserService
             throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
     }
 
-    // User entity ni UserDto ga aylantirish — PasswordHash hech qachon qaytarilmaydi
     private static UserDto MapToDto(User user)
     {
         var dto = new UserDto();

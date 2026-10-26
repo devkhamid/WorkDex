@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkDex.Api.DTOs.Materials;
 using WorkDex.Api.Helpers;
@@ -82,7 +82,6 @@ public class MaterialPurchasesController : ControllerBase
         }
     }
 
-    // PDF §5 — Qaysi materialdan qancha olingani va qancha sarflangani xulosasi
     [HttpGet("api/projects/{projectId:guid}/materials-summary")]
     [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
     public async Task<IActionResult> GetMaterialSummary(Guid projectId)

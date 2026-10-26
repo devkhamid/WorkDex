@@ -5,11 +5,9 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace WorkDex.Api.Migrations
 {
-    /// <inheritdoc />
-    public partial class AddExtraWorksTasksDocsPhotosUpdates : Migration
+        public partial class AddExtraWorksTasksDocsPhotosUpdates : Migration
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
+                protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
                 name: "Documents",
@@ -251,8 +249,7 @@ namespace WorkDex.Api.Migrations
                 column: "StageId");
         }
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
+                protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
                 name: "Documents");

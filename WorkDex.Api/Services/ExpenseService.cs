@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using WorkDex.Api.Data;
 using WorkDex.Api.DTOs.Expenses;
 using WorkDex.Api.Models;
@@ -16,7 +16,6 @@ public class ExpenseService : IExpenseService
         _currencyService = currencyService;
     }
 
-    // Amount har doim so'mda saqlanadi; kiritilgan valyuta, asl summa va bugungi CBU kursi alohida
     private async Task ApplyAmountAsync(Expense expense, CreateExpenseDto dto)
     {
         var currency = Money.Normalize(dto.Currency, "UZS");
@@ -54,7 +53,6 @@ public class ExpenseService : IExpenseService
         _context.Expenses.Add(expense);
         await _context.SaveChangesAsync();
 
-        // Load CreatedByUser before mapping
         await _context.Entry(expense).Reference(e => e.CreatedByUser).LoadAsync();
 
         return MapToDto(expense, expense.ExchangeRateToUzs!.Value);
@@ -123,15 +121,10 @@ public class ExpenseService : IExpenseService
         return expenses.Select(e => MapToDto(e, currentRate)).ToList();
     }
 
-    // Ofis xarajatlari uchun tenantlik qoidasi. `null` — cheklov yo'q (faqat SuperAdmin).
-    // GetOfficeExpensesAsync va DeleteOfficeExpenseAsync ayni shu metodni ishlatadi,
-    // shuning uchun ro'yxatda ko'rinadigan yozuvlar to'plami va o'chirish mumkin bo'lgan
-    // yozuvlar to'plami hech qachon bir-biridan ajralib ketmaydi.
     private async Task<Guid?> ResolveOfficeCompanyAdminIdAsync(Guid requestingUserId, UserRole requestingUserRole)
     {
         if (requestingUserRole == UserRole.SuperAdmin)
         {
-            // SuperAdmin sees all office expenses
             return null;
         }
 
@@ -171,9 +164,6 @@ public class ExpenseService : IExpenseService
 
         var query = _context.Expenses.Where(e => e.Id == expenseId && e.ProjectId == null);
 
-        // SuperAdmin uchun companyAdminId `null` — cheklov qo'shilmaydi, ya'ni
-        // mavjud xatti-harakat o'zgarmaydi. Qolgan rollar faqat o'z kompaniyasining
-        // yozuvini o'chiradi; begona yozuv "topilmadi" (404) beradi.
         if (companyAdminId != null)
             query = query.Where(e => e.CompanyAdminId == companyAdminId);
 

@@ -24,7 +24,6 @@ const waitForImages = (el: HTMLElement) =>
     )
   );
 
-// Shartnoma ko'rinishini (forma bilan bir xil) ekrandan tashqarida chizib, A4 PDF ga aylantiradi
 export const renderAgreementPdf = async (agreement: any): Promise<Blob> => {
   const { default: html2pdf } = await import('html2pdf.js');
 

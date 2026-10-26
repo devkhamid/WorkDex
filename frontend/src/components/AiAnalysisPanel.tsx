@@ -19,7 +19,6 @@ const QUICK_QUESTIONS = [
 
 const storageKey = (projectId: string) => `workdex_ai_analysis_${projectId}`;
 
-// **qalin**, `kod` inline formatlash
 function renderInline(text: string, keyBase: string): React.ReactNode[] {
   const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).filter(Boolean);
   return parts.map((p, i) => {

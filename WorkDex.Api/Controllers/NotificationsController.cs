@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WorkDex.Api.Data;
@@ -19,8 +19,7 @@ public class NotificationsController : ControllerBase
         _context = context;
     }
 
-    /// <summary>Joriy foydalanuvchi kompaniyasidagi so'nggi o'zgarishlar.</summary>
-    [HttpGet]
+        [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] int take = 30)
     {
         var userId = User.GetUserId();
@@ -60,8 +59,7 @@ public class NotificationsController : ControllerBase
         return Ok(new { items, unreadCount, lastReadAt });
     }
 
-    /// <summary>Barcha bildirishnomalarni o'qilgan deb belgilaydi.</summary>
-    [HttpPost("read")]
+        [HttpPost("read")]
     public async Task<IActionResult> MarkAllRead()
     {
         var userId = User.GetUserId();

@@ -1,4 +1,4 @@
-using WorkDex.Api.Models;
+﻿using WorkDex.Api.Models;
 
 namespace WorkDex.Api.DTOs.Expenses;
 
@@ -10,8 +10,7 @@ public class ExpenseDto
     public string CategoryName { get; set; } = string.Empty;
     public ExpenseFrequency Frequency { get; set; }
     public string FrequencyName { get; set; } = string.Empty;
-    public decimal Amount { get; set; } // so'm
-    public decimal AmountUsd { get; set; }
+    public decimal Amount { get; set; }    public decimal AmountUsd { get; set; }
     public string Currency { get; set; } = "UZS";
     public decimal? ExchangeRateToUzs { get; set; }
     public decimal? OriginalAmount { get; set; }

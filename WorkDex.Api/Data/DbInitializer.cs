@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using WorkDex.Api.Models;
 
@@ -21,10 +21,8 @@ public static class DbInitializer
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Expenses\" ADD COLUMN IF NOT EXISTS \"Frequency\" INTEGER DEFAULT 1;");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Expenses\" ADD COLUMN IF NOT EXISTS \"CompanyAdminId\" UUID;");
 
-        // Customers - PassportSeries
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Customers\" ADD COLUMN IF NOT EXISTS \"PassportSeries\" VARCHAR(20);");
 
-        // Projects - Shartnomadan kelgan maydonlar
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Projects\" ADD COLUMN IF NOT EXISTS \"Block\" VARCHAR(50);");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Projects\" ADD COLUMN IF NOT EXISTS \"ApartmentNumber\" VARCHAR(50);");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Projects\" ADD COLUMN IF NOT EXISTS \"AreaM2\" NUMERIC(10,2);");
@@ -36,33 +34,27 @@ public static class DbInitializer
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Projects\" ADD COLUMN IF NOT EXISTS \"ContractAmountUzs\" NUMERIC(18,2);");
 
 
-        // Valyuta maydonlari — MaterialPurchases
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"MaterialPurchases\" ADD COLUMN IF NOT EXISTS \"Currency\" VARCHAR(3) DEFAULT 'UZS';");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"MaterialPurchases\" ADD COLUMN IF NOT EXISTS \"ExchangeRateToUzs\" NUMERIC(12,2);");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"MaterialPurchases\" ADD COLUMN IF NOT EXISTS \"OriginalUnitPrice\" NUMERIC(18,2);");
 
-        // Valyuta maydonlari — WorkerPayments
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"WorkerPayments\" ADD COLUMN IF NOT EXISTS \"Currency\" VARCHAR(3) DEFAULT 'UZS';");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"WorkerPayments\" ADD COLUMN IF NOT EXISTS \"ExchangeRateToUzs\" NUMERIC(12,2);");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"WorkerPayments\" ADD COLUMN IF NOT EXISTS \"OriginalAgreedAmount\" NUMERIC(18,2);");
 
-        // Valyuta maydonlari — Expenses
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Expenses\" ADD COLUMN IF NOT EXISTS \"Currency\" VARCHAR(3) DEFAULT 'UZS';");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Expenses\" ADD COLUMN IF NOT EXISTS \"ExchangeRateToUzs\" NUMERIC(12,2);");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Expenses\" ADD COLUMN IF NOT EXISTS \"OriginalAmount\" NUMERIC(18,2);");
 
-        // Valyuta maydonlari — Payments (Amount doim USD)
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Payments\" ADD COLUMN IF NOT EXISTS \"Currency\" VARCHAR(3) NOT NULL DEFAULT 'USD';");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Payments\" ADD COLUMN IF NOT EXISTS \"ExchangeRate\" NUMERIC(12,2);");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Payments\" ADD COLUMN IF NOT EXISTS \"OriginalAmount\" NUMERIC(18,2);");
 
-        // Valyuta maydonlari — ExtraWorks (summalar doim USD)
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"ExtraWorks\" ADD COLUMN IF NOT EXISTS \"Currency\" VARCHAR(3) NOT NULL DEFAULT 'USD';");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"ExtraWorks\" ADD COLUMN IF NOT EXISTS \"ExchangeRate\" NUMERIC(12,2);");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"ExtraWorks\" ADD COLUMN IF NOT EXISTS \"OriginalCustomerAmount\" NUMERIC(18,2);");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"ExtraWorks\" ADD COLUMN IF NOT EXISTS \"OriginalActualCost\" NUMERIC(18,2);");
 
-        // Agreements jadvalini yaratish (IF NOT EXISTS orqali xavfsiz)
         await context.Database.ExecuteSqlRawAsync(@"
             CREATE TABLE IF NOT EXISTS ""Agreements"" (
                 ""Id"" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -116,28 +108,19 @@ public static class DbInitializer
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"ContractorInn\" VARCHAR(50);");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Agreements\" ADD COLUMN IF NOT EXISTS \"ContractorPhone\" VARCHAR(50);");
 
-        // Mavjud namuna ma'lumotlarni 1-admin (Grand Stroy) ga bog'lash
         await context.Database.ExecuteSqlRawAsync("UPDATE \"Customers\" SET \"CompanyAdminId\" = (SELECT \"Id\" FROM \"Users\" WHERE \"Email\" = 'admin@wordex.uz' LIMIT 1) WHERE \"CompanyAdminId\" IS NULL;");
         await context.Database.ExecuteSqlRawAsync("UPDATE \"Workers\" SET \"CompanyAdminId\" = (SELECT \"Id\" FROM \"Users\" WHERE \"Email\" = 'admin@wordex.uz' LIMIT 1) WHERE \"CompanyAdminId\" IS NULL;");
         await context.Database.ExecuteSqlRawAsync("UPDATE \"Projects\" SET \"CompanyAdminId\" = (SELECT \"Id\" FROM \"Users\" WHERE \"Email\" = 'admin@wordex.uz' LIMIT 1) WHERE \"CompanyAdminId\" IS NULL;");
         await context.Database.ExecuteSqlRawAsync("UPDATE \"Materials\" SET \"CompanyAdminId\" = (SELECT \"Id\" FROM \"Users\" WHERE \"Email\" = 'admin@wordex.uz' LIMIT 1) WHERE \"CompanyAdminId\" IS NULL;");
 
-        // Tenantlik filtri (CompanyAdminId) deyarli har bir so'rovda qo'lda
-        // qo'llanadi, lekin ustunda indeks yo'q edi — jadval o'sgani sari har bir
-        // so'rov to'liq skanerlashga tushadi. Modelga HasIndex qo'yish foyda
-        // bermaydi: mavjud bazada EnsureCreatedAsync hech narsa o'zgartirmaydi,
-        // shuning uchun indekslar ham yuqoridagi ALTER TABLE lar kabi shu yerda
-        // yaratiladi. IF NOT EXISTS — takroriy ishga tushirish xavfsiz.
         await context.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS \"IX_Users_CompanyAdminId\" ON \"Users\" (\"CompanyAdminId\");");
         await context.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS \"IX_Customers_CompanyAdminId\" ON \"Customers\" (\"CompanyAdminId\");");
         await context.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS \"IX_Materials_CompanyAdminId\" ON \"Materials\" (\"CompanyAdminId\");");
         await context.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS \"IX_Workers_CompanyAdminId\" ON \"Workers\" (\"CompanyAdminId\");");
         await context.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS \"IX_Projects_CompanyAdminId\" ON \"Projects\" (\"CompanyAdminId\");");
         await context.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS \"IX_Expenses_CompanyAdminId\" ON \"Expenses\" (\"CompanyAdminId\");");
-        // Ofis xarajatlari ro'yxati har doim ProjectId IS NULL bo'yicha filtrlanadi.
         await context.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS \"IX_Expenses_ProjectId\" ON \"Expenses\" (\"ProjectId\");");
 
-        // Bildirishnomalar (kompaniya ichidagi o'zgarishlar lentasi)
         await context.Database.ExecuteSqlRawAsync(@"
             CREATE TABLE IF NOT EXISTS ""Notifications"" (
                 ""Id"" UUID PRIMARY KEY,
@@ -158,18 +141,14 @@ public static class DbInitializer
                 ""LastReadAt"" TIMESTAMP WITH TIME ZONE NOT NULL
             );
         ");
-        // Lenta cheksiz o'smasligi uchun 90 kundan eski yozuvlar o'chiriladi.
         await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Notifications\" WHERE \"CreatedAt\" < NOW() - INTERVAL '90 days';");
 
-        // 1. Agar baza butunlay bo'sh bo'lsa, to'liq boshlang'ich ma'lumotlar yuklanadi
         if (!await context.Users.AnyAsync())
         {
             await SeedFullDataAsync(context, RequireSeedPassword(configuration["Seed:SuperAdminPassword"]));
             return;
         }
 
-        // 2. Bazada foydalanuvchi bor, lekin SuperAdmin yo'q bo'lsa — faqat o'shanda yaratamiz.
-        //    Mavjud SuperAdmin'ning paroli hech qachon qayta yozilmaydi.
         var superAdminExists = await context.Users.AnyAsync(u => u.Role == UserRole.SuperAdmin);
         if (!superAdminExists)
         {
@@ -197,7 +176,6 @@ public static class DbInitializer
         seedPassword = RequireSeedPassword(seedPassword);
         await context.Database.EnsureCreatedAsync();
 
-        // 1. Delete all existing data
         context.ProjectUpdates.RemoveRange(context.ProjectUpdates);
         context.Photos.RemoveRange(context.Photos);
         context.Documents.RemoveRange(context.Documents);
@@ -238,7 +216,6 @@ public static class DbInitializer
     {
         var superAdminHash = BCrypt.Net.BCrypt.HashPassword(seedPassword);
 
-        // 1. Super Admin (WorkDex Platform Egasi / Barcha adminlarni boshqaradi)
         var superAdmin = new User
         {
             Id = Guid.NewGuid(),
@@ -254,7 +231,6 @@ public static class DbInitializer
             UpdatedAt = DateTime.UtcNow
         };
 
-        // 2. Company Admin (Kompaniya rahbari)
         var adminUser = new User
         {
             Id = Guid.NewGuid(),
@@ -268,7 +244,6 @@ public static class DbInitializer
             CreatedAt = DateTime.UtcNow
         };
 
-        // 3. Project Manager
         var pmUser = new User
         {
             Id = Guid.NewGuid(),
@@ -283,7 +258,6 @@ public static class DbInitializer
             CreatedAt = DateTime.UtcNow
         };
 
-        // 4. Field Worker (Prorab / Usta boshqaruvchisi)
         var workerUser = new User
         {
             Id = Guid.NewGuid(),
@@ -298,7 +272,6 @@ public static class DbInitializer
             CreatedAt = DateTime.UtcNow
         };
 
-        // 5. Finance (Buxgalter)
         var financeUser = new User
         {
             Id = Guid.NewGuid(),
@@ -313,7 +286,6 @@ public static class DbInitializer
             CreatedAt = DateTime.UtcNow
         };
 
-        // 6. Customer (Mijoz)
         var customerUser = new User
         {
             Id = Guid.NewGuid(),
@@ -330,7 +302,6 @@ public static class DbInitializer
         context.Users.AddRange(superAdmin, adminUser, pmUser, workerUser, financeUser, customerUser);
         await context.SaveChangesAsync();
 
-        // Seed Customers
         var customer1 = new Customer
         {
             Id = Guid.NewGuid(),
@@ -358,7 +329,6 @@ public static class DbInitializer
         context.Customers.AddRange(customer1, customer2);
         await context.SaveChangesAsync();
 
-        // Seed Materials
         var matKafel = new Material { Id = Guid.NewGuid(), Name = "Ispan kafeli 60x60", Unit = "m²", Description = "Yuqori sifatli pol kafeli", CreatedAt = DateTime.UtcNow };
         var matGips = new Material { Id = Guid.NewGuid(), Name = "Knauf Gipsokarton 12.5mm", Unit = "dona", Description = "Namlikka chidamli", CreatedAt = DateTime.UtcNow };
         var matSement = new Material { Id = Guid.NewGuid(), Name = "M-500 Sement", Unit = "qop", Description = "Portlend sement 50kg", CreatedAt = DateTime.UtcNow };
@@ -368,7 +338,6 @@ public static class DbInitializer
         context.Materials.AddRange(matKafel, matGips, matSement, matKraska, matKabel);
         await context.SaveChangesAsync();
 
-        // Seed Workers
         var workerHasan = new Worker { Id = Guid.NewGuid(), FullName = "Hasan Usta", PhoneNumber = "+998901234567", Specialty = "Kafelchi & Santexnik", Notes = "Tajribali usta, 10 yillik tajriba", CreatedAt = DateTime.UtcNow };
         var workerAkmal = new Worker { Id = Guid.NewGuid(), FullName = "Akmal Usta", PhoneNumber = "+998912345678", Specialty = "Elektrik & Montajchi", Notes = "Elektr montaj ishlari bo'yicha usta", CreatedAt = DateTime.UtcNow };
         var workerJamshid = new Worker { Id = Guid.NewGuid(), FullName = "Jamshid Usta", PhoneNumber = "+998933456789", Specialty = "Suvoqchi & Malyar", Notes = "Devor suvoq va bo'yash ustasi", CreatedAt = DateTime.UtcNow };
@@ -376,7 +345,6 @@ public static class DbInitializer
         context.Workers.AddRange(workerHasan, workerAkmal, workerJamshid);
         await context.SaveChangesAsync();
 
-        // Seed Project 1: Ahmad Yusupov — Villa ta'miri (Active)
         var project1 = new Project
         {
             Id = Guid.NewGuid(),
@@ -396,7 +364,6 @@ public static class DbInitializer
             CreatedAt = DateTime.UtcNow
         };
 
-        // Project 2: Dilshod Aliyev — Ofis loyihasi (Planning)
         var project2 = new Project
         {
             Id = Guid.NewGuid(),
@@ -419,7 +386,6 @@ public static class DbInitializer
         context.Projects.AddRange(project1, project2);
         await context.SaveChangesAsync();
 
-        // Seed Project Stages for Project 1
         var stage1 = new ProjectStage { Id = Guid.NewGuid(), ProjectId = project1.Id, Name = "1. Demontaj va tayyorgarlik", OrderIndex = 1, IsCompleted = true, CompletedAt = new DateTime(2026, 8, 7, 0, 0, 0, DateTimeKind.Utc) };
         var stage2 = new ProjectStage { Id = Guid.NewGuid(), ProjectId = project1.Id, Name = "2. Santexnika va elektr montaji", OrderIndex = 2, IsCompleted = false };
         var stage3 = new ProjectStage { Id = Guid.NewGuid(), ProjectId = project1.Id, Name = "3. Pardozlash va kafel terish", OrderIndex = 3, IsCompleted = false };
@@ -428,7 +394,6 @@ public static class DbInitializer
         context.ProjectStages.AddRange(stage1, stage2, stage3, stage4);
         await context.SaveChangesAsync();
 
-        // Seed Tasks
         var task1 = new ProjectTask { Id = Guid.NewGuid(), ProjectId = project1.Id, StageId = stage1.Id, Title = "Oshxona devorini demontaj qilish", Weight = 2, IsCompleted = true, CompletedAt = new DateTime(2026, 8, 6, 0, 0, 0, DateTimeKind.Utc), DueDate = new DateTime(2026, 8, 7, 0, 0, 0, DateTimeKind.Utc), CreatedAt = DateTime.UtcNow };
         var task2 = new ProjectTask { Id = Guid.NewGuid(), ProjectId = project1.Id, StageId = stage2.Id, Title = "Elektr simlari va montaj qutilarini o'rnatish", Weight = 3, IsCompleted = true, CompletedAt = new DateTime(2026, 8, 14, 0, 0, 0, DateTimeKind.Utc), DueDate = new DateTime(2026, 8, 18, 0, 0, 0, DateTimeKind.Utc), CreatedAt = DateTime.UtcNow };
         var task3 = new ProjectTask { Id = Guid.NewGuid(), ProjectId = project1.Id, StageId = stage3.Id, Title = "Kafel yotqizish va tekislash", Weight = 3, IsCompleted = false, DueDate = new DateTime(2026, 9, 15, 0, 0, 0, DateTimeKind.Utc), CreatedAt = DateTime.UtcNow };
@@ -437,14 +402,12 @@ public static class DbInitializer
         context.Tasks.AddRange(task1, task2, task3, task4);
         await context.SaveChangesAsync();
 
-        // Seed Payments
         var pay1 = new Payment { Id = Guid.NewGuid(), ProjectId = project1.Id, Amount = 15000, PaymentMethod = PaymentMethod.BankTransfer, PaymentDate = new DateTime(2026, 8, 2, 10, 0, 0, DateTimeKind.Utc), Notes = "Boshlang'ich avans to'lovi (30%)", ReceivedByUserId = adminUser.Id, CreatedAt = DateTime.UtcNow };
         var pay2 = new Payment { Id = Guid.NewGuid(), ProjectId = project1.Id, Amount = 10000, PaymentMethod = PaymentMethod.Cash, PaymentDate = new DateTime(2026, 8, 15, 14, 0, 0, DateTimeKind.Utc), Notes = "2-bosqich boshlanishi uchun to'lov", ReceivedByUserId = adminUser.Id, CreatedAt = DateTime.UtcNow };
 
         context.Payments.AddRange(pay1, pay2);
         await context.SaveChangesAsync();
 
-        // Seed Material Purchases
         var pur1 = new MaterialPurchase { Id = Guid.NewGuid(), ProjectId = project1.Id, MaterialId = matSement.Id, Quantity = 50, UnitPrice = 6, TotalCost = 300, Supplier = "Qurilish Bozori", PurchaseDate = new DateTime(2026, 8, 3, 0, 0, 0, DateTimeKind.Utc), CreatedByUserId = adminUser.Id, CreatedAt = DateTime.UtcNow };
         var pur2 = new MaterialPurchase { Id = Guid.NewGuid(), ProjectId = project1.Id, MaterialId = matKabel.Id, Quantity = 300, UnitPrice = 1.2m, TotalCost = 360, Supplier = "Elektro Mir", PurchaseDate = new DateTime(2026, 8, 5, 0, 0, 0, DateTimeKind.Utc), CreatedByUserId = adminUser.Id, CreatedAt = DateTime.UtcNow };
         var pur3 = new MaterialPurchase { Id = Guid.NewGuid(), ProjectId = project1.Id, MaterialId = matKafel.Id, Quantity = 80, UnitPrice = 25, TotalCost = 2000, Supplier = "Kerama Marazzi", PurchaseDate = new DateTime(2026, 8, 12, 0, 0, 0, DateTimeKind.Utc), CreatedByUserId = adminUser.Id, CreatedAt = DateTime.UtcNow };
@@ -452,14 +415,12 @@ public static class DbInitializer
         context.MaterialPurchases.AddRange(pur1, pur2, pur3);
         await context.SaveChangesAsync();
 
-        // Seed Worker Payments
         var wp1 = new WorkerPayment { Id = Guid.NewGuid(), ProjectId = project1.Id, WorkerId = workerAkmal.Id, JobDescription = "Elektr montaj va kabel tortish", AgreedAmount = 1500, WorkAmount = 1500, PaidAmount = 1000, PaymentDate = new DateTime(2026, 8, 15, 0, 0, 0, DateTimeKind.Utc), CreatedByUserId = adminUser.Id, CreatedAt = DateTime.UtcNow };
         var wp2 = new WorkerPayment { Id = Guid.NewGuid(), ProjectId = project1.Id, WorkerId = workerHasan.Id, JobDescription = "Santexnika va kafel ishlari", AgreedAmount = 2500, WorkAmount = 1000, PaidAmount = 800, PaymentDate = new DateTime(2026, 8, 16, 0, 0, 0, DateTimeKind.Utc), CreatedByUserId = adminUser.Id, CreatedAt = DateTime.UtcNow };
 
         context.WorkerPayments.AddRange(wp1, wp2);
         await context.SaveChangesAsync();
 
-        // Seed Direct Expenses
         var exp1 = new Expense { Id = Guid.NewGuid(), ProjectId = project1.Id, Category = ExpenseCategory.Transport, Amount = 150, Description = "Materiallarni yetkazib berish uchun yuk mashinasi", ExpenseDate = new DateTime(2026, 8, 4, 0, 0, 0, DateTimeKind.Utc), CreatedByUserId = adminUser.Id, CreatedAt = DateTime.UtcNow };
         var exp2 = new Expense { Id = Guid.NewGuid(), ProjectId = project1.Id, Category = ExpenseCategory.Fuel, Amount = 50, Description = "Generator va texnikalar uchun yoqilg'i", ExpenseDate = new DateTime(2026, 8, 6, 0, 0, 0, DateTimeKind.Utc), CreatedByUserId = adminUser.Id, CreatedAt = DateTime.UtcNow };
         var exp3 = new Expense { Id = Guid.NewGuid(), ProjectId = project1.Id, Category = ExpenseCategory.Labor, Amount = 500, Description = "Demontaj va chiqindilarni yuklash yordamchilari", ExpenseDate = new DateTime(2026, 8, 14, 0, 0, 0, DateTimeKind.Utc), CreatedByUserId = adminUser.Id, CreatedAt = DateTime.UtcNow };
@@ -467,13 +428,11 @@ public static class DbInitializer
         context.Expenses.AddRange(exp1, exp2, exp3);
         await context.SaveChangesAsync();
 
-        // Seed Extra Work
         var extra1 = new ExtraWork { Id = Guid.NewGuid(), ProjectId = project1.Id, Title = "Balkonga qo'shimcha elektr va issiq pol montaji", Description = "Buyurtmachi iltimosiga ko'ra qo'shimcha montaj", CustomerAmount = 1500, ActualCost = 800, IsApprovedByCustomer = true, ApprovedAt = new DateTime(2026, 8, 10, 0, 0, 0, DateTimeKind.Utc), CreatedByUserId = adminUser.Id, CreatedAt = DateTime.UtcNow };
 
         context.ExtraWorks.Add(extra1);
         await context.SaveChangesAsync();
 
-        // Seed Photos
         var photo1 = new ProjectPhoto { Id = Guid.NewGuid(), ProjectId = project1.Id, PhotoUrl = "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=600", Caption = "Demontaj ishlari yakunlandi", IsVisibleToCustomer = true, PhotoDate = new DateTime(2026, 8, 6, 0, 0, 0, DateTimeKind.Utc), UploadedByUserId = adminUser.Id, CreatedAt = DateTime.UtcNow };
         var photo2 = new ProjectPhoto { Id = Guid.NewGuid(), ProjectId = project1.Id, PhotoUrl = "https://images.unsplash.com/photo-1541888946425-d0fbb186156a?w=600", Caption = "Elektr simlari va qutilar montaj qilindi", IsVisibleToCustomer = true, PhotoDate = new DateTime(2026, 8, 14, 0, 0, 0, DateTimeKind.Utc), UploadedByUserId = adminUser.Id, CreatedAt = DateTime.UtcNow };
 

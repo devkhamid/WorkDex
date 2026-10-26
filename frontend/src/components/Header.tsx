@@ -28,7 +28,6 @@ export const Header: React.FC<HeaderProps> = ({ title, onOpenNewProject, onOpenM
         <Menu className="w-5 h-5" />
       </button>
 
-      {/* Breadcrumb */}
       <div className="text-xs text-[#a0a5af] flex items-center gap-1.5 min-w-0">
         <span className="hidden sm:inline">WorkDex</span>
         <span className="hidden sm:inline">›</span>
@@ -37,7 +36,6 @@ export const Header: React.FC<HeaderProps> = ({ title, onOpenNewProject, onOpenM
 
       <div className="flex-1" />
 
-      {/* CBU kursi */}
       {cbuRate > 0 && (
         <button
           type="button"
@@ -53,7 +51,6 @@ export const Header: React.FC<HeaderProps> = ({ title, onOpenNewProject, onOpenM
         </button>
       )}
 
-      {/* Date filter pill */}
       <button className="hidden md:flex border border-[#e4e7ec] bg-white hover:bg-[#f7f8fa] rounded-lg h-[34px] px-3 text-xs text-[#4f5663] items-center gap-2 transition-colors">
         <Calendar className="w-3.5 h-3.5 text-gray-500" />
         <span>1 Avgust — 31 Avgust 2026</span>
@@ -61,7 +58,6 @@ export const Header: React.FC<HeaderProps> = ({ title, onOpenNewProject, onOpenM
 
       {!isSuperAdmin && <NotificationBell />}
 
-      {/* New Project Primary Button (Only for Company Admins / Managers, not SuperAdmin) */}
       {!isSuperAdmin && (
         <button
           onClick={onOpenNewProject}

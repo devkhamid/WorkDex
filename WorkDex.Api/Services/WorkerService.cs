@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using WorkDex.Api.Data;
 using WorkDex.Api.DTOs.Workers;
 using WorkDex.Api.Models;
@@ -22,7 +22,6 @@ public class WorkerService : IWorkerService
 
         if (requestingUserRole == UserRole.SuperAdmin)
         {
-            // SuperAdmin barcha ustalarni ko'radi
         }
         else
         {
@@ -162,7 +161,6 @@ public class WorkerService : IWorkerService
         if (worker is null)
             throw new KeyNotFoundException("Usta topilmadi.");
 
-        // Usta o'z kompaniyasiga tegishli ekanini tekshirish
         if (project.CompanyAdminId != null && worker.CompanyAdminId != null && worker.CompanyAdminId != project.CompanyAdminId)
             throw new InvalidOperationException("Tanlangan usta boshqa kompaniyaga tegishli.");
 
@@ -170,7 +168,6 @@ public class WorkerService : IWorkerService
         if (user is null)
             throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
 
-        // Barcha summalar (kelishilgan, bajarilgan, to'langan) Currency da kiritiladi va so'mda saqlanadi
         var currency = Money.Normalize(dto.Currency, "UZS");
         var rate = await Money.CurrentRateAsync(_currencyService);
         var effectiveAgreed = Money.ToUzs(dto.AgreedAmount, currency, rate);
@@ -253,7 +250,6 @@ public class WorkerService : IWorkerService
         var currency = Money.Normalize(dto.Currency, "UZS");
         var rate = await Money.CurrentRateAsync(_currencyService);
         var workAmount = Money.ToUzs(dto.WorkAmount, currency, rate);
-        // USD dan o'girishdagi yaxlitlash farqi (1 sentgacha) kelishilgan summani "oshirib" yubormasligi uchun
         if (currency == "USD" && workAmount > job.AgreedAmount && workAmount - job.AgreedAmount <= rate * 0.01m)
             workAmount = job.AgreedAmount;
 
@@ -302,7 +298,6 @@ public class WorkerService : IWorkerService
             throw new InvalidOperationException($"Ustaga kelishilgan summa ({job.AgreedAmount:N0} so'm) allaqachon to'liq to'langan.");
         }
 
-        // USD dan o'girishdagi yaxlitlash farqi (1 sentgacha) qoldiqni "oshirib" yubormasligi uchun
         if (isUsd && effectiveAmount > remainingAllowed && effectiveAmount - remainingAllowed <= rate * 0.01m)
             effectiveAmount = remainingAllowed;
 

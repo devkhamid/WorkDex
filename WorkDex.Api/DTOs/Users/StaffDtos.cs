@@ -1,10 +1,9 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using WorkDex.Api.DTOs.Tasks;
 using WorkDex.Api.Models;
 
 namespace WorkDex.Api.DTOs.Users;
 
-// Xodimlar sahifasi uchun: foydalanuvchi + unga biriktirilgan vazifalar statistikasi
 public class StaffMemberDto : UserDto
 {
     public bool IsCompanyOwner { get; set; }

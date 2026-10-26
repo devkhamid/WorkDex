@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkDex.Api.DTOs.Auth;
 using WorkDex.Api.Helpers;
@@ -17,11 +17,7 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
-    /// <summary>
-    /// Yangi foydalanuvchi yaratish. Ochiq (anonim) ro'yxatdan o'tish yo'q:
-    /// SuperAdmin kompaniya Adminini, Admin esa o'z kompaniyasi xodimlarini yaratadi.
-    /// </summary>
-    [HttpPost("register")]
+        [HttpPost("register")]
     [Authorize(Roles = "SuperAdmin,Admin")]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {

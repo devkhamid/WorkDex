@@ -57,7 +57,6 @@ const Modal: React.FC<{ title: string; onClose: () => void; children: React.Reac
   </div>
 );
 
-// ---- Xodim qo'shish / tahrirlash ----
 const StaffFormModal: React.FC<{
   member?: StaffMember;
   onClose: () => void;
@@ -156,7 +155,6 @@ const StaffFormModal: React.FC<{
   );
 };
 
-// ---- Parolni yangilash ----
 const PasswordModal: React.FC<{ member: StaffMember; onClose: () => void }> = ({ member, onClose }) => {
   const [password, setPassword] = useState('');
   const [saving, setSaving] = useState(false);
@@ -207,7 +205,6 @@ const PasswordModal: React.FC<{ member: StaffMember; onClose: () => void }> = ({
   );
 };
 
-// ---- Vazifa berish / tahrirlash ----
 const TaskFormModal: React.FC<{
   task?: StaffTask;
   assigneeId: string;
@@ -470,7 +467,6 @@ export const TeamPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
-        {/* Xodimlar ro'yxati */}
         <div className={`lg:col-span-5 space-y-3 ${selected ? 'hidden lg:block' : ''}`}>
           <div className="bg-white border border-[#e4e7ec] rounded-xl p-3 flex items-center gap-2 shadow-xs min-w-0">
             <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
@@ -523,7 +519,6 @@ export const TeamPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Tanlangan xodim */}
         <div className={`lg:col-span-7 ${selected ? '' : 'hidden lg:block'}`}>
           {!selected ? (
             <div className="bg-white border border-dashed border-[#e4e7ec] rounded-xl p-10 text-center">

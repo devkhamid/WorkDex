@@ -1,4 +1,4 @@
-namespace WorkDex.Api.Models;
+﻿namespace WorkDex.Api.Models;
 
 public class Agreement
 {
@@ -28,7 +28,6 @@ public class Agreement
 
     public ClientType ClientType { get; set; } = ClientType.Individual;
 
-    // Yuridik shaxs (Zakazchik) rekvizitlari
     public string? CompanyName { get; set; }
     public string? DirectorName { get; set; }
     public string? DirectorTitle { get; set; } = "Ген. директора";
@@ -45,7 +44,6 @@ public class Agreement
     public string? Okpo { get; set; }
     public string? NdsRegNumber { get; set; }
 
-    // Podryadchik (Bajaruvchi firma) rekvizitlari
     public string? ContractorCompanyName { get; set; }
     public string? ContractorDirectorName { get; set; }
     public string? ContractorAddress { get; set; }
@@ -65,9 +63,7 @@ public class Agreement
 
 public enum ClientType
 {
-    Individual = 1,   // Jismoniy shaxs
-    LegalEntity = 2   // Yuridik shaxs
-}
+    Individual = 1,    LegalEntity = 2}
 
 public enum AgreementStatus
 {

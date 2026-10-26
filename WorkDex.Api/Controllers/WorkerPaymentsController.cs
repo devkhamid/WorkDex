@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkDex.Api.DTOs.Workers;
 using WorkDex.Api.Helpers;
@@ -67,7 +67,6 @@ public class WorkerPaymentsController : ControllerBase
         }
     }
 
-    // Bajarilgan ish haqi summasini yangilash (ish hajmi tasdiqlanganda)
     [HttpPatch("api/projects/{projectId:guid}/worker-payments/{paymentId:guid}/work-amount")]
     [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
     public async Task<IActionResult> UpdateWorkAmount(Guid projectId, Guid paymentId, [FromBody] UpdateWorkerWorkAmountDto dto)
@@ -87,7 +86,6 @@ public class WorkerPaymentsController : ControllerBase
         }
     }
 
-    // Ustaga haq / avans to'lash
     [HttpPatch("api/projects/{projectId:guid}/worker-payments/{paymentId:guid}/pay")]
     [Authorize(Roles = "SuperAdmin,Admin,Finance")]
     public async Task<IActionResult> PayWorker(Guid projectId, Guid paymentId, [FromBody] PayWorkerDto dto)
@@ -122,7 +120,6 @@ public class WorkerPaymentsController : ControllerBase
         }
     }
 
-    // PDF §6 va §15 — Loyiha ustalari bo'yicha jami hakedis, to'langan va qolgan qarz xulosasi
     [HttpGet("api/projects/{projectId:guid}/workers-summary")]
     [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
     public async Task<IActionResult> GetWorkersSummary(Guid projectId)

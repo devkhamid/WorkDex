@@ -21,24 +21,20 @@ export const AgreementFormPage: React.FC = () => {
   const [showExtraRequisites, setShowExtraRequisites] = useState(false);
   const [mobilePane, setMobilePane] = useState<'form' | 'preview'>('form');
 
-  // 1 = Jismoniy shaxs (Individual), 2 = Yuridik shaxs (LegalEntity)
   const [clientType, setClientType] = useState<1 | 2>(1);
 
-  // Umumiy shartnoma shakli
   const [contractNumber, setContractNumber] = useState(1);
   const [day, setDay] = useState(new Date().getDate());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
   const [projectName, setProjectName] = useState('');
 
-  // Jismoniy shaxs maydonlari
   const [customerId, setCustomerId] = useState('');
   const [customerFullName, setCustomerFullName] = useState('');
   const [customerPassport, setCustomerPassport] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
 
-  // Yuridik shaxs (Buyurtmachi) maydonlari
   const [companyName, setCompanyName] = useState('');
   const [directorName, setDirectorName] = useState('');
   const [directorTitle, setDirectorTitle] = useState('Ген. директора');
@@ -55,19 +51,16 @@ export const AgreementFormPage: React.FC = () => {
   const [okpo, setOkpo] = useState('');
   const [ndsRegNumber, setNdsRegNumber] = useState('');
 
-  // Obyekt
   const [objectAddress, setObjectAddress] = useState('г. Ташкент, Яккасарайский район, улица, дом 133');
   const [block, setBlock] = useState('');
   const [apartmentNumber, setApartmentNumber] = useState('');
   const [areaM2, setAreaM2] = useState('');
 
-  // Moliya
   const [totalAmount, setTotalAmount] = useState('');
   const [prepayPct, setPrepayPct] = useState(40);
   const [intermediatePct, setIntermediatePct] = useState(40);
   const [finalPct, setFinalPct] = useState(20);
 
-  // Bajaruvchi (Podryadchik / Sizning firmangiz)
   const defaultCompanyName = user?.companyName || 'ООО «UNIO ARCHITECTS»';
   const defaultDirector = user?.fullName || 'Фозилова А.А.';
   const [contractorCompanyName, setContractorCompanyName] = useState(defaultCompanyName);
@@ -280,7 +273,6 @@ export const AgreementFormPage: React.FC = () => {
 
   return (
     <>
-      {/* Print styles — clean multi-page A4 Portrait flow without overlap */}
       <style>{`
         @media print {
           @page {
@@ -392,10 +384,8 @@ export const AgreementFormPage: React.FC = () => {
           </button>
         </div>
 
-        {/* LEFT — Form */}
         <div className={`${mobilePane === 'form' ? 'block' : 'hidden'} lg:block w-full lg:w-[460px] lg:flex-shrink-0 bg-white border-b lg:border-b-0 lg:border-r border-gray-200 overflow-y-auto no-print`}>
           <div className="p-4 sm:p-5">
-            {/* Header */}
             <div className="flex items-center gap-3 mb-4">
               <button
                 onClick={() => navigate('/agreements')}
@@ -414,7 +404,6 @@ export const AgreementFormPage: React.FC = () => {
               </div>
             </div>
 
-            {/* MIJOZ TURI (Jismoniy shaxs vs Yuridik shaxs) */}
             <div className="mb-4 p-1 bg-gray-100 rounded-xl flex items-center gap-1 overflow-x-auto scrollbar-none">
               <button
                 type="button"
@@ -442,7 +431,6 @@ export const AgreementFormPage: React.FC = () => {
               </button>
             </div>
 
-            {/* Section: Shartnoma shakli */}
             <div className="mb-4 border border-gray-100 rounded-xl p-3 bg-gray-50/50">
               <div className="flex items-center gap-2 mb-2.5">
                 <div className="w-1 h-3.5 bg-[#7c3aed] rounded-full" />
@@ -509,7 +497,6 @@ export const AgreementFormPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Section: Buyurtmachi (Zakazchik) */}
             <div className="mb-4 border border-gray-100 rounded-xl p-3 bg-gray-50/50">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2.5">
                 <div className="flex flex-wrap items-center gap-2">
@@ -535,7 +522,6 @@ export const AgreementFormPage: React.FC = () => {
               </div>
 
               {clientType === 1 ? (
-                /* JISMONIY SHAXS FORMA MAYDONLARI */
                 <div className="space-y-2">
                   <div>
                     <label className="text-[10px] text-gray-500 block mb-1 font-medium">
@@ -587,7 +573,6 @@ export const AgreementFormPage: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                /* YURIDIK SHAXS FORMA MAYDONLARI */
                 <div className="space-y-2">
                   <div>
                     <label className="text-[10px] text-gray-500 block mb-1 font-medium">
@@ -716,7 +701,6 @@ export const AgreementFormPage: React.FC = () => {
                     />
                   </div>
 
-                  {/* Qo'shimcha rekvizitlar toggle */}
                   <div>
                     <button
                       type="button"
@@ -799,7 +783,6 @@ export const AgreementFormPage: React.FC = () => {
               )}
             </div>
 
-            {/* Section: Obyekt */}
             <div className="mb-4 border border-gray-100 rounded-xl p-3 bg-gray-50/50">
               <div className="flex items-center gap-2 mb-2.5">
                 <div className="w-1 h-3.5 bg-blue-500 rounded-full" />
@@ -860,7 +843,6 @@ export const AgreementFormPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Section: Moliya */}
             <div className="mb-4 border border-gray-100 rounded-xl p-3 bg-gray-50/50">
               <div className="flex items-center gap-2 mb-2.5">
                 <div className="w-1 h-3.5 bg-green-500 rounded-full" />
@@ -938,7 +920,6 @@ export const AgreementFormPage: React.FC = () => {
               )}
             </div>
 
-            {/* Section: Bajaruvchi firma (Podryadchik) */}
             <div className="mb-4 border border-gray-100 rounded-xl p-3 bg-gray-50/50">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-2">
@@ -1046,7 +1027,6 @@ export const AgreementFormPage: React.FC = () => {
               )}
             </div>
 
-            {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-2 sticky bottom-0 bg-white pt-3 pb-1 border-t border-gray-100">
               <button
                 type="button"
@@ -1068,9 +1048,7 @@ export const AgreementFormPage: React.FC = () => {
           </div>
         </div>
 
-        {/* RIGHT — Contract Preview */}
         <div className={`contract-preview-scroll ${mobilePane === 'preview' ? 'block' : 'hidden'} lg:block flex-1 min-w-0 overflow-auto bg-gray-100`}>
-          {/* Toolbar */}
           <div className="no-print bg-white border-b border-gray-200 px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sticky top-0 z-10">
             <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">
               Shartnoma ko'rinishi
@@ -1087,7 +1065,6 @@ export const AgreementFormPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Contract Document (A4 Style) */}
           <AgreementDocument
             ref={printRef}
             data={docData}

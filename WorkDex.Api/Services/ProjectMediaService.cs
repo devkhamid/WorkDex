@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using WorkDex.Api.Data;
 using WorkDex.Api.DTOs.Documents;
 using WorkDex.Api.DTOs.Photos;
@@ -24,7 +24,6 @@ public class ProjectMediaService : IProjectMediaService
         _env = env;
     }
 
-    // Documents
     public async Task<DocumentDto> UploadDocumentAsync(Guid projectId, IFormFile file, string? title, string? fileType, Guid uploadedByUserId)
     {
         if (file == null || file.Length == 0)
@@ -242,7 +241,6 @@ public class ProjectMediaService : IProjectMediaService
         };
     }
 
-    // Photos
     public async Task<PhotoDto> AddPhotoAsync(Guid projectId, CreatePhotoDto dto, Guid uploadedByUserId)
     {
         var project = await _context.Projects.FindAsync(projectId);
@@ -342,7 +340,6 @@ public class ProjectMediaService : IProjectMediaService
         await _context.SaveChangesAsync();
     }
 
-    // Updates
     public async Task<ProjectUpdateDto> AddUpdateAsync(Guid projectId, CreateProjectUpdateDto dto, Guid createdByUserId)
     {
         var project = await _context.Projects.FindAsync(projectId);

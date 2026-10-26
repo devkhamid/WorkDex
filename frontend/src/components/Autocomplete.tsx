@@ -5,7 +5,6 @@ import { isSimilar, normalizeText } from '../utils/materials';
 export interface Suggestion {
   value: string;
   hint?: string;
-  // Kichik raqam — yuqoriroq ko'rsatiladi (masalan: "shu material uchun" brendlar)
   priority?: number;
 }
 
@@ -86,7 +85,6 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
           {items.map((s, i) => (
             <li
               key={`${s.value}-${i}`}
-              // onMouseDown — input blur bo'lishidan oldin tanlash uchun
               onMouseDown={(e) => { e.preventDefault(); select(s.value); }}
               onMouseEnter={() => setActive(i)}
               className={`px-3 py-2 text-xs cursor-pointer flex items-center justify-between gap-2 min-w-0 ${i === active ? 'bg-orange-50' : ''}`}

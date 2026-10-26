@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkDex.Api.DTOs.Tasks;
 using WorkDex.Api.Services;
@@ -77,7 +77,6 @@ public class TasksController : ControllerBase
         }
     }
 
-    // Vazifani bajarildi / bajarilmadi qilish (Saha xodimi ham bajara oladi)
     [HttpPatch("{taskId:guid}/toggle-complete")]
     [Authorize(Roles = "Admin,ProjectManager,FieldWorker")]
     public async Task<IActionResult> ToggleComplete(Guid projectId, Guid taskId)

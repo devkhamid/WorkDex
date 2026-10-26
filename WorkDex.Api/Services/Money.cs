@@ -1,9 +1,5 @@
-namespace WorkDex.Api.Services;
+﻿namespace WorkDex.Api.Services;
 
-/// <summary>
-/// Summalarni kiritilgan valyutadan (UZS/USD) saqlanadigan asosga o'girish.
-/// Kurs har doim serverda CBU dan olinadi — klient yuborgan kurs ishlatilmaydi.
-/// </summary>
 public static class Money
 {
     public const decimal FallbackRate = 12700m;

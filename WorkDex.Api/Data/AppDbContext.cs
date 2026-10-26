@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using WorkDex.Api.Models;
 
 namespace WorkDex.Api.Data;
@@ -214,7 +214,6 @@ public class AppDbContext : DbContext
             entity.Property(s => s.CreatedAt)
                 .IsRequired();
 
-            // Bir loyihada tartib indeksi unique bo'lishi kerak
             entity.HasIndex(s => new { s.ProjectId, s.OrderIndex })
                 .IsUnique()
                 .HasDatabaseName("IX_ProjectStages_ProjectId_OrderIndex");

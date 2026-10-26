@@ -29,7 +29,6 @@ export const FinalizeAgreementPage: React.FC = () => {
       setLoading(true);
       const a = await agreementsApi.getById(id!);
       setAgreement(a);
-      // Load users for manager selection
       const { apiClient } = await import('../api/client');
       const usersRes = await apiClient.get('/users');
       setManagers(
@@ -54,7 +53,6 @@ export const FinalizeAgreementPage: React.FC = () => {
     let finalized: any;
     try {
       setSaving(true);
-      // Kurs serverda bugungi CBU kursidan olinadi
       finalized = await agreementsApi.finalize(id!, {
         projectName: name,
         deadline: deadline ? new Date(deadline).toISOString() : null,
@@ -66,7 +64,6 @@ export const FinalizeAgreementPage: React.FC = () => {
       return;
     }
 
-    // Shartnoma PDF ini loyiha hujjatlariga avtomatik qo'shamiz
     let pdfOk = false;
     if (finalized?.projectId) {
       setPdfStep(true);
@@ -100,7 +97,6 @@ export const FinalizeAgreementPage: React.FC = () => {
   return (
     <div className="flex-1 overflow-auto bg-[#f8f9fb] flex items-center justify-center p-4 sm:p-6">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-4 sm:p-6">
-        {/* Header */}
         <div className="flex items-center gap-3 mb-5">
           <button
             onClick={() => navigate('/agreements')}
@@ -116,7 +112,6 @@ export const FinalizeAgreementPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Agreement info */}
         {agreement && (
           <div className="bg-purple-50 rounded-lg p-3 mb-4">
             <div className="text-[10px] font-semibold uppercase tracking-wide text-purple-400">Shartnomadagi ob'ekt</div>
@@ -127,7 +122,6 @@ export const FinalizeAgreementPage: React.FC = () => {
           </div>
         )}
 
-        {/* WorkDex project name */}
         <div className="mb-4">
           <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 mb-1">
             <FolderPen className="w-3.5 h-3.5" /> Loyiha nomi (WorkDex uchun) <span className="text-red-500">*</span>
@@ -151,7 +145,6 @@ export const FinalizeAgreementPage: React.FC = () => {
           )}
         </div>
 
-        {/* Deadline */}
         <div className="mb-4">
           <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 mb-1">
             <Calendar className="w-3.5 h-3.5" /> Muddatni tanlang
@@ -164,7 +157,6 @@ export const FinalizeAgreementPage: React.FC = () => {
           />
         </div>
 
-        {/* Exchange rate */}
         <div className="mb-4">
           <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 mb-1">
             <DollarSign className="w-3.5 h-3.5" /> Valyuta kursi (UZS → USD)
@@ -179,7 +171,6 @@ export const FinalizeAgreementPage: React.FC = () => {
           )}
         </div>
 
-        {/* Managers */}
         <div className="mb-5">
           <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 mb-1">
             <Users className="w-3.5 h-3.5" /> Menejerlarni tayinlash
@@ -216,7 +207,6 @@ export const FinalizeAgreementPage: React.FC = () => {
           <div className="text-[10px] text-gray-400 mt-1">Bir nechta menejer tanlash mumkin</div>
         </div>
 
-        {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-2">
           <button
             onClick={() => navigate('/agreements')}

@@ -1,4 +1,4 @@
-namespace WorkDex.Api.Models;
+﻿namespace WorkDex.Api.Models;
 
 public class Project
 {
@@ -6,7 +6,6 @@ public class Project
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
 
-    // PDF §3: "Loyiha turi" — Villa renovatsiyasi, Ofis ta'miri va h.k.
     public string? ProjectType { get; set; }
 
     public Guid CustomerId { get; set; }
@@ -23,7 +22,6 @@ public class Project
     public Guid CreatedByUserId { get; set; }
     public Guid? CompanyAdminId { get; set; }
 
-    // Shartnomadan kelgan maydonlar
     public string? Block { get; set; }
     public string? ApartmentNumber { get; set; }
     public decimal? AreaM2 { get; set; }
@@ -31,8 +29,7 @@ public class Project
     public int IntermediatePercent { get; set; } = 50;
     public int FinalPercent { get; set; } = 20;
     public decimal? ExchangeRate { get; set; }
-    public decimal? ContractAmountUzs { get; set; } // UZS da kiritilgan shartnoma summasi (agar UZS bo'lsa)
-    public Guid? AgreementId { get; set; }
+    public decimal? ContractAmountUzs { get; set; }    public Guid? AgreementId { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

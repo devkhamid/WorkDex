@@ -1,4 +1,4 @@
-namespace WorkDex.Api.Models;
+﻿namespace WorkDex.Api.Models;
 
 public enum NotificationAction
 {
@@ -7,11 +7,6 @@ public enum NotificationAction
     Deleted = 3
 }
 
-/// <summary>
-/// Kompaniya ichidagi o'zgarishlar lentasi. Bitta yozuv butun kompaniya uchun
-/// (CompanyAdminId bo'yicha) — har bir foydalanuvchining o'qilgan holati
-/// <see cref="NotificationReadState"/> da saqlanadi.
-/// </summary>
 public class Notification
 {
     public Guid Id { get; set; } = Guid.NewGuid();

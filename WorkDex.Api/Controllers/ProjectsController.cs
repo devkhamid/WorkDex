@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkDex.Api.DTOs.Projects;
 using WorkDex.Api.Helpers;
@@ -21,11 +21,7 @@ public class ProjectsController : ControllerBase
         _accessGuard = accessGuard;
     }
 
-    /// <summary>
-    /// Joriy foydalanuvchi shu loyihaga kirish huquqiga egaligini tekshiradi.
-    /// Ruxsat bo'lmasa KeyNotFoundException tashlanadi va 404 qaytadi.
-    /// </summary>
-    private Task EnsureAccessAsync(Guid projectId) =>
+        private Task EnsureAccessAsync(Guid projectId) =>
         _accessGuard.EnsureCanAccessAsync(projectId, User.GetUserId(), User.GetUserRole());
 
     [HttpGet]
@@ -122,7 +118,6 @@ public class ProjectsController : ControllerBase
         }
     }
 
-    // Moliyaviy xulosa — PDF §4
     [HttpGet("{id:guid}/summary")]
     [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
     public async Task<IActionResult> GetSummary(Guid id)
@@ -139,7 +134,6 @@ public class ProjectsController : ControllerBase
         }
     }
 
-    // Loyiha moliyasi kartochkalari (Shartnoma sahifasi uchun)
     [HttpGet("{id:guid}/finance")]
     [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager,FieldWorker")]
     public async Task<IActionResult> GetFinance(Guid id)
@@ -154,26 +148,19 @@ public class ProjectsController : ControllerBase
                 projectId = id,
                 projectName = summary.ProjectName,
                 customerName = summary.CustomerName,
-                // BALANS — umumiy byudjet
                 totalBudget = summary.ContractAmount,
                 totalBudgetUSD = summary.ContractAmount,
                 currency = summary.Currency,
-                // NAQD PUL qabul qilingan
                 cashReceived = summary.TotalPaid,
-                // QOLGAN DEBITORLIK QARZI
                 remainingDebt = summary.RemainingPayment,
-                // MAVJUD NAQD PUL = qabul qilingan - xarajatlar
                 availableCash = summary.TotalPaid - summary.TotalExpenses,
-                // Xarajatlar
                 totalExpenses = summary.TotalExpenses,
                 materialExpenses = summary.MaterialExpenses,
                 laborExpenses = summary.LaborExpenses,
                 otherExpenses = summary.OtherExpenses,
-                // Foizli holat
                 paidPercent = summary.ContractAmount > 0
                     ? Math.Round((summary.TotalPaid / summary.ContractAmount) * 100, 1)
                     : 0,
-                // Shartnomadan maydonlar
                 prepaymentPercent = project.PrepaymentPercent,
                 intermediatePercent = project.IntermediatePercent,
                 finalPercent = project.FinalPercent,
@@ -193,7 +180,6 @@ public class ProjectsController : ControllerBase
         }
     }
 
-    // A'zolarni boshqarish
     [HttpGet("{id:guid}/members")]
     [Authorize(Roles = "Admin,ProjectManager")]
     public async Task<IActionResult> GetMembers(Guid id)
@@ -246,7 +232,6 @@ public class ProjectsController : ControllerBase
         }
     }
 
-    // Bosqichlarni boshqarish — PDF §8
     [HttpGet("{id:guid}/stages")]
     [Authorize(Roles = "SuperAdmin,Admin,ProjectManager,Finance,FieldWorker,Customer")]
     public async Task<IActionResult> GetStages(Guid id)

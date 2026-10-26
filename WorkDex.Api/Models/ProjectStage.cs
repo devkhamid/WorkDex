@@ -1,7 +1,5 @@
-namespace WorkDex.Api.Models;
+﻿namespace WorkDex.Api.Models;
 
-// PDF §8 da keltirilgan bosqichlar:
-// Tekshiruv, Demontaj, Qurilish, Elektr, Suvoq/gips, Pol/kafel, Bo'yoq, Topshirish va h.k.
 public class ProjectStage
 {
     public Guid Id { get; set; } = Guid.NewGuid();

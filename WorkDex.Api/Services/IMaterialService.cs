@@ -1,11 +1,10 @@
-using WorkDex.Api.DTOs.Materials;
+﻿using WorkDex.Api.DTOs.Materials;
 using WorkDex.Api.Models;
 
 namespace WorkDex.Api.Services;
 
 public interface IMaterialService
 {
-    // Katalog operatsiyalari
     Task<List<MaterialDto>> GetAllMaterialsAsync(Guid requestingUserId, UserRole requestingUserRole);
     Task<MaterialDto> GetMaterialByIdAsync(Guid id, Guid requestingUserId, UserRole requestingUserRole);
     Task<MaterialDto> CreateMaterialAsync(CreateMaterialDto dto, Guid createdByUserId);
@@ -13,13 +12,11 @@ public interface IMaterialService
     Task DeleteMaterialAsync(Guid id, Guid requestingUserId, UserRole requestingUserRole);
     Task<MaterialDto> MergeMaterialAsync(Guid sourceId, Guid targetId, Guid requestingUserId, UserRole requestingUserRole);
 
-    // Loyiha xaridlari
     Task<MaterialPurchaseDto> AddPurchaseAsync(Guid projectId, CreateMaterialPurchaseDto dto, Guid createdByUserId);
     Task<List<MaterialPurchaseDto>> GetPurchasesByProjectAsync(Guid projectId);
     Task<MaterialPurchaseDto> GetPurchaseByIdAsync(Guid projectId, Guid purchaseId);
     Task DeletePurchaseAsync(Guid projectId, Guid purchaseId);
     Task<List<ProjectMaterialSummaryDto>> GetProjectMaterialSummaryAsync(Guid projectId);
 
-    // Hisobot: loyiha × material × brend bo'yicha sarf
     Task<List<MaterialUsageDto>> GetMaterialUsageAsync(Guid requestingUserId, UserRole requestingUserRole, DateTime? from, DateTime? to);
 }

@@ -25,7 +25,6 @@ import { Project, ProjectStatus, UserRole } from '../types';
 
 interface SidebarProps {
   onOpenNewProject: () => void;
-  // Mobil (lg dan kichik) ekranda chap tomondan chiquvchi menyu holati
   mobileOpen?: boolean;
   onClose?: () => void;
 }
@@ -44,16 +43,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onClose })
   const isSuperAdmin = user?.role === UserRole.SuperAdmin;
 
   useEffect(() => {
-    // Bu ro'yxat SuperAdmin uchun ko'rsatilmaydi (pastdagi `!isSuperAdmin`
-    // sharti), shuning uchun keraksiz so'rovni ham yubormaymiz.
     if (isSuperAdmin) {
       setActiveProjects([]);
       return;
     }
 
     projectsApi.getAll().then((data) => {
-      // Sarlavha "FAOL LOYIHALAR" bo'lgani uchun yakunlangan va bekor
-      // qilingan loyihalar bu ro'yxatga tushmaydi.
       const active = data.filter(p =>
         p.status === ProjectStatus.Planning ||
         p.status === ProjectStatus.InProgress ||
@@ -109,7 +104,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onClose })
         mobileOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
       }`}
     >
-      {/* Brand Header */}
       <div>
         <div className="h-[56px] lg:h-[66px] flex items-center justify-between px-5 border-b border-[#e4e7ec]">
           <div className="flex items-center gap-2.5">
@@ -126,7 +120,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onClose })
           </button>
         </div>
 
-        {/* Quick Search Input */}
         <div className="p-3">
           <div className="flex items-center gap-2 bg-[#f4f5f7] rounded-lg px-3 h-8 text-[#7a8190]">
             <Search className="w-3.5 h-3.5" />
@@ -139,7 +132,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onClose })
           </div>
         </div>
 
-        {/* Navigation Items */}
         <nav className="px-3 space-y-0.5">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -165,14 +157,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onClose })
             );
           })}
 
-          {/* Section Label: FAOL LOYIHALAR (Only for regular Company Admins) */}
           {!isSuperAdmin && (
             <>
               <div className="pt-5 pb-2 px-3 text-[10px] font-bold text-[#a0a5af] tracking-wider uppercase">
                 FAOL LOYIHALAR
               </div>
 
-              {/* Active Projects List */}
               <div className="space-y-0.5">
                 {activeProjects.map((p) => (
                   <button
@@ -193,7 +183,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onClose })
         </nav>
       </div>
 
-      {/* User Footer */}
       <div className="mt-auto border-t border-[#e4e7ec] p-3 flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-full bg-[#ff7a16] text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
           {getInitials(user?.fullName)}

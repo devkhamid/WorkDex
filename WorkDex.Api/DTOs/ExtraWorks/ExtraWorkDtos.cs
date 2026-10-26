@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace WorkDex.Api.DTOs.ExtraWorks;
 
@@ -19,7 +19,6 @@ public class CreateExtraWorkDto
     [Range(0, double.MaxValue, ErrorMessage = "Tannarx summasi manfiy bo'lishi mumkin emas.")]
     public decimal ActualCost { get; set; }
 
-    // "USD" yoki "UZS" — CustomerAmount va ActualCost shu valyutada; kurs serverda CBU dan olinadi
     [MaxLength(3)]
     public string Currency { get; set; } = "USD";
 
@@ -69,8 +68,7 @@ public class ExtraWorkDto
     public decimal? OriginalActualCost { get; set; }
     public decimal CustomerAmountUzs { get; set; }
     public decimal ActualCostUzs { get; set; }
-    public decimal ProfitImpact => CustomerAmount - ActualCost; // Foydaga ta'siri (PDF §7)
-    public bool IsApprovedByCustomer { get; set; }
+    public decimal ProfitImpact => CustomerAmount - ActualCost;    public bool IsApprovedByCustomer { get; set; }
     public DateTime? ApprovedAt { get; set; }
     public string? Notes { get; set; }
     public Guid CreatedByUserId { get; set; }

@@ -1,8 +1,7 @@
-using WorkDex.Api.Models;
+﻿using WorkDex.Api.Models;
 
 namespace WorkDex.Api.DTOs.Portal;
 
-// PDF §13 — Mijoz uchun maxsus toza ko'rinish (ichki usta/material xarajatlari yashirin)
 public class CustomerPortalProjectDto
 {
     public Guid ProjectId { get; set; }
@@ -15,13 +14,11 @@ public class CustomerPortalProjectDto
     public string StatusName { get; set; } = string.Empty;
     public decimal ProgressPercent { get; set; }
 
-    // Mijoz hisob-kitoblari
     public decimal ContractAmount { get; set; }
     public decimal TotalPaid { get; set; }
     public decimal RemainingPayment { get; set; }
     public string Currency { get; set; } = "USD";
 
-    // Alohida bo'limlar
     public List<CustomerPortalStageDto> Stages { get; set; } = new();
     public List<CustomerPortalPhotoDto> Photos { get; set; } = new();
     public List<CustomerPortalUpdateDto> Updates { get; set; } = new();

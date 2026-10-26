@@ -5,11 +5,9 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace WorkDex.Api.Migrations
 {
-    /// <inheritdoc />
-    public partial class AddWorkersAndPayments : Migration
+        public partial class AddWorkersAndPayments : Migration
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
+                protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
                 name: "Workers",
@@ -82,8 +80,7 @@ namespace WorkDex.Api.Migrations
                 column: "WorkerId");
         }
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
+                protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
                 name: "WorkerPayments");

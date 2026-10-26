@@ -1,4 +1,4 @@
-using ClosedXML.Excel;
+﻿using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using WorkDex.Api.Data;
 using WorkDex.Api.Models;
@@ -76,31 +76,22 @@ public partial class ExcelExportService : IExcelExportService
 
         using var workbook = new XLWorkbook();
 
-        // 1. Loyiha haqida
         BuildOverviewSheet(workbook, project);
 
-        // 2. Mijoz to'lovlari
         BuildPaymentsSheet(workbook, payments, project.Currency);
 
-        // 3. Xarajatlar
         BuildExpensesSheet(workbook, expenses, project.Currency);
 
-        // 4. Materiallar xaridi
         BuildMaterialsSheet(workbook, project.MaterialPurchases.ToList(), project.Currency);
 
-        // 5. Usta va ish haqlari
         BuildWorkersSheet(workbook, project.WorkerPayments.ToList(), project.Currency);
 
-        // 6. Qo'shimcha ishlar
         BuildExtraWorksSheet(workbook, project.ExtraWorks.ToList(), project.Currency);
 
-        // 7. Vazifalar va progress
         BuildTasksSheet(workbook, project.Tasks.ToList());
 
-        // 8. Moliyaviy xulosa
         BuildFinancialSummarySheet(workbook, project, payments, expenses);
 
-        // 9. Barcha loyihalar konsolidatsiyasi (faqat kompaniya loyihalari)
         var accessibleIds = await GetAccessibleProjectIdsAsync(requestingUserId, requestingUserRole);
         var allProjects = await _context.Projects
             .Include(p => p.Customer)
@@ -134,7 +125,6 @@ public partial class ExcelExportService : IExcelExportService
         var ws = workbook.Worksheets.Add("Barcha Loyihalar");
         ws.ShowGridLines = true;
 
-        // Title banner
         ws.Cell(1, 1).Value = "WORKDEX — BARCHA LOYIHALAR KONSOLIDATSIYALANGAN HISOBOTI";
         ws.Range(1, 1, 1, 15).Merge();
         ws.Row(1).Height = 28;
@@ -146,7 +136,6 @@ public partial class ExcelExportService : IExcelExportService
         banner.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
         banner.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
-        // Headers
         var headers = new[]
         {
             "№", "Loyiha Nomi", "Loyiha Turi", "Mijoz", "Holati", "Progress",
@@ -200,7 +189,6 @@ public partial class ExcelExportService : IExcelExportService
             ws.Cell(row, 14).Value = p.StartDate.ToString("dd.MM.yyyy");
             ws.Cell(row, 15).Value = p.EndDate?.ToString("dd.MM.yyyy") ?? "-";
 
-            // Format numbers
             ws.Cell(row, 7).Style.NumberFormat.Format = "#,##0.00";
             ws.Cell(row, 8).Style.NumberFormat.Format = "#,##0.00";
             ws.Cell(row, 10).Style.NumberFormat.Format = "#,##0.00";
@@ -208,7 +196,6 @@ public partial class ExcelExportService : IExcelExportService
             ws.Cell(row, 12).Style.NumberFormat.Format = "#,##0.00";
             ws.Cell(row, 13).Style.NumberFormat.Format = "#,##0.00";
 
-            // Zebra styling
             if (row % 2 == 0)
             {
                 ws.Range(row, 1, row, 15).Style.Fill.BackgroundColor = XLColor.FromHtml("#F8FAFC");
@@ -217,7 +204,6 @@ public partial class ExcelExportService : IExcelExportService
             row++;
         }
 
-        // Apply borders
         if (row > 4)
         {
             var tableRange = ws.Range(3, 1, row - 1, 15);
@@ -239,7 +225,6 @@ public partial class ExcelExportService : IExcelExportService
         var ws = wb.Worksheets.Add("1. Loyiha haqida");
         ws.ShowGridLines = true;
 
-        // Title Header
         ws.Cell(1, 1).Value = "WORKDEX — LOYIHA PASPORTI VA ASOSIY KO'RSATKICHLARI";
         ws.Range(1, 1, 1, 2).Merge();
         ws.Row(1).Height = 30;
@@ -247,8 +232,7 @@ public partial class ExcelExportService : IExcelExportService
         header.Style.Font.Bold = true;
         header.Style.Font.FontSize = 12;
         header.Style.Font.FontColor = XLColor.White;
-        header.Style.Fill.BackgroundColor = XLColor.FromHtml("#1E293B"); // Slate Dark
-        header.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+        header.Style.Fill.BackgroundColor = XLColor.FromHtml("#1E293B");        header.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
         header.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
         var data = new (string Key, object Value)[]
@@ -274,16 +258,13 @@ public partial class ExcelExportService : IExcelExportService
             int r = i + 3;
             ws.Row(r).Height = 22;
 
-            // Column A: Key
             var cellKey = ws.Cell(r, 1);
             cellKey.Value = data[i].Key;
             cellKey.Style.Font.Bold = true;
             cellKey.Style.Font.FontSize = 10;
-            cellKey.Style.Fill.BackgroundColor = XLColor.FromHtml("#F1F5F9"); // Soft slate
-            cellKey.Style.Font.FontColor = XLColor.FromHtml("#1E293B");
+            cellKey.Style.Fill.BackgroundColor = XLColor.FromHtml("#F1F5F9");            cellKey.Style.Font.FontColor = XLColor.FromHtml("#1E293B");
             cellKey.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
 
-            // Column B: Value
             var cellVal = ws.Cell(r, 2);
             cellVal.Value = data[i].Value?.ToString() ?? "-";
             cellVal.Style.Font.FontSize = 10;
@@ -297,7 +278,6 @@ public partial class ExcelExportService : IExcelExportService
             }
         }
 
-        // Apply grid borders to table
         var tableRange = ws.Range(3, 1, data.Length + 2, 2);
         tableRange.Style.Border.SetOutsideBorder(XLBorderStyleValues.Medium);
         tableRange.Style.Border.SetOutsideBorderColor(XLColor.FromHtml("#94A3B8"));
@@ -336,7 +316,6 @@ public partial class ExcelExportService : IExcelExportService
             row++;
         }
 
-        // Total
         if (payments.Count > 0)
         {
             ws.Row(row).Height = 22;
@@ -383,7 +362,6 @@ public partial class ExcelExportService : IExcelExportService
             row++;
         }
 
-        // Total
         if (expenses.Count > 0)
         {
             ws.Row(row).Height = 22;
@@ -462,9 +440,6 @@ public partial class ExcelExportService : IExcelExportService
         int idx = 1;
         foreach (var wp in workerPayments)
         {
-            // PDF §15: "Qolgan usta haqi = Kelishilgan summa − To'langan summa".
-            // API'dagi WorkerPaymentDto.RemainingAmount bilan bir xil formula —
-            // Excel va API bir xil raqamni ko'rsatishi shart.
             var remaining = wp.AgreedAmount - wp.PaidAmount;
             ws.Row(row).Height = 20;
             ws.Cell(row, 1).Value = idx++;
@@ -627,7 +602,6 @@ public partial class ExcelExportService : IExcelExportService
             ("11. KUTILAYOTGAN SOF FOYDA", netProfit, "PROFIT")
         };
 
-        // Table Header
         ws.Row(3).Height = 24;
         ws.Cell(3, 1).Value = "Moliyaviy Ko'rsatkich";
         ws.Cell(3, 2).Value = "Summa";

@@ -66,7 +66,6 @@ export const ReportsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Yillik to'liq moliyaviy hisobot */}
       <div className="bg-gradient-to-br from-[#1e293b] to-[#334155] rounded-xl p-4 sm:p-6 shadow-sm text-white">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-xl min-w-0">
@@ -103,7 +102,6 @@ export const ReportsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Ixtiyoriy sana oralig'i */}
         <div className="mt-5 pt-4 border-t border-white/10 flex flex-wrap items-end justify-between gap-4">
           <div className="max-w-xl min-w-0">
             <div className="text-sm font-bold">Tanlangan davr bo'yicha hisobot</div>
@@ -154,7 +152,6 @@ export const ReportsPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-        {/* Report 1 */}
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs flex flex-col justify-between space-y-4">
           <div>
             <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
@@ -174,7 +171,6 @@ export const ReportsPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Individual Project 9-Sheet Reports */}
         {projects.map((p) => (
           <div key={p.id} className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs flex flex-col justify-between space-y-4">
             <div>

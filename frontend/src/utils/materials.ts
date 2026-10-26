@@ -2,8 +2,6 @@ import { Material } from '../types';
 
 export const MATERIAL_UNITS = ['dona', 'm²', 'kg', 'qop', 'm³', 'metr', 'litr', 'komplekt', 'list', 'rulon'];
 
-// Katta-kichik harf, ortiqcha bo'shliq, diakritika (ı/i, ç/c, ş/s...) va apostrof turlarisiz
-// solishtirish (serverdagi MaterialService.MatchKey bilan bir xil qoida)
 export const normalizeText = (s: string | undefined | null) =>
   (s ?? '')
     .trim()
@@ -29,7 +27,6 @@ const levenshtein = (a: string, b: string) => {
   return prev[b.length];
 };
 
-// Yozuv xatosi bilan o'xshash (masalan: "alchipan" ~ "alcipan")
 export const isSimilar = (typed: string, candidate: string) => {
   const t = normalizeText(typed);
   const c = normalizeText(candidate);
@@ -45,7 +42,6 @@ export const findCatalogMaterial = (materials: Material[], name: string, brand: 
   return materials.find((m) => normalizeText(m.name) === n && normalizeText(m.brand) === b);
 };
 
-// Ehtimoliy takrorlar: nomi bir xil/o'xshash va brendi bir xil/o'xshash (yoki biri bo'sh)
 export const findDuplicateCandidates = (materials: Material[], target: Material) =>
   materials.filter((m) => {
     if (m.id === target.id) return false;

@@ -13,7 +13,6 @@ export const formatUzs = (amount: number) =>
 export const formatMoney = (amount: number, currency: Currency) =>
   currency === 'USD' ? formatUsd(amount) : formatUzs(amount);
 
-/** Joriy Markaziy bank (CBU) USD→UZS kursi. Yuklanmaguncha 0. */
 export const useCbuRate = () => {
   const [rate, setRate] = useState(0);
   useEffect(() => {

@@ -44,7 +44,6 @@ export interface AgreementDocData {
   finalPct: number;
 }
 
-// API dagi shartnoma obyektini hujjat ma'lumotlariga aylantiradi (forma bilan bir xil standart qiymatlar)
 export const agreementToDocData = (a: any): AgreementDocData => ({
   contractNumber: a.contractNumber || 1,
   day: a.day || new Date().getDate(),

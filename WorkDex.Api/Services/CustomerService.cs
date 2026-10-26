@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using WorkDex.Api.Data;
 using WorkDex.Api.DTOs.Customers;
 using WorkDex.Api.Models;
@@ -22,7 +22,6 @@ public class CustomerService : ICustomerService
 
         if (requestingUserRole == UserRole.SuperAdmin)
         {
-            // SuperAdmin barcha mijozlarni ko'radi
         }
         else
         {
@@ -107,7 +106,6 @@ public class CustomerService : ICustomerService
 
         await EnsureSameCompanyAsync(customer, requestingUserId, requestingUserRole);
 
-        // Loyihalari bo'lsa o'chirib bo'lmaydi — ma'lumot yo'qolmasligi uchun
         if (customer.Projects.Any())
             throw new InvalidOperationException(
                 $"Bu mijozda {customer.Projects.Count} ta loyiha mavjud. Avval loyihalarni o'chirish yoki boshqa mijozga ko'chirish kerak.");

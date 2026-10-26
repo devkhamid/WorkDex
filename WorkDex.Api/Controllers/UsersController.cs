@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkDex.Api.DTOs.Users;
 using WorkDex.Api.Helpers;
@@ -9,8 +9,7 @@ namespace WorkDex.Api.Controllers;
 
 [ApiController]
 [Route("api/users")]
-[Authorize] // Barcha endpointlar uchun login talab qilinadi
-public class UsersController : ControllerBase
+[Authorize]public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
 
@@ -19,7 +18,6 @@ public class UsersController : ControllerBase
         _userService = userService;
     }
 
-    // Har qanday login qilgan foydalanuvchi o'z ma'lumotlarini ko'ra oladi
     [HttpGet("me")]
     public async Task<IActionResult> GetMe()
     {
@@ -35,7 +33,6 @@ public class UsersController : ControllerBase
         }
     }
 
-    // SuperAdmin va Admin barcha foydalanuvchilarni ko'ra oladi
     [HttpGet]
     [Authorize(Roles = "SuperAdmin,Admin")]
     public async Task<IActionResult> GetAll()
@@ -44,7 +41,6 @@ public class UsersController : ControllerBase
         return Ok(users);
     }
 
-    // Admin — kompaniya xodimlari va ularning vazifa statistikasi (mijozlarsiz)
     [HttpGet("team")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetTeam()
@@ -53,7 +49,6 @@ public class UsersController : ControllerBase
         return Ok(staff);
     }
 
-    // Admin — xodimga biriktirilgan barcha vazifalar (kompaniya loyihalari bo'yicha)
     [HttpGet("{id:guid}/tasks")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetUserTasks(Guid id)
@@ -69,7 +64,6 @@ public class UsersController : ControllerBase
         }
     }
 
-    // Admin — xodim parolini yangilaydi
     [HttpPost("{id:guid}/reset-password")]
     [Authorize(Roles = "SuperAdmin,Admin")]
     public async Task<IActionResult> ResetPassword(Guid id, [FromBody] ResetPasswordDto dto)
@@ -89,7 +83,6 @@ public class UsersController : ControllerBase
         }
     }
 
-    // SuperAdmin va Admin bitta foydalanuvchini ko'ra oladi
     [HttpGet("{id:guid}")]
     [Authorize(Roles = "SuperAdmin,Admin")]
     public async Task<IActionResult> GetById(Guid id)
@@ -105,7 +98,6 @@ public class UsersController : ControllerBase
         }
     }
 
-    // SuperAdmin va Admin foydalanuvchini tahrirlaydi
     [HttpPut("{id:guid}")]
     [Authorize(Roles = "SuperAdmin,Admin")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateUserDto dto)
@@ -125,7 +117,6 @@ public class UsersController : ControllerBase
         }
     }
 
-    // SuperAdmin va Admin hisobni faollashtiradi yoki to'xtatadi
     [HttpPatch("{id:guid}/toggle-active")]
     [Authorize(Roles = "SuperAdmin,Admin")]
     public async Task<IActionResult> ToggleActive(Guid id)
@@ -146,7 +137,6 @@ public class UsersController : ControllerBase
         }
     }
 
-    // SuperAdmin foydalanuvchini butunlay o'chiradi
     [HttpDelete("{id:guid}")]
     [Authorize(Roles = "SuperAdmin")]
     public async Task<IActionResult> Delete(Guid id)

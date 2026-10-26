@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -27,10 +27,6 @@ public class AiAnalysisRequestDto
     public string? Question { get; set; }
 }
 
-/// <summary>
-/// Loyiha ma'lumotlarini yig'ib, Groq (OpenAI-mos API) orqali AI tahlil qiladi.
-/// API kalit faqat serverda saqlanadi: "Groq:ApiKey" (user-secrets yoki env: Groq__ApiKey).
-/// </summary>
 public class AiAnalysisService : IAiAnalysisService
 {
     private const string GroqUrl = "https://api.groq.com/openai/v1/chat/completions";

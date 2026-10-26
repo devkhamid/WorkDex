@@ -35,12 +35,10 @@ interface MoneyInputProps {
   required?: boolean;
   placeholder?: string;
   min?: number;
-  /** Valyuta tanlashni yashirish (masalan, mavjud yozuv valyutasi qat'iy bo'lsa) */
   lockCurrency?: boolean;
   hint?: string;
 }
 
-/** Summa kiritish: so'm/USD tanlash + joriy CBU kursi bo'yicha avtomatik konvertatsiya ko'rinishi */
 export const MoneyInput = ({
   label,
   value,
@@ -89,16 +87,13 @@ export const MoneyInput = ({
 };
 
 interface UsdWithUzsProps {
-  /** Asosiy (USD) summa. Agar faqat so'm ma'lum bo'lsa, `uzs` bering — USD kurs orqali hisoblanadi. */
   usd?: number | null;
   uzs?: number | null;
   className?: string;
   uzsClassName?: string;
-  /** Bitta qatorda (jadvallar uchun ixcham) */
   inline?: boolean;
 }
 
-/** Natija ko'rsatish: katta USD, ostida kichik so'm */
 export const UsdWithUzs = ({ usd, uzs, className = '', uzsClassName = '', inline }: UsdWithUzsProps) => {
   const rate = useCbuRate();
   const usdVal = usd ?? (uzs != null ? toUsd(uzs, 'UZS', rate) : 0);

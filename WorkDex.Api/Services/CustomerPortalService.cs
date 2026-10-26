@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using WorkDex.Api.Data;
 using WorkDex.Api.DTOs.Portal;
 using WorkDex.Api.Models;
@@ -29,7 +29,6 @@ public class CustomerPortalService : ICustomerPortalService
         if (project is null)
             throw new KeyNotFoundException("Loyiha topilmadi.");
 
-        // Agar so'rov yuboruvchi Mijoz (Customer) bo'lsa, faqat o'z loyihasini ko'ra oladi
         if (requestingUserRole == "Customer")
         {
             var customerProfile = await _context.Customers
@@ -41,7 +40,6 @@ public class CustomerPortalService : ICustomerPortalService
             }
         }
 
-        // To'lovlar hisobi
         var totalPaid = await _context.Payments
             .Where(p => p.ProjectId == projectId)
             .SumAsync(p => (decimal?)p.Amount) ?? 0;

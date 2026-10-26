@@ -8,7 +8,6 @@ export const SuperAdminPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // New Admin Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newFirstName, setNewFirstName] = useState('');
   const [newLastName, setNewLastName] = useState('');
@@ -91,7 +90,6 @@ export const SuperAdminPage: React.FC = () => {
 
   return (
     <div className="p-4 sm:p-6 space-y-5 bg-white">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-gray-100">
         <div className="min-w-0">
           <div className="flex items-center gap-2 min-w-0">
@@ -112,7 +110,6 @@ export const SuperAdminPage: React.FC = () => {
         </button>
       </div>
 
-      {/* 3 Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 sm:p-5 shadow-xs flex items-center gap-3 sm:gap-4 min-w-0">
           <div className="w-12 h-12 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center text-[#ff7a16]">
@@ -145,7 +142,6 @@ export const SuperAdminPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Admins Table */}
       <div className="bg-white border border-[#e4e7ec] rounded-xl shadow-xs overflow-hidden">
         <div className="p-4 border-b border-[#e4e7ec] flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 border border-[#e4e7ec] rounded-lg px-3 h-9 w-full sm:w-72 bg-gray-50/50">
@@ -245,7 +241,6 @@ export const SuperAdminPage: React.FC = () => {
         </div>
       </div>
 
-      {/* CREATE ADMIN MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
           <div className="bg-white rounded-t-2xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-md max-h-[92vh] overflow-y-auto shadow-xl border border-gray-200 space-y-4">

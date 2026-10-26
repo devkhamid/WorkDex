@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using WorkDex.Api.Data;
 using WorkDex.Api.DTOs.Agreements;
 using WorkDex.Api.DTOs.Projects;
@@ -299,7 +299,6 @@ public class AgreementService : IAgreementService
                 throw new KeyNotFoundException("Tanlangan menejerlardan biri topilmadi.");
         }
 
-        // Agar mijoz belgilanmagan bo'lsa yoki bazadan o'chirilgan bo'lsa, avtomatik yaratamiz
         var customerExists = agreement.CustomerId.HasValue
             && await _context.Customers.AnyAsync(c => c.Id == agreement.CustomerId.Value);
         if (customerExists)
@@ -324,7 +323,6 @@ public class AgreementService : IAgreementService
             agreement.CustomerId = fallbackCustomer.Id;
         }
 
-        // Loyiha yaratish — shartnoma summasi UZS da; CreateAsync uni bugungi CBU kursi bilan USD ga o'giradi
         var createProjectDto = new CreateProjectDto
         {
             Name = projectName,
@@ -340,7 +338,6 @@ public class AgreementService : IAgreementService
         var project = await _projectService.CreateAsync(createProjectDto, createdByUserId);
         agreement.ExchangeRate = project.ExchangeRate;
 
-        // Loyiha maydonlarini yangilash
         var projectEntity = await _context.Projects.FindAsync(project.Id);
         if (projectEntity != null)
         {
@@ -352,12 +349,10 @@ public class AgreementService : IAgreementService
             projectEntity.FinalPercent = agreement.FinalPercent;
             projectEntity.ExchangeRate = agreement.ExchangeRate;
             projectEntity.AgreementId = agreement.Id;
-            // Shartnomadan UZS summasi ham saqlaymiz
             if (agreement.TotalAmountUZS > 0)
                 projectEntity.ContractAmountUzs = agreement.TotalAmountUZS;
         }
 
-        // Menejerlarni qo'shish
         foreach (var managerId in managerIds)
         {
             var member = new ProjectMember

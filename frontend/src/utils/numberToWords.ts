@@ -1,4 +1,3 @@
-// Raqamni Ruscha so'zga aylantirish (UZS uchun)
 export function numberToWordsRu(num: number): string {
   if (num === 0) return 'ноль сумов';
   if (isNaN(num)) return '';

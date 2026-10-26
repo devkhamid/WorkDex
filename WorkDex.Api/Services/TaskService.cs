@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using WorkDex.Api.Data;
 using WorkDex.Api.DTOs.Tasks;
 using WorkDex.Api.Models;
@@ -174,8 +174,6 @@ public class TaskService : ITaskService
         await RecalculateProjectProgressAsync(projectId);
     }
 
-    // PDF §8 va §15 — Avtomatik Progress hisoblash formulasi:
-    // Progress = (Bajarilgan vazifalar og'irligi / Jami vazifalar og'irligi) * 100
     private async Task RecalculateProjectProgressAsync(Guid projectId)
     {
         var project = await _context.Projects.FindAsync(projectId);

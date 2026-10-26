@@ -1,4 +1,4 @@
-using WorkDex.Api.Models;
+﻿using WorkDex.Api.Models;
 
 namespace WorkDex.Api.DTOs.Projects;
 
@@ -29,7 +29,6 @@ public class ProjectDto
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
-    // Shartnomadan kelgan maydonlar
     public string? Block { get; set; }
     public string? ApartmentNumber { get; set; }
     public decimal? AreaM2 { get; set; }
@@ -37,6 +36,5 @@ public class ProjectDto
     public int IntermediatePercent { get; set; } = 50;
     public int FinalPercent { get; set; } = 20;
     public decimal? ExchangeRate { get; set; }
-    public decimal? ContractAmountUzs { get; set; } // UZS da kiritilgan asl shartnoma summasi
-    public Guid? AgreementId { get; set; }
+    public decimal? ContractAmountUzs { get; set; }    public Guid? AgreementId { get; set; }
 }

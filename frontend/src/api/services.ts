@@ -180,7 +180,6 @@ export const projectsApi = {
     const res = await apiClient.delete(`/projects/${id}`);
     return res.data;
   },
-  // Stages
   getStages: async (projectId: string): Promise<ProjectStage[]> => {
     const res = await apiClient.get<ProjectStage[]>(`/projects/${projectId}/stages`);
     return res.data;
@@ -193,7 +192,6 @@ export const projectsApi = {
     const res = await apiClient.patch<ProjectStage>(`/projects/${projectId}/stages/${stageId}/complete`);
     return res.data;
   },
-  // Payments
   getPayments: async (projectId: string): Promise<Payment[]> => {
     const res = await apiClient.get<Payment[]>(`/projects/${projectId}/payments`);
     return res.data;
@@ -208,7 +206,6 @@ export const projectsApi = {
     const res = await apiClient.post<Payment>(`/projects/${projectId}/payments`, data);
     return res.data;
   },
-  // Expenses
   getExpenses: async (projectId: string, category?: number): Promise<Expense[]> => {
     const url = category ? `/projects/${projectId}/expenses?category=${category}` : `/projects/${projectId}/expenses`;
     const res = await apiClient.get<Expense[]>(url);
@@ -225,14 +222,12 @@ export const projectsApi = {
     const res = await apiClient.post<Expense>(`/projects/${projectId}/expenses`, data);
     return res.data;
   },
-  // Material Purchases
   getPurchases: async (projectId: string): Promise<MaterialPurchase[]> => {
     const res = await apiClient.get<MaterialPurchase[]>(`/projects/${projectId}/material-purchases`);
     return res.data;
   },
   createPurchase: async (projectId: string, data: {
     materialId?: string;
-    // materialName berilsa server katalogdan nom+brend bo'yicha topadi yoki yaratadi
     materialName?: string;
     brand?: string;
     unit?: string;
@@ -251,7 +246,6 @@ export const projectsApi = {
     const res = await apiClient.get<MaterialSummary[]>(`/projects/${projectId}/materials-summary`);
     return res.data;
   },
-  // Worker Payments
   getWorkerPayments: async (projectId: string): Promise<WorkerPayment[]> => {
     const res = await apiClient.get<WorkerPayment[]>(`/projects/${projectId}/worker-payments`);
     return res.data;
@@ -286,7 +280,6 @@ export const projectsApi = {
     const res = await apiClient.get<WorkerSummary[]>(`/projects/${projectId}/workers-summary`);
     return res.data;
   },
-  // Extra Works
   getExtraWorks: async (projectId: string): Promise<ExtraWork[]> => {
     const res = await apiClient.get<ExtraWork[]>(`/projects/${projectId}/extra-works`);
     return res.data;
@@ -307,7 +300,6 @@ export const projectsApi = {
     const res = await apiClient.patch<ExtraWork>(`/projects/${projectId}/extra-works/${extraWorkId}/toggle-approval`);
     return res.data;
   },
-  // Tasks
   getTasks: async (projectId: string): Promise<ProjectTask[]> => {
     const res = await apiClient.get<ProjectTask[]>(`/projects/${projectId}/tasks`);
     return res.data;
@@ -342,7 +334,6 @@ export const projectsApi = {
   deleteTask: async (projectId: string, taskId: string): Promise<void> => {
     await apiClient.delete(`/projects/${projectId}/tasks/${taskId}`);
   },
-  // Documents
   getDocuments: async (projectId: string): Promise<ProjectDocument[]> => {
     const res = await apiClient.get<ProjectDocument[]>(`/projects/${projectId}/documents`);
     return res.data;
@@ -365,7 +356,6 @@ export const projectsApi = {
   deleteDocument: async (projectId: string, documentId: string): Promise<void> => {
     await apiClient.delete(`/projects/${projectId}/documents/${documentId}`);
   },
-  // Photos
   getPhotos: async (projectId: string): Promise<ProjectPhoto[]> => {
     const res = await apiClient.get<ProjectPhoto[]>(`/projects/${projectId}/photos`);
     return res.data;
@@ -380,7 +370,6 @@ export const projectsApi = {
     const res = await apiClient.post<ProjectPhoto>(`/projects/${projectId}/photos`, data);
     return res.data;
   },
-  // Updates
   getUpdates: async (projectId: string): Promise<ProjectUpdate[]> => {
     const res = await apiClient.get<ProjectUpdate[]>(`/projects/${projectId}/updates`);
     return res.data;
@@ -429,7 +418,6 @@ export const materialsApi = {
     const res = await apiClient.get<MaterialUsage[]>('/materials/usage', { params: { from: from || undefined, to: to || undefined } });
     return res.data;
   },
-  // sourceId dagi barcha xaridlar targetId ga o'tkaziladi, sourceId o'chiriladi
   merge: async (sourceId: string, targetId: string): Promise<Material> => {
     const res = await apiClient.post<Material>(`/materials/${sourceId}/merge`, { targetId });
     return res.data;
@@ -628,7 +616,6 @@ export interface CurrencyRateHistoryPoint {
   rate: number;
 }
 
-// CBU kursi kuniga bir marta o'zgaradi — barcha komponentlar bitta so'rovni bo'lishadi
 let cbuRatePromise: Promise<number> | null = null;
 export const getCbuRate = (): Promise<number> => {
   if (!cbuRatePromise) {

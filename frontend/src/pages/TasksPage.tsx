@@ -51,7 +51,6 @@ export const TasksPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Pending Tasks */}
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs space-y-3">
           <div className="flex items-center justify-between gap-2 pb-2 border-b border-gray-100">
             <h3 className="font-bold text-xs text-[#171b25]">Bajarilishi Kerak</h3>
@@ -85,7 +84,6 @@ export const TasksPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Completed Tasks */}
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs space-y-3">
           <div className="flex items-center justify-between gap-2 pb-2 border-b border-gray-100">
             <h3 className="font-bold text-xs text-[#171b25]">Yakunlangan Vazifalar</h3>

@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace WorkDex.Api.DTOs.Workers;
 
@@ -13,8 +13,7 @@ public class CreateWorkerDto
     public string PhoneNumber { get; set; } = string.Empty;
 
     [MaxLength(200)]
-    public string? Specialty { get; set; } // Kafelchi, Suvoqchi, Elektrik, Santexnik, Malyar...
-
+    public string? Specialty { get; set; }
     [MaxLength(1000)]
     public string? Notes { get; set; }
 }

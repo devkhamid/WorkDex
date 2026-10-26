@@ -4,11 +4,9 @@
 
 namespace WorkDex.Api.Migrations
 {
-    /// <inheritdoc />
-    public partial class RenameHakedisToWorkAmount : Migration
+        public partial class RenameHakedisToWorkAmount : Migration
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
+                protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.RenameColumn(
                 name: "HakedisAmount",
@@ -16,8 +14,7 @@ namespace WorkDex.Api.Migrations
                 newName: "WorkAmount");
         }
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
+                protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.RenameColumn(
                 name: "WorkAmount",

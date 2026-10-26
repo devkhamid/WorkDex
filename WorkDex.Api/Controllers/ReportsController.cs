@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkDex.Api.Helpers;
 using WorkDex.Api.Services;
@@ -17,7 +17,6 @@ public class ReportsController : ControllerBase
         _excelService = excelService;
     }
 
-    // PDF §16 — Muayyan bitta loyiha bo'yicha 9 varaqli Excel hisoboti
     [HttpGet("projects/{projectId:guid}/excel")]
     public async Task<IActionResult> ExportProjectExcel(Guid projectId)
     {
@@ -33,7 +32,6 @@ public class ReportsController : ControllerBase
         }
     }
 
-    // PDF §16 — Barcha loyihalar konsolidatsiyalangan Excel hisoboti
     [HttpGet("all-projects/excel")]
     public async Task<IActionResult> ExportAllProjectsExcel()
     {
@@ -42,7 +40,6 @@ public class ReportsController : ControllerBase
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
     }
 
-    // Yillik to'liq moliyaviy tahlil: ofis + loyihalar, barcha tahlil varaqlari Excel formulalari bilan.
     [HttpGet("annual/excel")]
     public async Task<IActionResult> ExportAnnualExcel([FromQuery] int? year)
     {
@@ -55,7 +52,6 @@ public class ReportsController : ControllerBase
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
     }
 
-    // Ixtiyoriy sana oralig'i bo'yicha moliyaviy tahlil (yillik hisobot bilan bir xil tuzilma, formulalar sana bo'yicha).
     [HttpGet("range/excel")]
     public async Task<IActionResult> ExportRangeExcel([FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {

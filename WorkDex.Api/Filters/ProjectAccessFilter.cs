@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.DependencyInjection;
 using WorkDex.Api.Helpers;
@@ -6,23 +6,12 @@ using WorkDex.Api.Services;
 
 namespace WorkDex.Api.Filters;
 
-/// <summary>
-/// Marshrutida <c>projectId</c> bo'lgan har qanday so'rovda joriy foydalanuvchining
-/// shu loyihaga huquqi borligini tekshiradi. Shu bilan barcha ichki resurslar
-/// (to'lovlar, xarajatlar, materiallar, usta haqlari, vazifalar, hujjatlar,
-/// fotolar, yangilanishlar) begona kompaniyaga ko'rinmaydi.
-///
-/// Filtr faqat qo'shimcha tekshiruv qo'shadi — mavjud biznes-logika o'zgarmaydi.
-/// Ruxsat yo'q bo'lsa loyihaning mavjudligini oshkor qilmaslik uchun 404 qaytadi.
-/// </summary>
 public class ProjectAccessFilter : IAsyncActionFilter
 {
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
         var user = context.HttpContext.User;
 
-        // Anonim endpointlar va autentifikatsiyadan o'tmagan so'rovlarga aralashmaymiz —
-        // ularni [Authorize] atributlari hal qiladi.
         if (user?.Identity?.IsAuthenticated != true)
         {
             await next();

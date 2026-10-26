@@ -39,7 +39,6 @@ export const NotificationBell: React.FC = () => {
       setUnread(data.unreadCount);
       return data;
     } catch {
-      /* tarmoq xatosida eski ro'yxat qoladi */
       return null;
     }
   }, []);
@@ -86,8 +85,6 @@ export const NotificationBell: React.FC = () => {
     setLoading(true);
     const data = await load();
     setLoading(false);
-    // Ochilganda hammasi o'qilgan hisoblanadi; ro'yxatdagi "yangi" belgilari
-    // menyu yopilguncha ko'rinib turadi.
     if (data && data.unreadCount > 0) {
       notificationsApi.markAllRead().then(() => setUnread(0)).catch(() => {});
     }

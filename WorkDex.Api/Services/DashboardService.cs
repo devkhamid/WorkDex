@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using WorkDex.Api.Data;
 using WorkDex.Api.DTOs.Dashboard;
 using WorkDex.Api.Models;
@@ -65,20 +65,17 @@ public class DashboardService : IDashboardService
         var completedProjects = projects.Count(p => p.Status == ProjectStatus.Completed);
         var onHoldProjects = projects.Count(p => p.Status == ProjectStatus.OnHold);
 
-        // Shartnomalar + tasdiqlangan qo'shimcha ishlar (USD)
         var baseContractValue = projects.Sum(p => p.ContractAmount);
         var approvedExtraWorksValue = await _context.ExtraWorks
             .Where(ew => accessibleIds.Contains(ew.ProjectId) && ew.IsApprovedByCustomer)
             .SumAsync(ew => (decimal?)ew.CustomerAmount) ?? 0;
         var totalContractValue = baseContractValue + approvedExtraWorksValue;
 
-        // Olingan tushumlar (USD)
         var totalRevenue = await _context.Payments
             .Where(p => accessibleIds.Contains(p.ProjectId))
             .SumAsync(p => (decimal?)p.Amount) ?? 0;
         var totalPendingReceivables = totalContractValue - totalRevenue;
 
-        // Material xaridlari
         var allPurchases = await _context.MaterialPurchases
             .Where(mp => accessibleIds.Contains(mp.ProjectId))
             .ToListAsync();
@@ -95,7 +92,6 @@ public class DashboardService : IDashboardService
                 totalMaterialExpensesUsd += mpRate > 0 ? Math.Round(mp.TotalCost / mpRate, 2) : mp.TotalCost;
         }
 
-        // Xarajatlar
         var allExpenses = await _context.Expenses
             .Where(e => e.ProjectId != null && accessibleIds.Contains(e.ProjectId.Value))
             .ToListAsync();
@@ -130,7 +126,6 @@ public class DashboardService : IDashboardService
             }
         }
 
-        // Usta to'lovlari
         var allWorkerPayments = await _context.WorkerPayments
             .Where(wp => accessibleIds.Contains(wp.ProjectId))
             .ToListAsync();
@@ -142,7 +137,6 @@ public class DashboardService : IDashboardService
             totalLaborExpensesUsd += wpRate > 0 ? Math.Round(wp.PaidAmount / wpRate, 2) : wp.PaidAmount;
         }
 
-        // Qo'shimcha ishlar tannarxi
         var allExtraWorks = await _context.ExtraWorks
             .Where(ew => accessibleIds.Contains(ew.ProjectId) && ew.IsApprovedByCustomer)
             .ToListAsync();
@@ -158,7 +152,6 @@ public class DashboardService : IDashboardService
         var netBalanceUsd = totalRevenue - totalExpensesUsd;
         var netBalanceUzs = (totalRevenue * defaultRate) - totalExpensesUzs;
 
-        // Byudjetdan oshish xavfi bor loyihalar
         var atRiskCount = 0;
         decimal totalBudgetUtilization = 0;
 
@@ -253,7 +246,6 @@ public class DashboardService : IDashboardService
         var defaultRate = await Money.CurrentRateAsync(_currencyService);
         decimal RateOf(decimal? r) => r is > 0 ? r.Value : defaultRate;
 
-        // Amount har doim USD, AmountUzs ? so'm ekvivalenti (yozuvdagi kurs bo'yicha)
         var payments = (await _context.Payments
             .Where(p => accessibleIds.Contains(p.ProjectId))
             .OrderByDescending(p => p.CreatedAt)

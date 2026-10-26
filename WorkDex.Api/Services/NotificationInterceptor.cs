@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -7,16 +7,9 @@ using WorkDex.Api.Models;
 
 namespace WorkDex.Api.Services;
 
-/// <summary>
-/// Har bir SaveChanges da qo'shilgan / o'zgartirilgan / o'chirilgan yozuvlardan
-/// kompaniya bildirishnomalarini yaratadi. Bildirishnoma o'zgarish bilan bitta
-/// tranzaksiyada saqlanadi va faqat amalni bajargan foydalanuvchining
-/// kompaniyasiga (CompanyAdminId) tegishli bo'ladi.
-/// </summary>
 public class NotificationInterceptor : SaveChangesInterceptor
 {
     private const int MaxNotificationsPerSave = 3;
-    // Avtomatik hisoblanadigan maydonlar — bular o'zgarishi alohida bildirish emas
     private static readonly HashSet<string> IgnoredProperties = new() { "UpdatedAt", "CreatedAt", "ProgressPercent" };
 
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -41,7 +34,6 @@ public class NotificationInterceptor : SaveChangesInterceptor
             }
             catch (Exception ex)
             {
-                // Bildirishnoma yaratilmasa ham asosiy amal bajarilishi kerak.
                 _logger.LogWarning(ex, "Bildirishnoma yaratishda xatolik");
             }
         }
@@ -90,8 +82,6 @@ public class NotificationInterceptor : SaveChangesInterceptor
         }
         if (changes.Count == 0) return;
 
-        // Loyiha yaratilishi/o'chirilishi bilan birga keladigan bog'liq yozuvlar
-        // (bosqichlar, kaskad o'chirishlar) alohida bildirishnoma bo'lmasin.
         var projectLifecycle = changes
             .Where(c => c.Type == nameof(Project) && c.Action != NotificationAction.Updated)
             .Select(c => c.ProjectId)
@@ -100,20 +90,16 @@ public class NotificationInterceptor : SaveChangesInterceptor
             .Where(c => c.Type == nameof(Project) || c.ProjectId is null || !projectLifecycle.Contains(c.ProjectId))
             .ToList();
 
-        // Loyiha tahrirlanganda bosqichlar ham qayta yoziladi — bitta "loyiha o'zgartirildi" yetarli.
         var editedProjects = changes
             .Where(c => c.Type == nameof(Project) && c.Action == NotificationAction.Updated)
             .Select(c => c.ProjectId)
             .ToHashSet();
         changes.RemoveAll(c => c.Type == nameof(ProjectStage) && editedProjects.Contains(c.ProjectId));
 
-        // Boshqa o'zgarish natijasida loyiha (masalan progress) yangilansa — ikkilamchi.
         if (changes.Any(c => c.Type != nameof(Project)))
             changes.RemoveAll(c => c.Type == nameof(Project) && c.Action == NotificationAction.Updated);
-        // Material xaridi paytida katalogga avtomatik qo'shilgan material — ikkilamchi.
         if (changes.Any(c => c.Type == nameof(MaterialPurchase)))
             changes.RemoveAll(c => c.Type == nameof(Material));
-        // Shartnomadan loyiha yaratilganda shartnoma holati ham o'zgaradi.
         if (changes.Any(c => c.Type == nameof(Project) && c.Action == NotificationAction.Created))
             changes.RemoveAll(c => c.Type is nameof(Agreement) or nameof(Customer) && c.Action != NotificationAction.Deleted);
         if (changes.Count == 0) return;

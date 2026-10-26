@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace WorkDex.Api.DTOs.Workers;
 
@@ -16,7 +16,6 @@ public class CreateWorkerPaymentDto
     public decimal AgreedAmount { get; set; }
 
     [MaxLength(3)]
-    // AgreedAmount, WorkAmount va PaidAmount shu valyutada; kurs serverda CBU dan olinadi
     public string Currency { get; set; } = "UZS";
 
     [Range(0, double.MaxValue, ErrorMessage = "Bajarilgan ish haqi manfiy bo'lishi mumkin emas.")]
@@ -72,13 +71,10 @@ public class WorkerPaymentDto
     public string Currency { get; set; } = "UZS";
     public decimal? ExchangeRateToUzs { get; set; }
     public decimal? OriginalAgreedAmount { get; set; }
-    public decimal WorkAmount { get; set; } // Bajarilgan ish haqi
-    public decimal PaidAmount { get; set; }
+    public decimal WorkAmount { get; set; }    public decimal PaidAmount { get; set; }
     public decimal AgreedAmountUsd { get; set; }
     public decimal PaidAmountUsd { get; set; }
-    public decimal RemainingAmount => AgreedAmount - PaidAmount; // Qoldiq qarz
-    public decimal RemainingAllowedToPay => Math.Max(0, AgreedAmount - PaidAmount); // To'lanishi mumkin bo'lgan maksimal qoldiq
-    public bool IsFullyPaid => AgreedAmount > 0 && PaidAmount >= AgreedAmount;
+    public decimal RemainingAmount => AgreedAmount - PaidAmount;    public decimal RemainingAllowedToPay => Math.Max(0, AgreedAmount - PaidAmount);    public bool IsFullyPaid => AgreedAmount > 0 && PaidAmount >= AgreedAmount;
     public DateTime? PaymentDate { get; set; }
     public string? Notes { get; set; }
     public Guid CreatedByUserId { get; set; }
@@ -92,8 +88,7 @@ public class ProjectWorkerSummaryDto
     public string WorkerName { get; set; } = string.Empty;
     public string? Specialty { get; set; }
     public decimal TotalAgreedAmount { get; set; }
-    public decimal TotalWorkAmount { get; set; } // Jami bajarilgan ish haqi
-    public decimal TotalPaidAmount { get; set; }
+    public decimal TotalWorkAmount { get; set; }    public decimal TotalPaidAmount { get; set; }
     public decimal RemainingAmount => TotalAgreedAmount - TotalPaidAmount;
     public decimal RemainingAllowedToPay => Math.Max(0, TotalAgreedAmount - TotalPaidAmount);
     public bool IsFullyPaid => TotalAgreedAmount > 0 && TotalPaidAmount >= TotalAgreedAmount;

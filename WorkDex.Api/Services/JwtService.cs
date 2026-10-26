@@ -1,4 +1,4 @@
-using System.IdentityModel.Tokens.Jwt;
+﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
@@ -34,7 +34,6 @@ public class JwtService : IJwtService
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.FullName),
             new Claim(ClaimTypes.Role, user.Role.ToString()),
-            // Frontendda qulay bo'lishi uchun role ni ham qo'shamiz
             new Claim("role", user.Role.ToString()),
             new Claim("userId", user.Id.ToString()),
             new Claim("fullName", user.FullName),

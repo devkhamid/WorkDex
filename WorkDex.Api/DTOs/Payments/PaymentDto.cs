@@ -1,4 +1,4 @@
-using WorkDex.Api.Models;
+﻿using WorkDex.Api.Models;
 
 namespace WorkDex.Api.DTOs.Payments;
 
@@ -6,8 +6,7 @@ public class PaymentDto
 {
     public Guid Id { get; set; }
     public Guid ProjectId { get; set; }
-    public decimal Amount { get; set; } // USD
-    public string Currency { get; set; } = "USD";
+    public decimal Amount { get; set; }    public string Currency { get; set; } = "USD";
     public decimal? ExchangeRate { get; set; }
     public decimal? OriginalAmount { get; set; }
     public decimal AmountUzs { get; set; }
