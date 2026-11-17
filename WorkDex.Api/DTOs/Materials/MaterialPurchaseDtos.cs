@@ -86,3 +86,30 @@ public class MaterialUsageDto
     public decimal AverageUnitPrice { get; set; }    public int PurchaseCount { get; set; }
     public DateTime LastPurchaseDate { get; set; }
 }
+
+public class MaterialPurchaseImportRowDto
+{
+    public int Row { get; set; }
+    public string MaterialName { get; set; } = string.Empty;
+    public string? Brand { get; set; }
+    public string Unit { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    public string Currency { get; set; } = "UZS";
+    public decimal TotalCostUzs { get; set; }
+    public DateTime PurchaseDate { get; set; }
+    public bool IsNewMaterial { get; set; }
+}
+
+public class MaterialPurchaseImportResultDto
+{
+    public bool DryRun { get; set; }
+    public int TotalRows { get; set; }
+    public int Created { get; set; }
+    public decimal TotalCostUzs { get; set; }
+    public decimal TotalCostUsd { get; set; }
+    public decimal ExchangeRate { get; set; }
+    public List<string> NewMaterials { get; set; } = new();
+    public List<MaterialPurchaseImportRowDto> Rows { get; set; } = new();
+    public List<MaterialImportIssueDto> Errors { get; set; } = new();
+}

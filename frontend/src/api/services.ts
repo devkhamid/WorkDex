@@ -10,6 +10,7 @@ import {
   Material,
   MaterialImportResult,
   MaterialPurchase,
+  MaterialPurchaseImportResult,
   MaterialSummary,
   MaterialUsage,
   Payment,
@@ -241,6 +242,27 @@ export const projectsApi = {
     notes?: string;
   }): Promise<MaterialPurchase> => {
     const res = await apiClient.post<MaterialPurchase>(`/projects/${projectId}/material-purchases`, data);
+    return res.data;
+  },
+  downloadPurchaseImportTemplate: async (projectId: string): Promise<void> => {
+    const response = await apiClient.get(`/projects/${projectId}/material-purchases/import/template`, { responseType: 'blob' });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'WorkDex_Xarid_Shablon.xlsx');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
+  importPurchases: async (projectId: string, file: File, dryRun: boolean): Promise<MaterialPurchaseImportResult> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await apiClient.post<MaterialPurchaseImportResult>(
+      `/projects/${projectId}/material-purchases/import`,
+      formData,
+      { params: { dryRun }, headers: { 'Content-Type': 'multipart/form-data' } },
+    );
     return res.data;
   },
   getMaterialsSummary: async (projectId: string): Promise<MaterialSummary[]> => {

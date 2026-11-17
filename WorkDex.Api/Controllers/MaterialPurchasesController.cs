@@ -67,6 +67,53 @@ public class MaterialPurchasesController : ControllerBase
         }
     }
 
+    [HttpGet("api/projects/{projectId:guid}/material-purchases/import/template")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
+    public async Task<IActionResult> DownloadImportTemplate(Guid projectId)
+    {
+        try
+        {
+            var bytes = await _materialService.BuildPurchaseImportTemplateAsync(projectId, User.GetUserId());
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "WorkDex_Xarid_Shablon.xlsx");
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("api/projects/{projectId:guid}/material-purchases/import")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<IActionResult> ImportPurchases(Guid projectId, [FromForm] ImportMaterialsDto dto, [FromQuery] bool dryRun = true)
+    {
+        var file = dto.File;
+        if (file is null || file.Length == 0)
+            return BadRequest(new { message = "Fayl tanlanmagan." });
+        if (!Path.GetExtension(file.FileName).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { message = "Faqat .xlsx formatidagi Excel fayl qabul qilinadi." });
+        if (file.Length > 5 * 1024 * 1024)
+            return BadRequest(new { message = "Fayl hajmi 5 MB dan oshmasligi kerak." });
+
+        try
+        {
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            stream.Position = 0;
+            var result = await _materialService.ImportPurchasesAsync(projectId, stream, User.GetUserId(), dryRun);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
     [HttpDelete("api/projects/{projectId:guid}/material-purchases/{purchaseId:guid}")]
     [Authorize(Roles = "SuperAdmin,Admin,Finance")]
     public async Task<IActionResult> DeletePurchase(Guid projectId, Guid purchaseId)

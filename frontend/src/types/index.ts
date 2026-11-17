@@ -221,6 +221,31 @@ export interface MaterialImportResult {
   errors: MaterialImportIssue[];
 }
 
+export interface MaterialPurchaseImportRow {
+  row: number;
+  materialName: string;
+  brand?: string;
+  unit: string;
+  quantity: number;
+  unitPrice: number;
+  currency: Currency;
+  totalCostUzs: number;
+  purchaseDate: string;
+  isNewMaterial: boolean;
+}
+
+export interface MaterialPurchaseImportResult {
+  dryRun: boolean;
+  totalRows: number;
+  created: number;
+  totalCostUzs: number;
+  totalCostUsd: number;
+  exchangeRate: number;
+  newMaterials: string[];
+  rows: MaterialPurchaseImportRow[];
+  errors: MaterialImportIssue[];
+}
+
 export interface MaterialPurchase {
   id: string;
   projectId: string;

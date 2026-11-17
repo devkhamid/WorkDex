@@ -20,6 +20,7 @@ import { uploadAgreementPdfToProject, isAgreementPdfDoc } from '../utils/agreeme
 import { MoneyInput, UsdWithUzs } from '../components/Money';
 import { MaterialPicker } from '../components/MaterialPicker';
 import { RenameProjectModal } from '../components/RenameProjectModal';
+import { PurchaseImportModal } from '../components/PurchaseImportModal';
 import { AiAnalysisPanel } from '../components/AiAnalysisPanel';
 import { useAuth } from '../context/AuthContext';
 import { formatUsd, formatUzs, useCbuRate } from '../utils/money';
@@ -104,6 +105,7 @@ export const ProjectDetailPage: React.FC = () => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
+  const [isPurchaseImportOpen, setIsPurchaseImportOpen] = useState(false);
   const [isWorkerModalOpen, setIsWorkerModalOpen] = useState(false);
   const [isExtraWorkModalOpen, setIsExtraWorkModalOpen] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
@@ -1026,13 +1028,24 @@ export const ProjectDetailPage: React.FC = () => {
                 <h3 className="font-bold text-xs text-[#171b25]">Materiallar Xulosasi (Tahlil)</h3>
                 <div className="text-[10px] text-[#9399a4]">Qaysi materialdan qancha olingani va jami summasi</div>
               </div>
-              <button
-                onClick={handleOpenPurchaseModal}
-                className="bg-[#ff7a16] hover:bg-[#e86807] text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-xs"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Material xaridi kiritish</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                {canAttachAgreementPdf && (
+                  <button
+                    onClick={() => setIsPurchaseImportOpen(true)}
+                    className="bg-white hover:bg-gray-50 text-[#171b25] border border-[#e4e7ec] text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-xs"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-green-600" />
+                    <span>Excel orqali</span>
+                  </button>
+                )}
+                <button
+                  onClick={handleOpenPurchaseModal}
+                  className="bg-[#ff7a16] hover:bg-[#e86807] text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-xs"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Material xaridi kiritish</span>
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -1821,6 +1834,15 @@ export const ProjectDetailPage: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {isPurchaseImportOpen && id && (
+        <PurchaseImportModal
+          projectId={id}
+          projectName={project?.name}
+          onClose={() => setIsPurchaseImportOpen(false)}
+          onImported={() => loadAllData(id)}
+        />
       )}
 
       {isPurchaseModalOpen && (
