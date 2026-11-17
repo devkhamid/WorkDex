@@ -21,6 +21,7 @@ import { MoneyInput, UsdWithUzs } from '../components/Money';
 import { MaterialPicker } from '../components/MaterialPicker';
 import { RenameProjectModal } from '../components/RenameProjectModal';
 import { PurchaseImportModal } from '../components/PurchaseImportModal';
+import { EditTarget, ProjectRecordEditModal } from '../components/ProjectRecordEditModal';
 import { AiAnalysisPanel } from '../components/AiAnalysisPanel';
 import { useAuth } from '../context/AuthContext';
 import { formatUsd, formatUzs, useCbuRate } from '../utils/money';
@@ -85,6 +86,8 @@ export const ProjectDetailPage: React.FC = () => {
   const canRename = user?.role === UserRole.SuperAdmin || user?.role === UserRole.Admin || user?.role === UserRole.ProjectManager;
   const canAttachAgreementPdf = canRename || user?.role === UserRole.Finance;
   const canUseAi = canAttachAgreementPdf;
+  const isCompanyAdmin = user?.role === UserRole.Admin;
+  const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
   const [summary, setSummary] = useState<ProjectSummary | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'finance' | 'tasks' | 'materials' | 'workers' | 'expenses' | 'extraworks' | 'photos' | 'documents' | 'ai'>('overview');
   const [loading, setLoading] = useState(true);
@@ -383,6 +386,41 @@ export const ProjectDetailPage: React.FC = () => {
       alert(err.response?.data?.message || 'Xatolik');
     }
   };
+
+  const handleDeleteRecord = async (label: string, remove: (projectId: string) => Promise<void>) => {
+    if (!id) return;
+    if (!window.confirm(`${label}\n\nUshbu yozuv butunlay o'chiriladi va loyiha hisob-kitoblari qayta hisoblanadi. Davom etasizmi?`)) return;
+    try {
+      await remove(id);
+      await loadAllData(id);
+    } catch (err: any) {
+      alert(err.response?.data?.message || "O'chirishda xatolik yuz berdi");
+    }
+  };
+
+  const adminActions = (onEdit: (() => void) | null, onDelete: () => void) =>
+    isCompanyAdmin ? (
+      <div className="flex items-center gap-1 flex-shrink-0">
+        {onEdit && (
+          <button
+            type="button"
+            onClick={onEdit}
+            title="Tahrirlash"
+            className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-gray-500 hover:text-[#ff7a16] hover:bg-orange-50 border border-transparent hover:border-orange-100 transition-colors"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onDelete}
+          title="O'chirish"
+          className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition-colors"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    ) : null;
 
   const handleCreateWorkerPayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -897,7 +935,13 @@ export const ProjectDetailPage: React.FC = () => {
                       ) : null}
                       {p.notes && <div className="text-[11px] text-gray-600 bg-gray-50 px-2 py-1 rounded mt-1 border border-gray-100">Izoh: {p.notes}</div>}
                     </div>
-                    <UsdWithUzs className="text-emerald-700 font-extrabold text-base text-left sm:text-right break-all" usd={p.amount} uzs={p.amountUzs} />
+                    <div className="flex items-center gap-2 sm:justify-end">
+                      <UsdWithUzs className="text-emerald-700 font-extrabold text-base text-left sm:text-right break-all" usd={p.amount} uzs={p.amountUzs} />
+                      {adminActions(
+                        () => setEditTarget({ kind: 'payment', item: p }),
+                        () => handleDeleteRecord(`Mijoz to'lovi: ${formatUsd(p.amount)} (${formatDateUz(p.paymentDate)})`, (pid) => projectsApi.deletePayment(pid, p.id)),
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -957,8 +1001,12 @@ export const ProjectDetailPage: React.FC = () => {
                         Sana: {formatDateUz(exp.expenseDate)} · Kiritdi: <b className="text-gray-700">{exp.createdByName}</b>
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="flex items-center gap-2 sm:justify-end">
                       <UsdWithUzs className="text-red-600 font-extrabold text-base sm:items-end break-all" usd={exp.amountUsd} uzs={exp.amount} />
+                      {adminActions(
+                        () => setEditTarget({ kind: 'expense', item: exp }),
+                        () => handleDeleteRecord(`Xarajat: ${exp.description} — ${formatUzs(exp.amount)}`, (pid) => projectsApi.deleteExpense(pid, exp.id)),
+                      )}
                     </div>
                   </div>
                 );
@@ -1089,6 +1137,7 @@ export const ProjectDetailPage: React.FC = () => {
                     <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">JAMI</th>
                     <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">DO'KON / YETKAZUVCHI</th>
                     <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">KIM OLDI</th>
+                    {isCompanyAdmin && <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px] text-right">AMALLAR</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -1121,11 +1170,21 @@ export const ProjectDetailPage: React.FC = () => {
                       </td>
                       <td className="py-2.5 px-3 text-gray-600">{pur.supplier || '-'}</td>
                       <td className="py-2.5 px-3 text-gray-600 font-medium">{pur.createdByName || '-'}</td>
+                      {isCompanyAdmin && (
+                        <td className="py-1.5 px-3">
+                          <div className="flex justify-end">
+                            {adminActions(
+                              () => setEditTarget({ kind: 'purchase', item: pur }),
+                              () => handleDeleteRecord(`Material xaridi: ${pur.materialName} — ${pur.quantity} ${pur.unit}, ${formatUzs(pur.totalCost)}`, (pid) => projectsApi.deletePurchase(pid, pur.id)),
+                            )}
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                   {purchases.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="py-8 text-center text-xs text-gray-400">
+                      <td colSpan={isCompanyAdmin ? 9 : 8} className="py-8 text-center text-xs text-gray-400">
                         Xaridlar mavjud emas. Yuqoridagi "+ Material xaridi kiritish" orqali yangi xarid qo'shing.
                       </td>
                     </tr>
@@ -1291,6 +1350,10 @@ export const ProjectDetailPage: React.FC = () => {
                               Pul to'lash
                             </button>
                           )}
+                          {adminActions(
+                            () => setEditTarget({ kind: 'worker', item: wp }),
+                            () => handleDeleteRecord(`Usta ishi: ${wp.workerName} — ${wp.jobDescription} (to'langan: ${formatUzs(wp.paidAmount)})`, (pid) => projectsApi.deleteWorkerJob(pid, wp.id)),
+                          )}
                           </div>
                         </td>
                       </tr>
@@ -1338,16 +1401,22 @@ export const ProjectDetailPage: React.FC = () => {
                     <span className="text-emerald-700">Foyda: <UsdWithUzs className="font-bold" usd={ew.customerAmount - ew.actualCost} /></span>
                   </div>
                 </div>
-                <button
-                  onClick={() => handleToggleExtraWork(ew.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
-                    ew.isApprovedByCustomer
-                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                      : 'bg-yellow-100 text-yellow-800 border-yellow-300'
-                  }`}
-                >
-                  {ew.isApprovedByCustomer ? "Tasdiqlangan ✓" : "Kutilmoqda (Tasdiqlash)"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleToggleExtraWork(ew.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
+                      ew.isApprovedByCustomer
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                        : 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                    }`}
+                  >
+                    {ew.isApprovedByCustomer ? "Tasdiqlangan ✓" : "Kutilmoqda (Tasdiqlash)"}
+                  </button>
+                  {adminActions(
+                    () => setEditTarget({ kind: 'extra', item: ew }),
+                    () => handleDeleteRecord(`Qo'shimcha ish: ${ew.title}`, (pid) => projectsApi.deleteExtraWork(pid, ew.id)),
+                  )}
+                </div>
               </div>
             ))}
             {extraWorks.length === 0 && (
@@ -1385,7 +1454,10 @@ export const ProjectDetailPage: React.FC = () => {
                   }}
                 />
                 <div className="p-2.5">
-                  <div className="text-xs font-semibold text-gray-800 truncate">{ph.caption || 'Tavsifsiz rasm'}</div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-xs font-semibold text-gray-800 truncate">{ph.caption || 'Tavsifsiz rasm'}</div>
+                    {adminActions(null, () => handleDeleteRecord(`Rasm: ${ph.caption || 'Tavsifsiz rasm'}`, (pid) => projectsApi.deletePhoto(pid, ph.id)))}
+                  </div>
                   <div className="flex flex-wrap justify-between gap-2 text-[10px] text-gray-400 mt-1">
                     <span>{formatDateUz(ph.photoDate)}</span>
                     <span className={ph.isVisibleToCustomer ? 'text-emerald-600 font-bold' : 'text-gray-500'}>
@@ -1834,6 +1906,16 @@ export const ProjectDetailPage: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {editTarget && id && (
+        <ProjectRecordEditModal
+          projectId={id}
+          target={editTarget}
+          expenseCategoryLabels={expenseCategoryLabels}
+          onClose={() => setEditTarget(null)}
+          onSaved={() => loadAllData(id)}
+        />
       )}
 
       {isPurchaseImportOpen && id && (

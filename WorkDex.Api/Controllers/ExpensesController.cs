@@ -65,6 +65,24 @@ public class ExpensesController : ControllerBase
         }
     }
 
+    [HttpPut("{expenseId:guid}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateExpense(Guid projectId, Guid expenseId, [FromBody] CreateExpenseDto dto)
+    {
+        try
+        {
+            return Ok(await _expenseService.UpdateExpenseAsync(projectId, expenseId, dto));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpDelete("{expenseId:guid}")]
     [Authorize(Roles = "SuperAdmin,Admin,Finance")]
     public async Task<IActionResult> DeleteExpense(Guid projectId, Guid expenseId)

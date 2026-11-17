@@ -94,3 +94,26 @@ public class ProjectWorkerSummaryDto
     public bool IsFullyPaid => TotalAgreedAmount > 0 && TotalPaidAmount >= TotalAgreedAmount;
     public int JobCount { get; set; }
 }
+
+public class UpdateWorkerJobDto
+{
+    [Required]
+    [MaxLength(500)]
+    public string JobDescription { get; set; } = string.Empty;
+
+    [Required]
+    [Range(0.01, double.MaxValue, ErrorMessage = "Kelishilgan summa 0 dan katta bo'lishi kerak.")]
+    public decimal AgreedAmount { get; set; }
+
+    [MaxLength(3)]
+    public string Currency { get; set; } = "UZS";
+
+    [Range(0, double.MaxValue, ErrorMessage = "Bajarilgan ish haqi manfiy bo'lishi mumkin emas.")]
+    public decimal WorkAmountUzs { get; set; }
+
+    [Range(0, double.MaxValue, ErrorMessage = "To'langan summa manfiy bo'lishi mumkin emas.")]
+    public decimal PaidAmountUzs { get; set; }
+
+    [MaxLength(1000)]
+    public string? Notes { get; set; }
+}

@@ -244,6 +244,54 @@ export const projectsApi = {
     const res = await apiClient.post<MaterialPurchase>(`/projects/${projectId}/material-purchases`, data);
     return res.data;
   },
+  updatePayment: async (projectId: string, paymentId: string, data: {
+    amount: number; currency: Currency; paymentMethod: number; paymentDate: string; notes?: string;
+  }): Promise<Payment> => {
+    const res = await apiClient.put<Payment>(`/projects/${projectId}/payments/${paymentId}`, data);
+    return res.data;
+  },
+  deletePayment: async (projectId: string, paymentId: string): Promise<void> => {
+    await apiClient.delete(`/projects/${projectId}/payments/${paymentId}`);
+  },
+  updateExpense: async (projectId: string, expenseId: string, data: {
+    category: number; frequency: number; amount: number; currency: Currency; description: string; expenseDate: string; notes?: string;
+  }): Promise<Expense> => {
+    const res = await apiClient.put<Expense>(`/projects/${projectId}/expenses/${expenseId}`, data);
+    return res.data;
+  },
+  deleteExpense: async (projectId: string, expenseId: string): Promise<void> => {
+    await apiClient.delete(`/projects/${projectId}/expenses/${expenseId}`);
+  },
+  updatePurchase: async (projectId: string, purchaseId: string, data: {
+    quantity: number; unitPrice: number; currency: Currency; supplier?: string; purchaseDate: string; receiptNumber?: string; notes?: string;
+  }): Promise<MaterialPurchase> => {
+    const res = await apiClient.put<MaterialPurchase>(`/projects/${projectId}/material-purchases/${purchaseId}`, data);
+    return res.data;
+  },
+  deletePurchase: async (projectId: string, purchaseId: string): Promise<void> => {
+    await apiClient.delete(`/projects/${projectId}/material-purchases/${purchaseId}`);
+  },
+  updateWorkerJob: async (projectId: string, jobId: string, data: {
+    jobDescription: string; agreedAmount: number; currency: Currency; workAmountUzs: number; paidAmountUzs: number; notes?: string;
+  }): Promise<WorkerPayment> => {
+    const res = await apiClient.put<WorkerPayment>(`/projects/${projectId}/worker-payments/${jobId}`, data);
+    return res.data;
+  },
+  deleteWorkerJob: async (projectId: string, jobId: string): Promise<void> => {
+    await apiClient.delete(`/projects/${projectId}/worker-payments/${jobId}`);
+  },
+  updateExtraWork: async (projectId: string, extraWorkId: string, data: {
+    title: string; description?: string; customerAmount: number; actualCost: number; currency: Currency; isApprovedByCustomer: boolean; notes?: string;
+  }): Promise<ExtraWork> => {
+    const res = await apiClient.put<ExtraWork>(`/projects/${projectId}/extra-works/${extraWorkId}`, data);
+    return res.data;
+  },
+  deleteExtraWork: async (projectId: string, extraWorkId: string): Promise<void> => {
+    await apiClient.delete(`/projects/${projectId}/extra-works/${extraWorkId}`);
+  },
+  deletePhoto: async (projectId: string, photoId: string): Promise<void> => {
+    await apiClient.delete(`/projects/${projectId}/photos/${photoId}`);
+  },
   downloadPurchaseImportTemplate: async (projectId: string): Promise<void> => {
     const response = await apiClient.get(`/projects/${projectId}/material-purchases/import/template`, { responseType: 'blob' });
     const url = window.URL.createObjectURL(new Blob([response.data]));

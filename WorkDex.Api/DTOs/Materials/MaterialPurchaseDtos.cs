@@ -113,3 +113,29 @@ public class MaterialPurchaseImportResultDto
     public List<MaterialPurchaseImportRowDto> Rows { get; set; } = new();
     public List<MaterialImportIssueDto> Errors { get; set; } = new();
 }
+
+public class UpdateMaterialPurchaseDto
+{
+    [Required]
+    [Range(0.01, double.MaxValue, ErrorMessage = "Miqdor 0 dan katta bo'lishi kerak.")]
+    public decimal Quantity { get; set; }
+
+    [Required]
+    [Range(0.01, double.MaxValue, ErrorMessage = "Birlik narxi 0 dan katta bo'lishi kerak.")]
+    public decimal UnitPrice { get; set; }
+
+    [MaxLength(3)]
+    public string Currency { get; set; } = "UZS";
+
+    [MaxLength(200)]
+    public string? Supplier { get; set; }
+
+    [Required]
+    public DateTime PurchaseDate { get; set; }
+
+    [MaxLength(100)]
+    public string? ReceiptNumber { get; set; }
+
+    [MaxLength(1000)]
+    public string? Notes { get; set; }
+}

@@ -16,6 +16,7 @@ public interface IWorkerService
     Task<WorkerPaymentDto> GetWorkerJobByIdAsync(Guid projectId, Guid paymentId);
     Task<WorkerPaymentDto> UpdateWorkAmountAsync(Guid projectId, Guid paymentId, UpdateWorkerWorkAmountDto dto);
     Task<WorkerPaymentDto> PayWorkerAsync(Guid projectId, Guid paymentId, PayWorkerDto dto);
+    Task<WorkerPaymentDto> UpdateWorkerJobAsync(Guid projectId, Guid paymentId, UpdateWorkerJobDto dto);
     Task DeleteWorkerJobAsync(Guid projectId, Guid paymentId);
     Task<List<ProjectWorkerSummaryDto>> GetProjectWorkersSummaryAsync(Guid projectId);
 }

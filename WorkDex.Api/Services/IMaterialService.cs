@@ -15,6 +15,7 @@ public interface IMaterialService
     Task<MaterialPurchaseDto> AddPurchaseAsync(Guid projectId, CreateMaterialPurchaseDto dto, Guid createdByUserId);
     Task<List<MaterialPurchaseDto>> GetPurchasesByProjectAsync(Guid projectId);
     Task<MaterialPurchaseDto> GetPurchaseByIdAsync(Guid projectId, Guid purchaseId);
+    Task<MaterialPurchaseDto> UpdatePurchaseAsync(Guid projectId, Guid purchaseId, UpdateMaterialPurchaseDto dto);
     Task DeletePurchaseAsync(Guid projectId, Guid purchaseId);
     Task<List<ProjectMaterialSummaryDto>> GetProjectMaterialSummaryAsync(Guid projectId);
 

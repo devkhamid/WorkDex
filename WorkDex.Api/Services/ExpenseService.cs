@@ -93,6 +93,29 @@ public class ExpenseService : IExpenseService
         return MapToDto(expense, await Money.CurrentRateAsync(_currencyService));
     }
 
+    public async Task<ExpenseDto> UpdateExpenseAsync(Guid projectId, Guid expenseId, CreateExpenseDto dto)
+    {
+        var expense = await _context.Expenses
+            .FirstOrDefaultAsync(e => e.Id == expenseId && e.ProjectId == projectId)
+            ?? throw new KeyNotFoundException("Xarajat topilmadi.");
+
+        var currency = Money.Normalize(dto.Currency, "UZS");
+        var rate = expense.ExchangeRateToUzs is > 0 ? expense.ExchangeRateToUzs.Value : await Money.CurrentRateAsync(_currencyService);
+
+        expense.Category = dto.Category;
+        expense.Frequency = dto.Frequency;
+        expense.Description = dto.Description.Trim();
+        expense.ExpenseDate = dto.ExpenseDate.ToUniversalTime();
+        expense.Notes = dto.Notes?.Trim();
+        expense.Currency = currency;
+        expense.ExchangeRateToUzs = rate;
+        expense.OriginalAmount = dto.Amount;
+        expense.Amount = Money.ToUzs(dto.Amount, currency, rate);
+
+        await _context.SaveChangesAsync();
+        return await GetExpenseByIdAsync(projectId, expenseId);
+    }
+
     public async Task DeleteExpenseAsync(Guid projectId, Guid expenseId)
     {
         var expense = await _context.Expenses

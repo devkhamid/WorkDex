@@ -105,6 +105,24 @@ public class WorkerPaymentsController : ControllerBase
         }
     }
 
+    [HttpPut("api/projects/{projectId:guid}/worker-payments/{paymentId:guid}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateWorkerJob(Guid projectId, Guid paymentId, [FromBody] UpdateWorkerJobDto dto)
+    {
+        try
+        {
+            return Ok(await _workerService.UpdateWorkerJobAsync(projectId, paymentId, dto));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpDelete("api/projects/{projectId:guid}/worker-payments/{paymentId:guid}")]
     [Authorize(Roles = "SuperAdmin,Admin")]
     public async Task<IActionResult> DeleteWorkerJob(Guid projectId, Guid paymentId)

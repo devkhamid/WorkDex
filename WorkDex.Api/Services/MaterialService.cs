@@ -357,6 +357,31 @@ public partial class MaterialService : IMaterialService
         }).ToList();
     }
 
+    public async Task<MaterialPurchaseDto> UpdatePurchaseAsync(Guid projectId, Guid purchaseId, UpdateMaterialPurchaseDto dto)
+    {
+        var purchase = await _context.MaterialPurchases
+            .FirstOrDefaultAsync(mp => mp.Id == purchaseId && mp.ProjectId == projectId)
+            ?? throw new KeyNotFoundException("Xarid topilmadi.");
+
+        var currency = Money.Normalize(dto.Currency, "UZS");
+        var rate = purchase.ExchangeRateToUzs is > 0 ? purchase.ExchangeRateToUzs.Value : await Money.CurrentRateAsync(_currencyService);
+        var unitPriceUzs = Money.ToUzs(dto.UnitPrice, currency, rate);
+
+        purchase.Quantity = dto.Quantity;
+        purchase.UnitPrice = unitPriceUzs;
+        purchase.TotalCost = Math.Round(dto.Quantity * unitPriceUzs, 2);
+        purchase.Currency = currency;
+        purchase.ExchangeRateToUzs = rate;
+        purchase.OriginalUnitPrice = dto.UnitPrice;
+        purchase.Supplier = Clean(dto.Supplier);
+        purchase.PurchaseDate = dto.PurchaseDate.ToUniversalTime();
+        purchase.ReceiptNumber = Clean(dto.ReceiptNumber);
+        purchase.Notes = dto.Notes?.Trim();
+
+        await _context.SaveChangesAsync();
+        return await GetPurchaseByIdAsync(projectId, purchaseId);
+    }
+
     public async Task<MaterialPurchaseDto> GetPurchaseByIdAsync(Guid projectId, Guid purchaseId)
     {
         var purchase = await _context.MaterialPurchases

@@ -276,6 +276,37 @@ public class WorkerService : IWorkerService
         return MapToDto(job, job.Worker?.FullName ?? "", job.Worker?.Specialty, job.CreatedByUser?.FullName ?? "", rate);
     }
 
+    public async Task<WorkerPaymentDto> UpdateWorkerJobAsync(Guid projectId, Guid paymentId, UpdateWorkerJobDto dto)
+    {
+        var job = await _context.WorkerPayments
+            .FirstOrDefaultAsync(wp => wp.Id == paymentId && wp.ProjectId == projectId)
+            ?? throw new KeyNotFoundException("Usta ishi / to'lovi topilmadi.");
+
+        var currency = Money.Normalize(dto.Currency, "UZS");
+        var rate = job.ExchangeRateToUzs is > 0 ? job.ExchangeRateToUzs.Value : await Money.CurrentRateAsync(_currencyService);
+        var agreedUnchanged = currency == job.Currency && dto.AgreedAmount == (job.OriginalAgreedAmount ?? job.AgreedAmount);
+        var agreed = agreedUnchanged ? job.AgreedAmount : Money.ToUzs(dto.AgreedAmount, currency, rate);
+        var work = Math.Round(dto.WorkAmountUzs, 2);
+        var paid = Math.Round(dto.PaidAmountUzs, 2);
+
+        if (work > agreed)
+            throw new InvalidOperationException($"Ishlangan haq ({work:N0} so'm) kelishilgan summadan ({agreed:N0} so'm) ko'p bo'lishi mumkin emas.");
+        if (paid > agreed)
+            throw new InvalidOperationException($"To'langan summa ({paid:N0} so'm) kelishilgan summadan ({agreed:N0} so'm) ko'p bo'lishi mumkin emas.");
+
+        job.JobDescription = dto.JobDescription.Trim();
+        job.AgreedAmount = agreed;
+        job.OriginalAgreedAmount = dto.AgreedAmount;
+        job.Currency = currency;
+        job.ExchangeRateToUzs = rate;
+        job.WorkAmount = work;
+        job.PaidAmount = paid;
+        job.Notes = dto.Notes?.Trim();
+
+        await _context.SaveChangesAsync();
+        return await GetWorkerJobByIdAsync(projectId, paymentId);
+    }
+
     public async Task<WorkerPaymentDto> PayWorkerAsync(Guid projectId, Guid paymentId, PayWorkerDto dto)
     {
         var job = await _context.WorkerPayments

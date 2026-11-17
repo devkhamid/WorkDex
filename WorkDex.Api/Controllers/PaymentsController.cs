@@ -64,6 +64,24 @@ public class PaymentsController : ControllerBase
         }
     }
 
+    [HttpPut("{paymentId:guid}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdatePayment(Guid projectId, Guid paymentId, [FromBody] CreatePaymentDto dto)
+    {
+        try
+        {
+            return Ok(await _paymentService.UpdatePaymentAsync(projectId, paymentId, dto));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpDelete("{paymentId:guid}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeletePayment(Guid projectId, Guid paymentId)

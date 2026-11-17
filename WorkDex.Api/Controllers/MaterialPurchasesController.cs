@@ -114,6 +114,24 @@ public class MaterialPurchasesController : ControllerBase
         }
     }
 
+    [HttpPut("api/projects/{projectId:guid}/material-purchases/{purchaseId:guid}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdatePurchase(Guid projectId, Guid purchaseId, [FromBody] UpdateMaterialPurchaseDto dto)
+    {
+        try
+        {
+            return Ok(await _materialService.UpdatePurchaseAsync(projectId, purchaseId, dto));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpDelete("api/projects/{projectId:guid}/material-purchases/{purchaseId:guid}")]
     [Authorize(Roles = "SuperAdmin,Admin,Finance")]
     public async Task<IActionResult> DeletePurchase(Guid projectId, Guid purchaseId)

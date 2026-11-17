@@ -99,6 +99,27 @@ public class PaymentService : IPaymentService
         };
     }
 
+    public async Task<PaymentDto> UpdatePaymentAsync(Guid projectId, Guid paymentId, CreatePaymentDto dto)
+    {
+        var payment = await _context.Payments
+            .FirstOrDefaultAsync(p => p.Id == paymentId && p.ProjectId == projectId)
+            ?? throw new KeyNotFoundException("To'lov topilmadi.");
+
+        var currency = Money.Normalize(dto.Currency, "USD");
+        var rate = payment.ExchangeRate is > 0 ? payment.ExchangeRate.Value : await Money.CurrentRateAsync(_currencyService);
+
+        payment.Amount = Money.ToUsd(dto.Amount, currency, rate);
+        payment.Currency = currency;
+        payment.ExchangeRate = rate;
+        payment.OriginalAmount = dto.Amount;
+        payment.PaymentMethod = dto.PaymentMethod;
+        payment.PaymentDate = dto.PaymentDate.ToUniversalTime();
+        payment.Notes = dto.Notes?.Trim();
+
+        await _context.SaveChangesAsync();
+        return await GetPaymentByIdAsync(projectId, paymentId);
+    }
+
     public async Task DeletePaymentAsync(Guid projectId, Guid paymentId)
     {
         var payment = await _context.Payments
