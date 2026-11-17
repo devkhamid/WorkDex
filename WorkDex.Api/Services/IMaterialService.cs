@@ -25,5 +25,5 @@ public interface IMaterialService
     Task<MaterialImportResultDto> ImportMaterialsAsync(Stream excelStream, Guid createdByUserId);
 
     Task<byte[]> BuildPurchaseImportTemplateAsync(Guid projectId, Guid requestingUserId);
-    Task<MaterialPurchaseImportResultDto> ImportPurchasesAsync(Guid projectId, Stream excelStream, Guid createdByUserId, bool dryRun);
+    Task<MaterialPurchaseImportResultDto> ImportPurchasesAsync(Guid projectId, Stream excelStream, Guid createdByUserId, bool dryRun, DateTime? purchaseDate = null);
 }

@@ -226,6 +226,7 @@ export interface MaterialPurchaseImportRow {
   materialName: string;
   brand?: string;
   unit: string;
+  category?: string;
   quantity: number;
   unitPrice: number;
   currency: Currency;
@@ -238,6 +239,7 @@ export interface MaterialPurchaseImportResult {
   dryRun: boolean;
   totalRows: number;
   created: number;
+  skippedEmpty: number;
   totalCostUzs: number;
   totalCostUsd: number;
   exchangeRate: number;

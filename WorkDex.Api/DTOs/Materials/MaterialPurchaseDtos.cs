@@ -93,6 +93,7 @@ public class MaterialPurchaseImportRowDto
     public string MaterialName { get; set; } = string.Empty;
     public string? Brand { get; set; }
     public string Unit { get; set; } = string.Empty;
+    public string? Category { get; set; }
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public string Currency { get; set; } = "UZS";
@@ -106,6 +107,7 @@ public class MaterialPurchaseImportResultDto
     public bool DryRun { get; set; }
     public int TotalRows { get; set; }
     public int Created { get; set; }
+    public int SkippedEmpty { get; set; }
     public decimal TotalCostUzs { get; set; }
     public decimal TotalCostUsd { get; set; }
     public decimal ExchangeRate { get; set; }

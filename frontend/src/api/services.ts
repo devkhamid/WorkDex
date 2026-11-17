@@ -303,13 +303,13 @@ export const projectsApi = {
     link.remove();
     window.URL.revokeObjectURL(url);
   },
-  importPurchases: async (projectId: string, file: File, dryRun: boolean): Promise<MaterialPurchaseImportResult> => {
+  importPurchases: async (projectId: string, file: File, dryRun: boolean, purchaseDate?: string): Promise<MaterialPurchaseImportResult> => {
     const formData = new FormData();
     formData.append('file', file);
     const res = await apiClient.post<MaterialPurchaseImportResult>(
       `/projects/${projectId}/material-purchases/import`,
       formData,
-      { params: { dryRun }, headers: { 'Content-Type': 'multipart/form-data' } },
+      { params: { dryRun, purchaseDate: purchaseDate || undefined }, headers: { 'Content-Type': 'multipart/form-data' } },
     );
     return res.data;
   },

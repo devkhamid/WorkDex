@@ -86,7 +86,7 @@ public class MaterialPurchasesController : ControllerBase
     [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(10 * 1024 * 1024)]
-    public async Task<IActionResult> ImportPurchases(Guid projectId, [FromForm] ImportMaterialsDto dto, [FromQuery] bool dryRun = true)
+    public async Task<IActionResult> ImportPurchases(Guid projectId, [FromForm] ImportMaterialsDto dto, [FromQuery] bool dryRun = true, [FromQuery] DateTime? purchaseDate = null)
     {
         var file = dto.File;
         if (file is null || file.Length == 0)
@@ -101,7 +101,7 @@ public class MaterialPurchasesController : ControllerBase
             using var stream = new MemoryStream();
             await file.CopyToAsync(stream);
             stream.Position = 0;
-            var result = await _materialService.ImportPurchasesAsync(projectId, stream, User.GetUserId(), dryRun);
+            var result = await _materialService.ImportPurchasesAsync(projectId, stream, User.GetUserId(), dryRun, purchaseDate);
             return Ok(result);
         }
         catch (ArgumentException ex)

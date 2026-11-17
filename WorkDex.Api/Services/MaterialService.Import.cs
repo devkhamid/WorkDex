@@ -30,15 +30,16 @@ public partial class MaterialService
             foreach (var a in aliases) map[MatchKey(a)] = canonical;
         }
 
-        Alias("dona", "ta", "shtuk", "шт", "штук", "pcs");
-        Alias("m²", "m2", "kv.m", "kvm", "kv m", "м2", "м²");
+        Alias("dona", "ta", "shtuk", "шт", "штук", "шт.", "pcs");
+        Alias("m²", "m2", "kv.m", "kvm", "kv m", "м2", "м²", "кв.м", "м.кв");
         Alias("m³", "m3", "kub", "kub.m", "м3", "м³");
-        Alias("metr", "m", "mtr", "м", "метр");
+        Alias("metr", "m", "mtr", "м", "м.", "метр", "п.м", "пог.м");
         Alias("litr", "l", "lt", "л", "литр");
         Alias("kg", "кг", "kilogramm");
-        Alias("komplekt", "kompl", "компл", "комплект");
+        Alias("komplekt", "kompl", "компл", "комплект", "к-т", "кт");
         Alias("rulon", "рулон");
-        Alias("qop", "мешок");
+        Alias("list", "лист", "листов");
+        Alias("qop", "мешок", "меш", "меш.");
         return map;
     }
 

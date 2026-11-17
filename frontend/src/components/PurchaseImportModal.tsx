@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Download, FileSpreadsheet, Upload, X } from 'lucide-react';
 import { projectsApi } from '../api/services';
 import { MaterialPurchaseImportResult } from '../types';
@@ -25,6 +25,19 @@ export const PurchaseImportModal: React.FC<Props> = ({ projectId, projectName, o
   const [busy, setBusy] = useState(false);
   const [templateLoading, setTemplateLoading] = useState(false);
   const [error, setError] = useState('');
+  const [purchaseDate, setPurchaseDate] = useState(() => new Date().toISOString().slice(0, 10));
+
+  const sections = useMemo(() => {
+    const map = new Map<string, { count: number; total: number }>();
+    preview?.rows.forEach((r) => {
+      const key = r.category || 'Kategoriyasiz';
+      const s = map.get(key) ?? { count: 0, total: 0 };
+      s.count++;
+      s.total += r.totalCostUzs;
+      map.set(key, s);
+    });
+    return [...map.entries()];
+  }, [preview]);
 
   const errorMessage = (err: any, fallback: string) => err?.response?.data?.message || fallback;
 
@@ -46,7 +59,7 @@ export const PurchaseImportModal: React.FC<Props> = ({ projectId, projectName, o
     setError('');
     setBusy(true);
     try {
-      setPreview(await projectsApi.importPurchases(projectId, selected, true));
+      setPreview(await projectsApi.importPurchases(projectId, selected, true, purchaseDate));
     } catch (err) {
       setError(errorMessage(err, 'Faylni tekshirishda xatolik yuz berdi'));
     } finally {
@@ -59,7 +72,7 @@ export const PurchaseImportModal: React.FC<Props> = ({ projectId, projectName, o
     setBusy(true);
     setError('');
     try {
-      const result = await projectsApi.importPurchases(projectId, file, false);
+      const result = await projectsApi.importPurchases(projectId, file, false, purchaseDate);
       if (result.errors.length > 0) {
         setPreview(result);
         return;
@@ -112,8 +125,9 @@ export const PurchaseImportModal: React.FC<Props> = ({ projectId, projectName, o
             <div className="space-y-2">
               <div className="text-xs font-semibold text-[#171b25]">1. Shablonni yuklab oling va to'ldiring</div>
               <p className="text-[11px] text-gray-500">
-                Shablonda kompaniya katalogi ham bor — material nomini ro'yxatdan tanlasangiz, katalogdagi material ishlatiladi.
-                Majburiy ustunlar: <b>Material nomi</b>, <b>Miqdor</b>, <b>Birlik narxi</b>.
+                Smeta ko'rinishida: <b>Наименование · ед.изм. · кол-во · цена за ед.</b> Ko'k qatorlar — bo'limlar (Сантехнические, Электрические...),
+                ostidagi materiallar shu kategoriyaga kiradi. Katalogdagi materiallar oldindan yozilgan — faqat olinganlarining miqdori va narxini to'ldiring.
+                Miqdori bo'sh yoki 0 bo'lgan qatorlar o'tkazib yuboriladi. Narxlar so'mda.
               </p>
               <button
                 type="button"
@@ -128,6 +142,17 @@ export const PurchaseImportModal: React.FC<Props> = ({ projectId, projectName, o
 
             <div className="space-y-2 border-t pt-3">
               <div className="text-xs font-semibold text-[#171b25]">2. To'ldirilgan faylni yuklang — saqlashdan oldin tekshiriladi</div>
+              <div className="flex items-center gap-2">
+                <label className="text-[11px] text-gray-600 whitespace-nowrap">Xarid sanasi:</label>
+                <input
+                  type="date"
+                  value={purchaseDate}
+                  max={new Date().toISOString().slice(0, 10)}
+                  onChange={(e) => setPurchaseDate(e.target.value)}
+                  disabled={busy}
+                  className="h-8 px-2 border border-gray-300 rounded-lg text-xs outline-none"
+                />
+              </div>
               <label className="flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-gray-200 hover:border-[#ff7a16] rounded-lg p-4 cursor-pointer text-center transition-colors">
                 <Upload className="w-5 h-5 text-gray-400" />
                 <span className="text-xs text-gray-600 break-all">
@@ -175,6 +200,20 @@ export const PurchaseImportModal: React.FC<Props> = ({ projectId, projectName, o
                       <UsdWithUzs className="text-base font-bold text-[#ff7a16]" usd={preview.totalCostUsd} uzs={preview.totalCostUzs} />
                     </div>
                   </div>
+                )}
+
+                {preview.errors.length === 0 && sections.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {sections.map(([name, s]) => (
+                      <span key={name} className="text-[10px] px-2 py-1 rounded-md bg-blue-50 border border-blue-100 text-blue-800">
+                        <b>{name}</b> · {s.count} ta · {formatUzs(s.total)}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {preview.skippedEmpty > 0 && (
+                  <p className="text-[10px] text-gray-400">Miqdori ko'rsatilmagan {preview.skippedEmpty} ta qator o'tkazib yuborildi.</p>
                 )}
 
                 {preview.newMaterials.length > 0 && (
