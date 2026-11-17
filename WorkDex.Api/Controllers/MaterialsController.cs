@@ -65,6 +65,42 @@ public class MaterialsController : ControllerBase
         }
     }
 
+    [HttpGet("import/template")]
+    [Authorize(Roles = "SuperAdmin,Admin,ProjectManager,Finance")]
+    public IActionResult DownloadImportTemplate()
+    {
+        var bytes = _materialService.BuildImportTemplate();
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "WorkDex_Material_Shablon.xlsx");
+    }
+
+    [HttpPost("import")]
+    [Authorize(Roles = "SuperAdmin,Admin,ProjectManager,Finance")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<IActionResult> Import([FromForm] ImportMaterialsDto dto)
+    {
+        var file = dto.File;
+        if (file is null || file.Length == 0)
+            return BadRequest(new { message = "Fayl tanlanmagan." });
+        if (!Path.GetExtension(file.FileName).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { message = "Faqat .xlsx formatidagi Excel fayl qabul qilinadi." });
+        if (file.Length > 5 * 1024 * 1024)
+            return BadRequest(new { message = "Fayl hajmi 5 MB dan oshmasligi kerak." });
+
+        try
+        {
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            stream.Position = 0;
+            var result = await _materialService.ImportMaterialsAsync(stream, User.GetUserId());
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpPut("{id:guid}")]
     [Authorize(Roles = "Admin,ProjectManager,Finance")]
     public async Task<IActionResult> Update(Guid id, [FromBody] CreateMaterialDto dto)

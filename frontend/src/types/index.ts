@@ -207,6 +207,19 @@ export interface Material {
   createdAt: string;
 }
 
+export interface MaterialImportIssue {
+  row: number;
+  name?: string;
+  message: string;
+}
+
+export interface MaterialImportResult {
+  totalRows: number;
+  created: number;
+  skipped: MaterialImportIssue[];
+  errors: MaterialImportIssue[];
+}
+
 export interface MaterialPurchase {
   id: string;
   projectId: string;

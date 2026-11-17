@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace WorkDex.Api.DTOs.Materials;
 
@@ -31,4 +32,25 @@ public class MergeMaterialDto
 {
     [Required]
     public Guid TargetId { get; set; }
+}
+
+public class ImportMaterialsDto
+{
+    [Required]
+    public IFormFile File { get; set; } = null!;
+}
+
+public class MaterialImportIssueDto
+{
+    public int Row { get; set; }
+    public string? Name { get; set; }
+    public string Message { get; set; } = string.Empty;
+}
+
+public class MaterialImportResultDto
+{
+    public int TotalRows { get; set; }
+    public int Created { get; set; }
+    public List<MaterialImportIssueDto> Skipped { get; set; } = new();
+    public List<MaterialImportIssueDto> Errors { get; set; } = new();
 }

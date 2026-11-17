@@ -7,7 +7,7 @@ using WorkDex.Api.Models;
 
 namespace WorkDex.Api.Services;
 
-public class MaterialService : IMaterialService
+public partial class MaterialService : IMaterialService
 {
     private readonly AppDbContext _context;
     private readonly ICurrencyService _currencyService;

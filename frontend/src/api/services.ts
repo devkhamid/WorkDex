@@ -8,6 +8,7 @@ import {
   Expense,
   ExtraWork,
   Material,
+  MaterialImportResult,
   MaterialPurchase,
   MaterialSummary,
   MaterialUsage,
@@ -420,6 +421,25 @@ export const materialsApi = {
   },
   merge: async (sourceId: string, targetId: string): Promise<Material> => {
     const res = await apiClient.post<Material>(`/materials/${sourceId}/merge`, { targetId });
+    return res.data;
+  },
+  downloadImportTemplate: async (): Promise<void> => {
+    const response = await apiClient.get('/materials/import/template', { responseType: 'blob' });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'WorkDex_Material_Shablon.xlsx');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
+  importExcel: async (file: File): Promise<MaterialImportResult> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await apiClient.post<MaterialImportResult>('/materials/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
     return res.data;
   }
 };

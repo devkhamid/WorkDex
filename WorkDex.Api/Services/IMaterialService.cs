@@ -19,4 +19,7 @@ public interface IMaterialService
     Task<List<ProjectMaterialSummaryDto>> GetProjectMaterialSummaryAsync(Guid projectId);
 
     Task<List<MaterialUsageDto>> GetMaterialUsageAsync(Guid requestingUserId, UserRole requestingUserRole, DateTime? from, DateTime? to);
+
+    byte[] BuildImportTemplate();
+    Task<MaterialImportResultDto> ImportMaterialsAsync(Stream excelStream, Guid createdByUserId);
 }
