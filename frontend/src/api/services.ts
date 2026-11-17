@@ -411,8 +411,12 @@ export const materialsApi = {
     const res = await apiClient.get<Material[]>('/materials');
     return res.data;
   },
-  create: async (data: { name: string; brand?: string; unit: string; description?: string }): Promise<Material> => {
+  create: async (data: { name: string; brand?: string; unit: string; category?: string; description?: string }): Promise<Material> => {
     const res = await apiClient.post<Material>('/materials', data);
+    return res.data;
+  },
+  update: async (id: string, data: { name: string; brand?: string; unit: string; category?: string; description?: string }): Promise<Material> => {
+    const res = await apiClient.put<Material>(`/materials/${id}`, data);
     return res.data;
   },
   getUsage: async (from?: string, to?: string): Promise<MaterialUsage[]> => {

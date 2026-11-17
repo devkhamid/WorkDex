@@ -45,12 +45,54 @@ public partial class MaterialService
     private static string CanonicalUnit(string unit) =>
         UnitAliases.TryGetValue(MatchKey(unit), out var canonical) ? canonical : unit;
 
+    public static readonly string[] StandardCategories =
+    {
+        "Qora ishlar", "Elektr", "Santexnika", "Bo'yoq va suvoq", "Gipsokarton",
+        "Plitka", "Pol qoplamasi", "Eshik va deraza", "Isitish va ventilyatsiya", "Boshqa"
+    };
+
+    private const int CategoryMaxLength = 100;
+
+    private static readonly Dictionary<string, string> CategoryAliases = BuildCategoryAliases();
+
+    private static Dictionary<string, string> BuildCategoryAliases()
+    {
+        var map = new Dictionary<string, string>();
+        foreach (var c in StandardCategories) map[MatchKey(c)] = c;
+
+        void Alias(string canonical, params string[] aliases)
+        {
+            foreach (var a in aliases) map[MatchKey(a)] = canonical;
+        }
+
+        Alias("Qora ishlar", "qora", "qurilish", "черновые", "черновые работы");
+        Alias("Elektr", "elektrika", "elektr ishlari", "elektrik", "электрика", "электро");
+        Alias("Santexnika", "santehnika", "santexnik", "сантехника");
+        Alias("Bo'yoq va suvoq", "bo'yoq", "boyoq", "suvoq", "malyar", "malyarka", "shpaklyovka", "bo'yoq-badiiy",
+            "малярка", "малярные", "покраска", "штукатурка", "шпаклевка");
+        Alias("Gipsokarton", "gkl", "гипсокартон", "гкл");
+        Alias("Plitka", "kafel", "плитка", "кафель");
+        Alias("Pol qoplamasi", "pol", "laminat", "parket", "пол", "ламинат", "паркет");
+        Alias("Eshik va deraza", "eshik", "deraza", "двери", "окна");
+        Alias("Isitish va ventilyatsiya", "isitish", "ventilyatsiya", "konditsioner", "отопление", "вентиляция");
+        Alias("Boshqa", "другое", "прочее");
+        return map;
+    }
+
+    internal static string? NormalizeCategory(string? category)
+    {
+        var cleaned = Clean(category);
+        if (cleaned is null) return null;
+        if (CategoryAliases.TryGetValue(MatchKey(cleaned), out var canonical)) return canonical;
+        return cleaned.Length > CategoryMaxLength ? cleaned[..CategoryMaxLength] : cleaned;
+    }
+
     public byte[] BuildImportTemplate()
     {
         using var workbook = new XLWorkbook();
 
         var ws = workbook.Worksheets.Add(ImportSheetName);
-        var headers = new[] { "Nomi *", "Brend", "O'lchov birligi *", "Tavsif" };
+        var headers = new[] { "Nomi *", "Brend", "O'lchov birligi *", "Tavsif", "Kategoriya" };
         for (var i = 0; i < headers.Length; i++)
             ws.Cell(1, i + 1).Value = headers[i];
 
@@ -66,12 +108,23 @@ public partial class MaterialService
         ws.Column(2).Width = 22;
         ws.Column(3).Width = 18;
         ws.Column(4).Width = 44;
-        ws.Range(2, 1, MaxImportRows + 1, 4).Style.NumberFormat.Format = "@";
+        ws.Column(5).Width = 26;
+        ws.Range(2, 1, MaxImportRows + 1, 5).Style.NumberFormat.Format = "@";
 
         var unitsSheet = workbook.Worksheets.Add("Birliklar");
         for (var i = 0; i < StandardUnits.Length; i++)
             unitsSheet.Cell(i + 1, 1).Value = StandardUnits[i];
+        for (var i = 0; i < StandardCategories.Length; i++)
+            unitsSheet.Cell(i + 1, 2).Value = StandardCategories[i];
         unitsSheet.Visibility = XLWorksheetVisibility.Hidden;
+
+        var categoryValidation = ws.Range(2, 5, MaxImportRows + 1, 5).CreateDataValidation();
+        categoryValidation.List(unitsSheet.Range(1, 2, StandardCategories.Length, 2), true);
+        categoryValidation.IgnoreBlanks = true;
+        categoryValidation.ErrorStyle = XLErrorStyle.Warning;
+        categoryValidation.ShowErrorMessage = true;
+        categoryValidation.ErrorTitle = "Nostandart kategoriya";
+        categoryValidation.ErrorMessage = "Bu kategoriya ro'yxatda yo'q. Baribir qoldirish uchun \"Ha\" ni bosing.";
 
         var validation = ws.Range(2, 3, MaxImportRows + 1, 3).CreateDataValidation();
         validation.List(unitsSheet.Range(1, 1, StandardUnits.Length, 1), true);
@@ -88,10 +141,11 @@ public partial class MaterialService
         var lines = new[]
         {
             $"1. \"{ImportSheetName}\" varag'ida har bir qatorga bitta material yozing (1-qator — sarlavha, uni o'zgartirmang).",
-            "2. \"Nomi\" va \"O'lchov birligi\" majburiy. \"Brend\" va \"Tavsif\" ixtiyoriy.",
+            "2. \"Nomi\" va \"O'lchov birligi\" majburiy. \"Brend\", \"Tavsif\" va \"Kategoriya\" ixtiyoriy.",
             "3. O'lchov birligini ro'yxatdan tanlang: " + string.Join(", ", StandardUnits) + ".",
-            "4. Katalogda allaqachon bor material (nomi + brendi bir xil) qayta qo'shilmaydi — o'tkazib yuboriladi.",
-            $"5. Bir faylda ko'pi bilan {MaxImportRows} ta material bo'lishi mumkin.",
+            "4. Kategoriya — material qaysi ish uchun ishlatiladi: " + string.Join(", ", StandardCategories) + ".",
+            "5. Katalogda allaqachon bor material (nomi + brendi bir xil) qayta qo'shilmaydi — o'tkazib yuboriladi.",
+            $"6. Bir faylda ko'pi bilan {MaxImportRows} ta material bo'lishi mumkin.",
             "",
             "Namuna:",
         };
@@ -101,20 +155,23 @@ public partial class MaterialService
         var sampleRow = lines.Length + 3;
         var sample = new[,]
         {
-            { "Nomi", "Brend", "O'lchov birligi", "Tavsif" },
-            { "Gipsokarton 12.5 mm", "Knauf", "list", "Devor va shift uchun" },
-            { "Plitka yelim", "Ceresit CM 11", "qop", "25 kg" },
-            { "Kabel 3x2.5", "", "metr", "" },
+            { "Nomi", "Brend", "O'lchov birligi", "Tavsif", "Kategoriya" },
+            { "Gipsokarton 12.5 mm", "Knauf", "list", "Devor va shift uchun", "Gipsokarton" },
+            { "Plitka yelim", "Ceresit CM 11", "qop", "25 kg", "Plitka" },
+            { "Kabel 3x2.5", "", "metr", "", "Elektr" },
+            { "Interyer bo'yog'i", "Caparol", "litr", "", "Bo'yoq va suvoq" },
         };
+        var sampleCols = sample.GetLength(1);
         for (var r = 0; r < sample.GetLength(0); r++)
-        for (var c = 0; c < sample.GetLength(1); c++)
+        for (var c = 0; c < sampleCols; c++)
             help.Cell(sampleRow + r, c + 1).Value = sample[r, c];
-        help.Range(sampleRow, 1, sampleRow, 4).Style.Font.Bold = true;
-        help.Range(sampleRow, 1, sampleRow + sample.GetLength(0) - 1, 4).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+        help.Range(sampleRow, 1, sampleRow, sampleCols).Style.Font.Bold = true;
+        help.Range(sampleRow, 1, sampleRow + sample.GetLength(0) - 1, sampleCols).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
         help.Column(1).Width = 30;
         help.Column(2).Width = 20;
         help.Column(3).Width = 18;
         help.Column(4).Width = 26;
+        help.Column(5).Width = 24;
 
         ws.SetTabActive();
         using var stream = new MemoryStream();
@@ -166,9 +223,11 @@ public partial class MaterialService
                 var rawBrand = ws.Cell(row, 2).GetFormattedString();
                 var rawUnit = ws.Cell(row, 3).GetFormattedString();
                 var rawDesc = ws.Cell(row, 4).GetFormattedString();
+                var rawCategory = ws.Cell(row, 5).GetFormattedString();
 
                 if (string.IsNullOrWhiteSpace(rawName) && string.IsNullOrWhiteSpace(rawBrand) &&
-                    string.IsNullOrWhiteSpace(rawUnit) && string.IsNullOrWhiteSpace(rawDesc))
+                    string.IsNullOrWhiteSpace(rawUnit) && string.IsNullOrWhiteSpace(rawDesc) &&
+                    string.IsNullOrWhiteSpace(rawCategory))
                     continue;
 
                 result.TotalRows++;
@@ -184,6 +243,7 @@ public partial class MaterialService
                 else if (unit.Length > UnitMaxLength) error = $"O'lchov birligi {UnitMaxLength} belgidan oshmasligi kerak.";
                 else if (brand is { Length: > BrandMaxLength }) error = $"Brend {BrandMaxLength} belgidan oshmasligi kerak.";
                 else if (description is { Length: > DescriptionMaxLength }) error = $"Tavsif {DescriptionMaxLength} belgidan oshmasligi kerak.";
+                else if (Clean(rawCategory) is { Length: > CategoryMaxLength }) error = $"Kategoriya {CategoryMaxLength} belgidan oshmasligi kerak.";
 
                 if (error is not null)
                 {
@@ -209,6 +269,7 @@ public partial class MaterialService
                     Name = name!,
                     Brand = brand,
                     Unit = CanonicalUnit(unit!),
+                    Category = NormalizeCategory(rawCategory),
                     Description = string.IsNullOrEmpty(description) ? null : description,
                     CompanyAdminId = companyAdminId,
                     CreatedAt = now

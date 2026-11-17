@@ -78,6 +78,7 @@ public class MaterialUsageDto
     public string MaterialName { get; set; } = string.Empty;
     public string? Brand { get; set; }
     public string Unit { get; set; } = string.Empty;
+    public string? Category { get; set; }
     public Guid ProjectId { get; set; }
     public string ProjectName { get; set; } = string.Empty;
     public decimal TotalQuantity { get; set; }

@@ -1,14 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Package, Search, BarChart3, ChevronDown, ChevronRight, GitMerge, AlertTriangle, X, FileSpreadsheet, Download, Upload, CheckCircle2 } from 'lucide-react';
+import { Plus, Package, Search, BarChart3, ChevronDown, ChevronRight, GitMerge, AlertTriangle, X, FileSpreadsheet, Download, Upload, CheckCircle2, Pencil, Tag } from 'lucide-react';
 import { materialsApi } from '../api/services';
 import { Material, MaterialImportResult, MaterialUsage, UserRole } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { MaterialPicker } from '../components/MaterialPicker';
-import { findCatalogMaterial, findDuplicateCandidates, normalizeText } from '../utils/materials';
+import { MATERIAL_CATEGORIES, UNCATEGORIZED, findCatalogMaterial, findDuplicateCandidates, normalizeText } from '../utils/materials';
 import { UsdWithUzs } from '../components/Money';
 import { formatUzs } from '../utils/money';
 
 type Tab = 'catalog' | 'usage';
+
+const matchesCategory = (c: string | undefined, filter: string) =>
+  !filter || (filter === UNCATEGORIZED ? !c : c === filter);
 
 const fmtQty = (n: number) => n.toLocaleString('ru-RU', { maximumFractionDigits: 2 });
 
@@ -24,6 +27,11 @@ export const MaterialsPage: React.FC = () => {
   const [brand, setBrand] = useState('');
   const [unit, setUnit] = useState('dona');
   const [desc, setDesc] = useState('');
+  const [category, setCategory] = useState('');
+  const [editing, setEditing] = useState<Material | null>(null);
+  const [catFilter, setCatFilter] = useState('');
+  const [uCategory, setUCategory] = useState('');
+  const canEdit = user?.role === UserRole.Admin || user?.role === UserRole.ProjectManager || user?.role === UserRole.Finance;
 
   const [usage, setUsage] = useState<MaterialUsage[]>([]);
   const [usageLoading, setUsageLoading] = useState(false);
@@ -102,27 +110,74 @@ export const MaterialsPage: React.FC = () => {
     }
   };
 
-  const duplicate =findCatalogMaterial(materials, name, brand);
+  const found = findCatalogMaterial(materials, name, brand);
+  const duplicate = found && found.id !== editing?.id ? found : undefined;
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const openCreate = () => {
+    setEditing(null);
+    setName('');
+    setBrand('');
+    setUnit('dona');
+    setDesc('');
+    setCategory(catFilter && catFilter !== UNCATEGORIZED ? catFilter : '');
+    setIsModalOpen(true);
+  };
+
+  const openEdit = (m: Material) => {
+    setEditing(m);
+    setName(m.name);
+    setBrand(m.brand ?? '');
+    setUnit(m.unit);
+    setDesc(m.description ?? '');
+    setCategory(m.category ?? '');
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditing(null);
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (duplicate) return;
+    const payload = {
+      name: name.trim(),
+      brand: brand.trim() || undefined,
+      unit,
+      category: category || undefined,
+      description: desc || undefined,
+    };
     try {
-      await materialsApi.create({ name: name.trim(), brand: brand.trim() || undefined, unit, description: desc || undefined });
-      setIsModalOpen(false);
-      setName('');
-      setBrand('');
-      setUnit('dona');
-      setDesc('');
+      if (editing) await materialsApi.update(editing.id, payload);
+      else await materialsApi.create(payload);
+      closeModal();
       loadMaterials();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Xatolik');
     }
   };
 
+  const categoryOptions = useMemo(() => {
+    const custom = materials
+      .map((m) => m.category)
+      .filter((c): c is string => !!c && !MATERIAL_CATEGORIES.includes(c));
+    return [...MATERIAL_CATEGORIES, ...[...new Set(custom)].sort((a, b) => a.localeCompare(b))];
+  }, [materials]);
+
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    materials.forEach((m) => {
+      const key = m.category || UNCATEGORIZED;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    });
+    return counts;
+  }, [materials]);
+
   const filtered = materials.filter(m =>
-    normalizeText(m.name).includes(normalizeText(search)) ||
-    (m.brand && normalizeText(m.brand).includes(normalizeText(search)))
+    matchesCategory(m.category, catFilter) &&
+    (normalizeText(m.name).includes(normalizeText(search)) ||
+      (m.brand && normalizeText(m.brand).includes(normalizeText(search))))
   );
 
   const dupMap = useMemo(() => {
@@ -180,9 +235,10 @@ export const MaterialsPage: React.FC = () => {
     return usage.filter((u) =>
       (!q || normalizeText(u.materialName).includes(q) || normalizeText(u.brand).includes(q) || normalizeText(u.projectName).includes(q)) &&
       (!uBrand || u.brand === uBrand) &&
-      (!uProject || u.projectId === uProject),
+      (!uProject || u.projectId === uProject) &&
+      matchesCategory(u.category, uCategory),
     );
-  }, [usage, uSearch, uBrand, uProject]);
+  }, [usage, uSearch, uBrand, uProject, uCategory]);
 
   const groups = useMemo(() => {
     const map = new Map<string, { key: string; name: string; brand?: string; unit: string; qty: number; cost: number; usd: number; count: number; rows: MaterialUsage[] }>();
@@ -247,7 +303,7 @@ export const MaterialsPage: React.FC = () => {
           )}
           {canReport && (
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={openCreate}
               className="bg-[#ff7a16] hover:bg-[#e86807] text-white font-semibold text-xs h-[34px] px-3.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-all whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
@@ -271,6 +327,31 @@ export const MaterialsPage: React.FC = () => {
             <span className="text-xs text-gray-400 whitespace-nowrap">{filtered.length} ta material</span>
           </div>
 
+          <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
+            {[
+              { key: '', label: 'Barchasi', count: materials.length },
+              ...categoryOptions
+                .filter((c) => categoryCounts.has(c))
+                .map((c) => ({ key: c, label: c, count: categoryCounts.get(c) ?? 0 })),
+              ...(categoryCounts.has(UNCATEGORIZED)
+                ? [{ key: UNCATEGORIZED, label: 'Kategoriyasiz', count: categoryCounts.get(UNCATEGORIZED) ?? 0 }]
+                : []),
+            ].map((c) => (
+              <button
+                key={c.key || 'all'}
+                onClick={() => setCatFilter(c.key)}
+                className={`flex items-center gap-1 h-8 px-3 rounded-full text-[11px] font-semibold border whitespace-nowrap flex-shrink-0 transition-colors ${
+                  catFilter === c.key
+                    ? 'bg-[#ff7a16] border-[#ff7a16] text-white'
+                    : 'bg-white border-[#e4e7ec] text-gray-600 hover:border-gray-300'
+                }`}
+              >
+                {c.label}
+                <span className={catFilter === c.key ? 'text-white/80' : 'text-gray-400'}>{c.count}</span>
+              </button>
+            ))}
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
             {filtered.map((m) => (
               <div key={m.id} className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs space-y-2">
@@ -280,7 +361,12 @@ export const MaterialsPage: React.FC = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-xs text-gray-900 truncate">{m.name}</h4>
-                    <div className="flex items-center gap-1.5 mt-1">
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                      {m.category && (
+                        <span className="px-1.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-100 rounded text-[9px] font-bold inline-flex items-center gap-0.5">
+                          <Tag className="w-2.5 h-2.5" />{m.category}
+                        </span>
+                      )}
                       {m.brand && (
                         <span className="px-1.5 py-0.5 bg-orange-50 text-[#ff7a16] border border-orange-100 rounded text-[9px] font-bold">
                           {m.brand}
@@ -299,6 +385,14 @@ export const MaterialsPage: React.FC = () => {
                     <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-600 whitespace-nowrap" title="Nomi/brendi o'xshash material bor">
                       <AlertTriangle className="w-3 h-3" /> O'xshash bor
                     </span>
+                  )}
+                  {canEdit && (
+                    <button
+                      onClick={() => openEdit(m)}
+                      className="flex items-center gap-1 text-[10px] font-semibold text-gray-600 hover:text-gray-900 min-h-8 whitespace-nowrap"
+                    >
+                      <Pencil className="w-3 h-3" /> Tahrirlash
+                    </button>
                   )}
                   {canMerge && materials.length > 1 && (
                     <button
@@ -333,6 +427,11 @@ export const MaterialsPage: React.FC = () => {
                 className="flex-1 min-w-0 text-xs outline-none"
               />
             </div>
+            <select value={uCategory} onChange={(e) => setUCategory(e.target.value)} className="h-9 px-2 border border-gray-200 rounded-lg text-xs bg-white outline-none w-full sm:w-auto">
+              <option value="">Barcha kategoriyalar</option>
+              {categoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+              <option value={UNCATEGORIZED}>Kategoriyasiz</option>
+            </select>
             <select value={uBrand} onChange={(e) => setUBrand(e.target.value)} className="h-9 px-2 border border-gray-200 rounded-lg text-xs bg-white outline-none w-full sm:w-auto">
               <option value="">Barcha brendlar</option>
               {brandOptions.map((b) => <option key={b} value={b}>{b}</option>)}
@@ -431,10 +530,10 @@ export const MaterialsPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
           <div className="bg-white rounded-t-2xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-md max-h-[92vh] overflow-y-auto shadow-xl border border-gray-200 space-y-4">
             <div className="flex justify-between items-center border-b pb-3">
-              <h3 className="font-bold text-sm text-[#171b25]">Katalogga Material Qo'shish</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-sm">✕</button>
+              <h3 className="font-bold text-sm text-[#171b25]">{editing ? 'Materialni tahrirlash' : "Katalogga Material Qo'shish"}</h3>
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-sm">✕</button>
             </div>
-            <form onSubmit={handleCreate} className="space-y-3">
+            <form onSubmit={handleSave} className="space-y-3">
               <MaterialPicker
                 materials={materials}
                 name={name}
@@ -448,6 +547,17 @@ export const MaterialsPage: React.FC = () => {
                 <div className="text-[11px] text-red-600 font-semibold">Bu material katalogda allaqachon bor — qayta qo'shish shart emas.</div>
               )}
               <div>
+                <label className="block text-xs font-semibold mb-1">Kategoriya — qaysi ish uchun</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full h-9 px-2 border border-gray-300 rounded-lg text-xs outline-none bg-white"
+                >
+                  <option value="">— Kategoriyasiz —</option>
+                  {categoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
                 <label className="block text-xs font-semibold mb-1">Tavsif (ixtiyoriy)</label>
                 <input
                   type="text"
@@ -458,13 +568,13 @@ export const MaterialsPage: React.FC = () => {
                 />
               </div>
               <div className="flex flex-wrap justify-end gap-2 pt-2 border-t">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-3 py-1.5 border rounded-lg text-xs text-gray-600">Bekor qilish</button>
+                <button type="button" onClick={closeModal} className="px-3 py-1.5 border rounded-lg text-xs text-gray-600">Bekor qilish</button>
                 <button
                   type="submit"
                   disabled={!!duplicate}
                   className="px-4 py-1.5 bg-[#ff7a16] text-white rounded-lg text-xs font-semibold hover:bg-[#e86807] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Qo'shish
+                  {editing ? 'Saqlash' : "Qo'shish"}
                 </button>
               </div>
             </form>

@@ -48,15 +48,7 @@ public partial class MaterialService : IMaterialService
 
         await EnsureSameCompanyAsync(material, requestingUserId, requestingUserRole);
 
-        return new MaterialDto
-        {
-            Id = material.Id,
-            Name = material.Name,
-            Brand = material.Brand,
-            Unit = material.Unit,
-            Description = material.Description,
-            CreatedAt = material.CreatedAt
-        };
+        return ToDto(material);
     }
 
     public async Task<MaterialDto> CreateMaterialAsync(CreateMaterialDto dto, Guid createdByUserId)
@@ -77,6 +69,7 @@ public partial class MaterialService : IMaterialService
             Name = name,
             Brand = brand,
             Unit = Clean(dto.Unit) ?? "dona",
+            Category = NormalizeCategory(dto.Category),
             Description = dto.Description?.Trim(),
             CompanyAdminId = companyAdminId,
             CreatedAt = DateTime.UtcNow
@@ -85,15 +78,7 @@ public partial class MaterialService : IMaterialService
         _context.Materials.Add(material);
         await _context.SaveChangesAsync();
 
-        return new MaterialDto
-        {
-            Id = material.Id,
-            Name = material.Name,
-            Brand = material.Brand,
-            Unit = material.Unit,
-            Description = material.Description,
-            CreatedAt = material.CreatedAt
-        };
+        return ToDto(material);
     }
 
     public async Task<MaterialDto> UpdateMaterialAsync(Guid id, CreateMaterialDto dto, Guid requestingUserId, UserRole requestingUserRole)
@@ -113,19 +98,12 @@ public partial class MaterialService : IMaterialService
         material.Name = name;
         material.Brand = brand;
         material.Unit = Clean(dto.Unit) ?? material.Unit;
+        material.Category = NormalizeCategory(dto.Category);
         material.Description = dto.Description?.Trim();
 
         await _context.SaveChangesAsync();
 
-        return new MaterialDto
-        {
-            Id = material.Id,
-            Name = material.Name,
-            Brand = material.Brand,
-            Unit = material.Unit,
-            Description = material.Description,
-            CreatedAt = material.CreatedAt
-        };
+        return ToDto(material);
     }
 
     public async Task DeleteMaterialAsync(Guid id, Guid requestingUserId, UserRole requestingUserRole)
@@ -183,6 +161,7 @@ public partial class MaterialService : IMaterialService
         Name = m.Name,
         Brand = m.Brand,
         Unit = m.Unit,
+        Category = m.Category,
         Description = m.Description,
         PurchaseCount = purchaseCount,
         CreatedAt = m.CreatedAt
@@ -495,6 +474,7 @@ public partial class MaterialService : IMaterialService
                     MaterialName = first.Material?.Name ?? "",
                     Brand = g.Key.Brand,
                     Unit = g.Key.Unit,
+                    Category = first.Material?.Category,
                     ProjectId = g.Key.ProjectId,
                     ProjectName = first.Project?.Name ?? "",
                     TotalQuantity = qty,

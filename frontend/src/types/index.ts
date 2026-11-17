@@ -202,6 +202,7 @@ export interface Material {
   name: string;
   brand?: string;
   unit: string;
+  category?: string;
   description?: string;
   purchaseCount?: number;
   createdAt: string;
@@ -259,6 +260,7 @@ export interface MaterialUsage {
   materialName: string;
   brand?: string;
   unit: string;
+  category?: string;
   projectId: string;
   projectName: string;
   totalQuantity: number;

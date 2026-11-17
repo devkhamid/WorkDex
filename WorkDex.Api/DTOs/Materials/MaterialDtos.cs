@@ -14,6 +14,8 @@ public class CreateMaterialDto
     [Required]
     [MaxLength(50)]
     public string Unit { get; set; } = string.Empty;
+    [MaxLength(100)]
+    public string? Category { get; set; }
     [MaxLength(1000)]
     public string? Description { get; set; }
 }
@@ -24,6 +26,7 @@ public class MaterialDto
     public string Name { get; set; } = string.Empty;
     public string? Brand { get; set; }
     public string Unit { get; set; } = string.Empty;
+    public string? Category { get; set; }
     public string? Description { get; set; }
     public int PurchaseCount { get; set; }    public DateTime CreatedAt { get; set; }
 }

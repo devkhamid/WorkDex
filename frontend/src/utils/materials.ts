@@ -2,6 +2,21 @@ import { Material } from '../types';
 
 export const MATERIAL_UNITS = ['dona', 'm²', 'kg', 'qop', 'm³', 'metr', 'litr', 'komplekt', 'list', 'rulon'];
 
+export const MATERIAL_CATEGORIES = [
+  'Qora ishlar',
+  'Elektr',
+  'Santexnika',
+  "Bo'yoq va suvoq",
+  'Gipsokarton',
+  'Plitka',
+  'Pol qoplamasi',
+  'Eshik va deraza',
+  'Isitish va ventilyatsiya',
+  'Boshqa',
+];
+
+export const UNCATEGORIZED = '__none__';
+
 export const normalizeText = (s: string | undefined | null) =>
   (s ?? '')
     .trim()

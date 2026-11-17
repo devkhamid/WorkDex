@@ -16,6 +16,7 @@ public static class DbInitializer
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Workers\" ADD COLUMN IF NOT EXISTS \"CompanyAdminId\" UUID;");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Projects\" ADD COLUMN IF NOT EXISTS \"CompanyAdminId\" UUID;");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Materials\" ADD COLUMN IF NOT EXISTS \"Brand\" VARCHAR(200);");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Materials\" ADD COLUMN IF NOT EXISTS \"Category\" VARCHAR(100);");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"MaterialPurchases\" ADD COLUMN IF NOT EXISTS \"Brand\" VARCHAR(200);");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Expenses\" ALTER COLUMN \"ProjectId\" DROP NOT NULL;");
         await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Expenses\" ADD COLUMN IF NOT EXISTS \"Frequency\" INTEGER DEFAULT 1;");
