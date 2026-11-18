@@ -90,6 +90,8 @@ public class MaterialUsageDto
 public class MaterialPurchaseImportRowDto
 {
     public int Row { get; set; }
+    public Guid ProjectId { get; set; }
+    public string ProjectName { get; set; } = string.Empty;
     public string MaterialName { get; set; } = string.Empty;
     public string? Brand { get; set; }
     public string Unit { get; set; } = string.Empty;
@@ -112,8 +114,18 @@ public class MaterialPurchaseImportResultDto
     public decimal TotalCostUsd { get; set; }
     public decimal ExchangeRate { get; set; }
     public List<string> NewMaterials { get; set; } = new();
+    public List<MaterialPurchaseImportProjectDto> Projects { get; set; } = new();
     public List<MaterialPurchaseImportRowDto> Rows { get; set; } = new();
     public List<MaterialImportIssueDto> Errors { get; set; } = new();
+    public List<string> Warnings { get; set; } = new();
+}
+
+public class MaterialPurchaseImportProjectDto
+{
+    public Guid ProjectId { get; set; }
+    public string ProjectName { get; set; } = string.Empty;
+    public int Count { get; set; }
+    public decimal TotalCostUzs { get; set; }
 }
 
 public class UpdateMaterialPurchaseDto

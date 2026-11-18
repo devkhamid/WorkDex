@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Download, FileSpreadsheet, Upload, X } from 'lucide-react';
-import { projectsApi } from '../api/services';
+import { materialsApi, projectsApi } from '../api/services';
 import { MaterialPurchaseImportResult } from '../types';
 import { formatMoney, formatUzs } from '../utils/money';
 import { UsdWithUzs } from './Money';
@@ -12,7 +12,8 @@ const fmtDate = (iso: string) => {
 };
 
 interface Props {
-  projectId: string;
+  /** Berilmasa — barcha loyihalar uchun umumiy smeta (har bir loyiha alohida ustun bloki). */
+  projectId?: string;
   projectName?: string;
   onClose: () => void;
   onImported: () => void;
@@ -26,6 +27,13 @@ export const PurchaseImportModal: React.FC<Props> = ({ projectId, projectName, o
   const [templateLoading, setTemplateLoading] = useState(false);
   const [error, setError] = useState('');
   const [purchaseDate, setPurchaseDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const multi = !projectId;
+
+  const api = {
+    template: () => (projectId ? projectsApi.downloadPurchaseImportTemplate(projectId) : materialsApi.downloadPurchaseImportTemplate()),
+    import: (f: File, dryRun: boolean) =>
+      projectId ? projectsApi.importPurchases(projectId, f, dryRun, purchaseDate) : materialsApi.importPurchases(f, dryRun, purchaseDate),
+  };
 
   const sections = useMemo(() => {
     const map = new Map<string, { count: number; total: number }>();
@@ -45,7 +53,7 @@ export const PurchaseImportModal: React.FC<Props> = ({ projectId, projectName, o
     setTemplateLoading(true);
     setError('');
     try {
-      await projectsApi.downloadPurchaseImportTemplate(projectId);
+      await api.template();
     } catch (err) {
       setError(errorMessage(err, 'Shablonni yuklab olishda xatolik yuz berdi'));
     } finally {
@@ -59,7 +67,7 @@ export const PurchaseImportModal: React.FC<Props> = ({ projectId, projectName, o
     setError('');
     setBusy(true);
     try {
-      setPreview(await projectsApi.importPurchases(projectId, selected, true, purchaseDate));
+      setPreview(await api.import(selected, true));
     } catch (err) {
       setError(errorMessage(err, 'Faylni tekshirishda xatolik yuz berdi'));
     } finally {
@@ -72,7 +80,7 @@ export const PurchaseImportModal: React.FC<Props> = ({ projectId, projectName, o
     setBusy(true);
     setError('');
     try {
-      const result = await projectsApi.importPurchases(projectId, file, false, purchaseDate);
+      const result = await api.import(file, false);
       if (result.errors.length > 0) {
         setPreview(result);
         return;
@@ -100,7 +108,9 @@ export const PurchaseImportModal: React.FC<Props> = ({ projectId, projectName, o
         <div className="flex justify-between items-center border-b pb-3 gap-2">
           <h3 className="font-bold text-sm text-[#171b25] flex items-center gap-1.5 min-w-0">
             <FileSpreadsheet className="w-4 h-4 text-green-600 flex-shrink-0" />
-            <span className="truncate">Excel orqali material xaridlari{projectName ? ` — ${projectName}` : ''}</span>
+            <span className="truncate">
+              {multi ? 'Excel orqali materiallar — barcha loyihalar' : `Excel orqali material xaridlari${projectName ? ` — ${projectName}` : ''}`}
+            </span>
           </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 min-w-8 min-h-8 inline-flex items-center justify-center flex-shrink-0">
             <X className="w-4 h-4" />
@@ -111,7 +121,9 @@ export const PurchaseImportModal: React.FC<Props> = ({ projectId, projectName, o
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-green-700 bg-green-50 border border-green-100 rounded-lg p-3">
               <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
-              <span>{saved.created} ta xarid saqlandi — jami {formatUzs(saved.totalCostUzs)}</span>
+              <span>
+                {saved.created} ta xarid saqlandi{multi ? ` (${saved.projects.length} ta loyiha)` : ''} — jami {formatUzs(saved.totalCostUzs)}
+              </span>
             </div>
             {saved.newMaterials.length > 0 && (
               <div className="text-[11px] text-gray-600">Katalogga {saved.newMaterials.length} ta yangi material qo'shildi.</div>
@@ -124,11 +136,19 @@ export const PurchaseImportModal: React.FC<Props> = ({ projectId, projectName, o
           <>
             <div className="space-y-2">
               <div className="text-xs font-semibold text-[#171b25]">1. Shablonni yuklab oling va to'ldiring</div>
+              {multi ? (
+                <p className="text-[11px] text-gray-500">
+                  Umumiy smeta ko'rinishida (<b>Materiallar_UA</b> kabi): A — material nomi, B — ед.изм., keyin har bir loyiha uchun blok
+                  <b> кол-во · цена за ед. · всего мат</b>, blok ustida loyiha nomi. Shablonda barcha loyihalaringiz tayyor turadi.
+                  Mavjud smeta faylingizni ham shu yerga to'g'ridan-to'g'ri yuklashingiz mumkin — loyihalar nomi bo'yicha topiladi.
+                </p>
+              ) : (
               <p className="text-[11px] text-gray-500">
                 Smeta ko'rinishida: <b>Наименование · ед.изм. · кол-во · цена за ед.</b> Ko'k qatorlar — bo'limlar (Сантехнические, Электрические...),
                 ostidagi materiallar shu kategoriyaga kiradi. Katalogdagi materiallar oldindan yozilgan — faqat olinganlarining miqdori va narxini to'ldiring.
                 Miqdori bo'sh yoki 0 bo'lgan qatorlar o'tkazib yuboriladi. Narxlar so'mda.
               </p>
+              )}
               <button
                 type="button"
                 onClick={downloadTemplate}
@@ -184,8 +204,8 @@ export const PurchaseImportModal: React.FC<Props> = ({ projectId, projectName, o
                       {preview.errors.length} ta qatorda xato bor — faylni tuzatib, qayta yuklang. Hech narsa saqlanmadi.
                     </div>
                     <ul className="max-h-36 overflow-y-auto text-red-800 space-y-0.5">
-                      {preview.errors.map((e) => (
-                        <li key={e.row}>{e.row}-qator{e.name ? ` · ${e.name}` : ''} — {e.message}</li>
+                      {preview.errors.map((e, i) => (
+                        <li key={i}>{e.row}-qator{e.name ? ` · ${e.name}` : ''} — {e.message}</li>
                       ))}
                     </ul>
                   </div>
@@ -198,6 +218,35 @@ export const PurchaseImportModal: React.FC<Props> = ({ projectId, projectName, o
                     <div className="border border-[#e4e7ec] rounded-lg p-2.5 sm:col-span-2">
                       <div className="text-[10px] font-bold text-gray-500 uppercase">Jami summa</div>
                       <UsdWithUzs className="text-base font-bold text-[#ff7a16]" usd={preview.totalCostUsd} uzs={preview.totalCostUzs} />
+                    </div>
+                  </div>
+                )}
+
+                {preview.warnings?.length > 0 && (
+                  <div className="text-[11px] bg-amber-50 border border-amber-100 rounded-lg p-2 text-amber-800 space-y-0.5">
+                    {preview.warnings.map((w) => (
+                      <div key={w} className="flex items-start gap-1">
+                        <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-px" />
+                        {w}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {multi && preview.errors.length === 0 && preview.projects.length > 0 && (
+                  <div className="border border-[#e4e7ec] rounded-lg overflow-hidden">
+                    <div className="px-2.5 py-1.5 bg-gray-50 text-[10px] font-bold text-gray-500 uppercase">
+                      Loyihalar bo'yicha · {preview.projects.length} ta
+                    </div>
+                    <div className="max-h-48 overflow-y-auto divide-y divide-gray-100">
+                      {preview.projects.map((p) => (
+                        <div key={p.projectId} className="flex justify-between gap-2 px-2.5 py-1.5 text-[11px]">
+                          <span className="font-semibold text-gray-800 truncate">{p.projectName}</span>
+                          <span className="whitespace-nowrap text-gray-600">
+                            {p.count} ta · <b className="text-[#171b25]">{formatUzs(p.totalCostUzs)}</b>
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -232,10 +281,11 @@ export const PurchaseImportModal: React.FC<Props> = ({ projectId, projectName, o
 
                 {preview.rows.length > 0 && (
                   <div className="border border-[#e4e7ec] rounded-lg overflow-x-auto max-h-64 overflow-y-auto">
-                    <table className="w-full min-w-[620px] text-left text-[11px]">
+                    <table className={`w-full ${multi ? 'min-w-[720px]' : 'min-w-[620px]'} text-left text-[11px]`}>
                       <thead className="sticky top-0 bg-gray-50">
                         <tr className="border-b border-[#e4e7ec]">
                           <th className="py-2 px-2 font-bold text-gray-500 text-[10px]">#</th>
+                          {multi && <th className="py-2 px-2 font-bold text-gray-500 text-[10px]">LOYIHA</th>}
                           <th className="py-2 px-2 font-bold text-gray-500 text-[10px]">MATERIAL</th>
                           <th className="py-2 px-2 font-bold text-gray-500 text-[10px] text-right">MIQDOR</th>
                           <th className="py-2 px-2 font-bold text-gray-500 text-[10px] text-right">NARX</th>
@@ -245,8 +295,9 @@ export const PurchaseImportModal: React.FC<Props> = ({ projectId, projectName, o
                       </thead>
                       <tbody className="divide-y divide-gray-100">
                         {preview.rows.map((r) => (
-                          <tr key={r.row}>
+                          <tr key={`${r.row}-${r.projectId}`}>
                             <td className="py-1.5 px-2 text-gray-400">{r.row}</td>
+                            {multi && <td className="py-1.5 px-2 whitespace-nowrap text-gray-600">{r.projectName}</td>}
                             <td className="py-1.5 px-2 font-semibold text-gray-800">
                               {r.materialName}
                               {r.brand && <span className="ml-1 text-[#ff7a16] font-bold text-[10px]">{r.brand}</span>}

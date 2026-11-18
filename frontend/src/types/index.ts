@@ -223,6 +223,8 @@ export interface MaterialImportResult {
 
 export interface MaterialPurchaseImportRow {
   row: number;
+  projectId: string;
+  projectName: string;
   materialName: string;
   brand?: string;
   unit: string;
@@ -244,8 +246,17 @@ export interface MaterialPurchaseImportResult {
   totalCostUsd: number;
   exchangeRate: number;
   newMaterials: string[];
+  projects: MaterialPurchaseImportProject[];
   rows: MaterialPurchaseImportRow[];
   errors: MaterialImportIssue[];
+  warnings: string[];
+}
+
+export interface MaterialPurchaseImportProject {
+  projectId: string;
+  projectName: string;
+  count: number;
+  totalCostUzs: number;
 }
 
 export interface MaterialPurchase {

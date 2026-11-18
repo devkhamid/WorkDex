@@ -508,6 +508,27 @@ export const materialsApi = {
     link.remove();
     window.URL.revokeObjectURL(url);
   },
+  downloadPurchaseImportTemplate: async (): Promise<void> => {
+    const response = await apiClient.get('/material-purchases/import/template', { responseType: 'blob' });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'WorkDex_Loyihalar_Material_Shablon.xlsx');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
+  importPurchases: async (file: File, dryRun: boolean, purchaseDate?: string): Promise<MaterialPurchaseImportResult> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await apiClient.post<MaterialPurchaseImportResult>(
+      '/material-purchases/import',
+      formData,
+      { params: { dryRun, purchaseDate: purchaseDate || undefined }, headers: { 'Content-Type': 'multipart/form-data' } },
+    );
+    return res.data;
+  },
   importExcel: async (file: File): Promise<MaterialImportResult> => {
     const formData = new FormData();
     formData.append('file', file);

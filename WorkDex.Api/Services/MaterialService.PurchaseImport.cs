@@ -11,7 +11,11 @@ public partial class MaterialService
 {
     public const int MaxPurchaseImportRows = 2000;
 
-    private const int ColName = 1, ColUnit = 2, ColQty = 3, ColPrice = 4, ColTotal = 5;
+    // Smeta ko'rinishi ("Materiallar_UA" kabi): A = nomi, B = ед.изм., keyin har bir loyiha uchun
+    // 4 ustunli blok: кол-во | цена за ед. | всего мат | (bo'sh). Loyiha nomi blok ustida, 1-qatorda.
+    private const int ColName = 1, ColUnit = 2, ColQty = 3, ColPrice = 4;
+    private const int BlockWidth = 4;
+    private const int MaxPurchaseImportBlocks = 300;
     private const string NumberFormat = "_-* #,##0.0_-;\\-* #,##0.0_-;_-* \"-\"??_-;_-@_-";
     private static readonly XLColor HeaderFill = XLColor.FromHtml("#172B4D");
     private static readonly XLColor SectionFill = XLColor.FromHtml("#DDEBF1");
@@ -47,6 +51,9 @@ public partial class MaterialService
     private static readonly Regex TotalRowPattern = new(@"^(итого|всего|jami|total)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex HeaderQtyPattern = new(@"кол|miqdor|qty|soni", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex BrandSuffixPattern = new(@"^(?<name>.+?)\s*\[(?<brand>[^\[\]]+)\]\s*$", RegexOptions.Compiled);
+    private static readonly Regex MaterialSheetPattern = new(@"materi|матер", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private sealed record PurchaseBlock(int QtyCol, int PriceCol, string? Label);
 
     private static string SectionToCategory(string section)
     {
@@ -66,48 +73,77 @@ public partial class MaterialService
         return m.Success ? (Clean(m.Groups["name"].Value)!, Clean(m.Groups["brand"].Value)) : (name, null);
     }
 
+    // "H -2-5" = "H-2-5", 'Bomi "EGIS"' = "Bomi EGIS": faqat harf va raqamlar solishtiriladi.
+    private static string ProjectKey(string? name) =>
+        new(MatchKey(name).Where(char.IsLetterOrDigit).ToArray());
+
+    private static string Col(int column) => XLHelper.GetColumnLetterFromNumber(column);
+
+    // ---------- Shablon ----------
+
     public async Task<byte[]> BuildPurchaseImportTemplateAsync(Guid projectId, Guid requestingUserId)
     {
         var (project, companyAdminId) = await ResolvePurchaseContextAsync(projectId, requestingUserId);
+        return await BuildPurchaseTemplateAsync(new[] { project }, companyAdminId);
+    }
+
+    public async Task<byte[]> BuildMultiProjectPurchaseTemplateAsync(Guid requestingUserId, IReadOnlyCollection<Guid>? projectIds = null)
+    {
+        var companyAdminId = await ResolveCompanyAdminIdAsync(requestingUserId);
+        var query = CompanyProjectsQuery(companyAdminId);
+        if (projectIds is { Count: > 0 })
+            query = query.Where(p => projectIds.Contains(p.Id));
+        var projects = await query.OrderBy(p => p.CreatedAt).ToListAsync();
+        if (projects.Count == 0)
+            throw new ArgumentException("Shablon uchun birorta ham loyiha topilmadi.");
+        if (projects.Count > MaxPurchaseImportBlocks)
+            throw new ArgumentException($"Bir shablonda ko'pi bilan {MaxPurchaseImportBlocks} ta loyiha bo'lishi mumkin.");
+        return await BuildPurchaseTemplateAsync(projects, companyAdminId);
+    }
+
+    private async Task<byte[]> BuildPurchaseTemplateAsync(IReadOnlyList<Project> projects, Guid companyAdminId)
+    {
         var catalog = await _context.Materials
             .AsNoTracking()
             .Where(m => m.CompanyAdminId == companyAdminId)
             .OrderBy(m => m.Name).ThenBy(m => m.Brand)
             .ToListAsync();
 
+        var multi = projects.Count > 1;
+        int QtyColOf(int i) => ColQty + i * BlockWidth;
+        var lastCol = QtyColOf(projects.Count - 1) + 2;
+
         using var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add("Materiallar");
 
         ws.Range(1, ColName, 2, ColName).Merge().Value = "Наименование материалов";
         ws.Range(1, ColUnit, 2, ColUnit).Merge().Value = "ед.изм.";
-        ws.Range(1, ColQty, 1, ColTotal).Merge().Value = project.Name;
-        ws.Cell(2, ColQty).Value = "кол-во";
-        ws.Cell(2, ColPrice).Value = "цена за ед.";
-        ws.Cell(2, ColTotal).Value = "всего мат";
-
-        var header = ws.Range(1, ColName, 2, ColTotal);
-        header.Style.Font.Bold = true;
-        header.Style.Font.FontColor = XLColor.White;
-        header.Style.Fill.BackgroundColor = HeaderFill;
-        header.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-        header.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-        header.Style.Alignment.WrapText = true;
-        header.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-        header.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-        ws.Row(2).Height = 30;
-        ws.SheetView.FreezeRows(2);
-
+        StyleHeader(ws.Range(1, ColName, 2, ColUnit));
         ws.Column(ColName).Width = 53;
         ws.Column(ColUnit).Width = 9;
-        ws.Column(ColQty).Width = 10;
-        ws.Column(ColPrice).Width = 14;
-        ws.Column(ColTotal).Width = 16;
+
+        for (var i = 0; i < projects.Count; i++)
+        {
+            var q = QtyColOf(i);
+            ws.Range(1, q, 1, q + 2).Merge().Value = projects[i].Name;
+            ws.Cell(2, q).Value = "кол-во";
+            ws.Cell(2, q + 1).Value = "цена за ед.";
+            ws.Cell(2, q + 2).Value = "всего мат";
+            StyleHeader(ws.Range(1, q, 2, q + 2));
+            ws.Column(q).Width = 10;
+            ws.Column(q + 1).Width = 14;
+            ws.Column(q + 2).Width = 16;
+            if (i < projects.Count - 1) ws.Column(q + 3).Width = 2;
+        }
+        ws.Row(1).Height = 30;
+        ws.Row(2).Height = 30;
+        ws.SheetView.Freeze(2, multi ? ColUnit : 0);
 
         var row = 3;
         void Section(string title)
         {
-            var range = ws.Range(row, ColName, row, ColTotal);
             ws.Cell(row, ColName).Value = title;
+            var range = ws.Range(row, ColName, row, lastCol);
             range.Style.Font.Bold = true;
             range.Style.Fill.BackgroundColor = SectionFill;
             row++;
@@ -119,7 +155,12 @@ public partial class MaterialService
                 ws.Cell(row, ColName).Value = m.Brand is null ? m.Name : $"{m.Name} [{m.Brand}]";
                 ws.Cell(row, ColUnit).Value = m.Unit;
             }
-            ws.Cell(row, ColTotal).FormulaA1 = $"IF(AND(C{row}<>\"\",D{row}<>\"\"),C{row}*D{row},\"\")";
+            for (var i = 0; i < projects.Count; i++)
+            {
+                var qty = $"{Col(QtyColOf(i))}{row}";
+                var price = $"{Col(QtyColOf(i) + 1)}{row}";
+                ws.Cell(row, QtyColOf(i) + 2).FormulaA1 = $"IF(AND({qty}<>\"\",{price}<>\"\"),{qty}*{price},\"\")";
+            }
             row++;
         }
 
@@ -136,34 +177,66 @@ public partial class MaterialService
         }
 
         var lastItemRow = row - 1;
-        ws.Range(3, ColQty, lastItemRow, ColTotal).Style.NumberFormat.Format = NumberFormat;
-        ws.Range(3, ColName, lastItemRow, ColTotal).Style.Border.InsideBorder = XLBorderStyleValues.Hair;
-        ws.Range(3, ColName, lastItemRow, ColTotal).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+        void Grid(IXLRange range)
+        {
+            range.Style.Border.InsideBorder = XLBorderStyleValues.Hair;
+            range.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+        }
+        Grid(ws.Range(3, ColName, lastItemRow, ColUnit));
+        for (var i = 0; i < projects.Count; i++)
+        {
+            var block = ws.Range(3, QtyColOf(i), lastItemRow, QtyColOf(i) + 2);
+            block.Style.NumberFormat.Format = NumberFormat;
+            Grid(block);
+        }
 
         row++;
         ws.Cell(row, ColName).Value = "Итого по материалу";
-        ws.Cell(row, ColTotal).FormulaA1 = $"SUM(E3:E{lastItemRow})";
-        var totalRange = ws.Range(row, ColName, row, ColTotal);
+        for (var i = 0; i < projects.Count; i++)
+        {
+            var t = QtyColOf(i) + 2;
+            ws.Cell(row, t).FormulaA1 = $"SUM({Col(t)}3:{Col(t)}{lastItemRow})";
+            ws.Cell(row, t).Style.NumberFormat.Format = NumberFormat;
+        }
+        var totalRange = ws.Range(row, ColName, row, lastCol);
         totalRange.Style.Font.Bold = true;
         totalRange.Style.Fill.BackgroundColor = SectionFill;
-        ws.Cell(row, ColTotal).Style.NumberFormat.Format = NumberFormat;
 
         var help = workbook.Worksheets.Add("Yo'riqnoma");
-        var lines = new[]
+        var lines = new List<string>
         {
-            $"«{project.Name}» loyihasiga material xaridlarini Excel orqali qo'shish",
+            multi
+                ? "Bir nechta loyihaga material xaridlarini bitta Excel fayl orqali qo'shish"
+                : $"«{projects[0].Name}» loyihasiga material xaridlarini Excel orqali qo'shish",
             "",
-            "1. \"Materiallar\" varag'ida har bir qatorga bitta material: nomi, o'lchov birligi, miqdori (кол-во) va birlik narxi (цена за ед.).",
-            "2. Ko'k fonli qatorlar — bo'limlar (ish turi). Ularning ostidagi materiallar shu kategoriyaga kiradi.",
+            "1. \"Materiallar\" varag'ida har bir qatorga bitta material: nomi (A) va o'lchov birligi (B).",
+            multi
+                ? "2. Har bir loyiha — 1-qatorda nomi yozilgan alohida blok: кол-во (miqdor) | цена за ед. (narx) | всего мат (avtomatik)."
+                : "2. кол-во — miqdor, цена за ед. — birlik narxi, всего мат — avtomatik hisoblanadi.",
+            multi
+                ? "   Material qatorida faqat shu loyihada ishlatilgan miqdor va narxni yozing. Miqdori bo'sh yoki 0 kataklar o'tkazib yuboriladi."
+                : "   Miqdori bo'sh yoki 0 bo'lgan qatorlar o'tkazib yuboriladi.",
+            "3. Ko'k fonli qatorlar — bo'limlar (ish turi). Ularning ostidagi materiallar shu kategoriyaga kiradi.",
             "   O'z bo'limingizni qo'shishingiz mumkin: faqat A ustuniga nom yozing (masalan \"Монтаж освещения\").",
-            "3. Katalogdagi materiallar oldindan yozilgan — faqat olinganlarining miqdori va narxini to'ldiring.",
-            "   Miqdori va narxi bo'sh qatorlar o'tkazib yuboriladi.",
-            "4. Yangi material qo'shish uchun bo'sh qatorga yozing. Brendni kvadrat qavsda yozish mumkin: \"Gipsokarton 12.5 [Knauf]\".",
+            "4. Katalogdagi materiallar oldindan yozilgan. Yangi material qo'shish uchun bo'sh qatorga yozing yoki qator qo'shing.",
+            "   Brendni kvadrat qavsda yozish mumkin: \"Gipsokarton 12.5 [Knauf]\".",
             "5. Narxlar so'mda (UZS). Xarid sanasi yuklash oynasida tanlanadi.",
             "6. \"Итого по материалу\" qatoridan keyingi qatorlar o'qilmaydi.",
-            "7. Yuklashdan oldin natija ko'rsatiladi: bitta qatorda ham xato bo'lsa, hech narsa saqlanmaydi.",
+            "7. Yuklashdan oldin natija ko'rsatiladi: bitta katakda ham xato bo'lsa, hech narsa saqlanmaydi.",
         };
-        for (var i = 0; i < lines.Length; i++) help.Cell(i + 1, 1).Value = lines[i];
+        if (multi)
+        {
+            lines.Add("");
+            lines.Add("Mavjud smeta faylingiz (masalan \"Materiallar_UA\" varag'i) shu tuzilishda bo'lsa, uni to'g'ridan-to'g'ri yuklash mumkin:");
+            lines.Add("   nomida \"Materi...\" bo'lgan varaq o'qiladi, loyihalar 1-qatordagi nom bo'yicha topiladi");
+            lines.Add("   (bo'shliq, tire va tirnoqlar hisobga olinmaydi: \"H -2-5\" = \"H-2-5\").");
+            lines.Add("   Tizimda yo'q loyiha ustunida ma'lumot bo'lsa — xato ko'rsatiladi: loyihani avval yarating yoki ustunni o'chiring.");
+            lines.Add("   Loyiha ustunlarini o'chirish yoki tartibini o'zgartirish mumkin — faqat nomlar muhim.");
+            lines.Add("");
+            lines.Add("Tizimdagi loyihalar (1-qatordagi nom shularga mos bo'lishi kerak):");
+            lines.AddRange(projects.Select(p => "   • " + p.Name));
+        }
+        for (var i = 0; i < lines.Count; i++) help.Cell(i + 1, 1).Value = lines[i];
         help.Cell(1, 1).Style.Font.Bold = true;
         help.Cell(1, 1).Style.Font.FontSize = 13;
         help.Column(1).Width = 110;
@@ -174,6 +247,20 @@ public partial class MaterialService
         return stream.ToArray();
     }
 
+    private static void StyleHeader(IXLRange header)
+    {
+        header.Style.Font.Bold = true;
+        header.Style.Font.FontColor = XLColor.White;
+        header.Style.Fill.BackgroundColor = HeaderFill;
+        header.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        header.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+        header.Style.Alignment.WrapText = true;
+        header.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+        header.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+    }
+
+    // ---------- Kontekst ----------
+
     private async Task<(Project Project, Guid CompanyAdminId)> ResolvePurchaseContextAsync(Guid projectId, Guid userId)
     {
         var project = await _context.Projects.FindAsync(projectId)
@@ -183,11 +270,98 @@ public partial class MaterialService
         return (project, project.CompanyAdminId ?? user.CompanyAdminId ?? userId);
     }
 
+    private async Task<Guid> ResolveCompanyAdminIdAsync(Guid userId)
+    {
+        var user = await _context.Users.FindAsync(userId)
+            ?? throw new KeyNotFoundException("Foydalanuvchi topilmadi.");
+        return user.CompanyAdminId ?? userId;
+    }
+
+    private IQueryable<Project> CompanyProjectsQuery(Guid companyAdminId) =>
+        _context.Projects.Where(p =>
+            p.CompanyAdminId == companyAdminId ||
+            p.CreatedByUserId == companyAdminId ||
+            (p.CreatedByUser != null && p.CreatedByUser.CompanyAdminId == companyAdminId));
+
+    // ---------- Import ----------
+
     public async Task<MaterialPurchaseImportResultDto> ImportPurchasesAsync(
         Guid projectId, Stream excelStream, Guid createdByUserId, bool dryRun, DateTime? purchaseDate = null)
     {
-        var (_, companyAdminId) = await ResolvePurchaseContextAsync(projectId, createdByUserId);
+        var (project, companyAdminId) = await ResolvePurchaseContextAsync(projectId, createdByUserId);
+        return await ImportPurchasesCoreAsync(excelStream, companyAdminId, createdByUserId, dryRun, purchaseDate, blocks =>
+        {
+            // Bitta blok — nomidan qat'i nazar shu loyihaga. Umumiy smeta (bir nechta blok) bo'lsa — faqat nomi mos keladigan blok.
+            if (blocks.Count == 1) return new() { (blocks[0], project) };
+            var key = ProjectKey(project.Name);
+            var matched = blocks.Where(b => ProjectKey(b.Label) == key).Select(b => (b, (Project?)project)).ToList();
+            if (matched.Count == 0)
+                throw new ArgumentException($"Faylda bir nechta loyiha ustuni bor, lekin «{project.Name}» nomli ustun topilmadi.");
+            return matched;
+        });
+    }
 
+    public async Task<MaterialPurchaseImportResultDto> ImportMultiProjectPurchasesAsync(
+        Stream excelStream, Guid createdByUserId, bool dryRun, DateTime? purchaseDate = null)
+    {
+        var companyAdminId = await ResolveCompanyAdminIdAsync(createdByUserId);
+        var byKey = (await CompanyProjectsQuery(companyAdminId).ToListAsync())
+            .GroupBy(p => ProjectKey(p.Name))
+            .Where(g => g.Key.Length > 0)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        return await ImportPurchasesCoreAsync(excelStream, companyAdminId, createdByUserId, dryRun, purchaseDate, blocks =>
+        {
+            var ambiguous = blocks
+                .Where(b => byKey.TryGetValue(ProjectKey(b.Label), out var list) && list.Count > 1)
+                .Select(b => b.Label!)
+                .Distinct()
+                .ToList();
+            if (ambiguous.Count > 0)
+                throw new ArgumentException($"Tizimda bir xil nomli bir nechta loyiha bor: {string.Join(", ", ambiguous)}. Loyihalarni qayta nomlang.");
+            return blocks
+                .Select(b => (b, byKey.TryGetValue(ProjectKey(b.Label), out var list) ? list[0] : (Project?)null))
+                .ToList();
+        });
+    }
+
+    private static IXLWorksheet PickPurchaseSheet(XLWorkbook workbook)
+    {
+        var visible = workbook.Worksheets.Where(w => w.Visibility == XLWorksheetVisibility.Visible).ToList();
+        return visible.FirstOrDefault(w => MaterialSheetPattern.IsMatch(w.Name))
+            ?? visible.FirstOrDefault()
+            ?? throw new ArgumentException("Faylda varaq topilmadi.");
+    }
+
+    // "кол-во" yozilgan sarlavha qatorini topadi: har bir shunday ustun — bitta loyiha bloki,
+    // narx undan keyingi ustunda, loyiha nomi bir qator yuqorida (birlashtirilgan katak bo'lishi mumkin).
+    private static (List<PurchaseBlock> Blocks, int FirstDataRow) DetectPurchaseLayout(IXLWorksheet ws, int lastRow)
+    {
+        var lastCol = Math.Max(ws.LastColumnUsed()?.ColumnNumber() ?? ColPrice, ColPrice);
+        for (var r = 1; r <= Math.Min(lastRow, 10); r++)
+        {
+            var blocks = new List<PurchaseBlock>();
+            for (var c = ColQty; c <= lastCol; c++)
+            {
+                if (!HeaderQtyPattern.IsMatch(ws.Cell(r, c).GetFormattedString())) continue;
+                string? label = null;
+                if (r > 1)
+                {
+                    var labelCell = ws.Cell(r - 1, c);
+                    if (labelCell.IsMerged()) labelCell = labelCell.MergedRange().FirstCell();
+                    label = Clean(labelCell.GetFormattedString());
+                }
+                blocks.Add(new PurchaseBlock(c, c + 1, label));
+            }
+            if (blocks.Count > 0) return (blocks, r + 1);
+        }
+        return (new List<PurchaseBlock> { new(ColQty, ColPrice, null) }, 3);
+    }
+
+    private async Task<MaterialPurchaseImportResultDto> ImportPurchasesCoreAsync(
+        Stream excelStream, Guid companyAdminId, Guid createdByUserId, bool dryRun, DateTime? purchaseDate,
+        Func<List<PurchaseBlock>, List<(PurchaseBlock Block, Project? Project)>> resolveBlocks)
+    {
         var today = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
         var date = purchaseDate.HasValue ? DateTime.SpecifyKind(purchaseDate.Value.Date, DateTimeKind.Utc) : today;
         if (date > today.AddDays(1))
@@ -205,21 +379,17 @@ public partial class MaterialService
 
         using (workbook)
         {
-            var ws = workbook.Worksheets.FirstOrDefault(w => w.Visibility == XLWorksheetVisibility.Visible)
-                ?? throw new ArgumentException("Faylda varaq topilmadi.");
-
+            var ws = PickPurchaseSheet(workbook);
             var lastRow = ws.LastRowUsed()?.RowNumber() ?? 0;
-            var firstRow = 3;
-            for (var r = 1; r <= Math.Min(lastRow, 10); r++)
-            {
-                if (HeaderQtyPattern.IsMatch(ws.Cell(r, ColQty).GetFormattedString()))
-                {
-                    firstRow = r + 1;
-                    break;
-                }
-            }
+            var (allBlocks, firstRow) = DetectPurchaseLayout(ws, lastRow);
+            if (allBlocks.Count > MaxPurchaseImportBlocks)
+                throw new ArgumentException($"Faylda juda ko'p loyiha ustuni bor (ko'pi bilan {MaxPurchaseImportBlocks} ta).");
             if (lastRow - firstRow + 1 > MaxPurchaseImportRows)
                 throw new ArgumentException($"Faylda juda ko'p qator bor. Bir martada ko'pi bilan {MaxPurchaseImportRows} ta qator yuklash mumkin.");
+
+            var targets = resolveBlocks(allBlocks);
+            var multi = targets.Count > 1;
+            string Prefix(PurchaseBlock b, Project p) => multi ? $"[{p.Name}] " : "";
 
             var catalog = (await _context.Materials
                     .Where(m => m.CompanyAdminId == companyAdminId)
@@ -234,6 +404,7 @@ public partial class MaterialService
             var newMaterials = new Dictionary<(string, string), Material>();
             var categoryUpdates = new Dictionary<Material, string>();
             var purchases = new List<MaterialPurchase>();
+            var unknownWithData = new Dictionary<PurchaseBlock, int>();
             string? currentCategory = null;
 
             for (var row = firstRow; row <= lastRow; row++)
@@ -241,14 +412,19 @@ public partial class MaterialService
                 var nameCell = ws.Cell(row, ColName);
                 var rawName = Clean(nameCell.GetFormattedString());
                 var unitRaw = Clean(ws.Cell(row, ColUnit).GetFormattedString());
-                var qtyCell = ws.Cell(row, ColQty);
-                var priceCell = ws.Cell(row, ColPrice);
-                var qtyEmpty = IsBlankNumber(qtyCell);
-                var priceEmpty = IsBlankNumber(priceCell);
+                var cells = targets
+                    .Select(t =>
+                    {
+                        var qtyCell = ws.Cell(row, t.Block.QtyCol);
+                        var priceCell = ws.Cell(row, t.Block.PriceCol);
+                        return (t.Block, t.Project, Qty: qtyCell, Price: priceCell,
+                            QtyEmpty: IsBlankNumber(qtyCell), PriceEmpty: IsBlankNumber(priceCell));
+                    })
+                    .ToList();
 
                 if (rawName is null)
                 {
-                    if (!qtyEmpty || !priceEmpty)
+                    if (cells.Any(c => !c.QtyEmpty && (ReadDecimal(c.Qty) ?? 1) != 0))
                         result.Errors.Add(new MaterialImportIssueDto { Row = row, Message = "Material nomi kiritilmagan." });
                     continue;
                 }
@@ -256,116 +432,155 @@ public partial class MaterialService
                 if (TotalRowPattern.IsMatch(rawName))
                     break;
 
-                if (unitRaw is null && qtyEmpty && priceEmpty)
+                if (unitRaw is null && cells.All(c => c.QtyEmpty && c.PriceEmpty))
                 {
                     if (!nameCell.Value.IsNumber)
                         currentCategory = SectionToCategory(rawName);
                     continue;
                 }
 
-                var qty = qtyEmpty ? null : ReadDecimal(qtyCell);
-                var price = priceEmpty ? null : ReadDecimal(priceCell);
-                var qtyInvalid = !qtyEmpty && qty is null;
-                if (!qtyInvalid && (qty ?? 0) == 0)
-                {
-                    result.SkippedEmpty++;
-                    continue;
-                }
-
-                result.TotalRows++;
                 var (name, brand) = SplitBrand(rawName);
-                var errors = new List<string>();
-                if (name.Length > NameMaxLength) errors.Add($"nomi {NameMaxLength} belgidan oshmasligi kerak");
-                if (brand is { Length: > BrandMaxLength }) errors.Add($"brend {BrandMaxLength} belgidan oshmasligi kerak");
-                if (unitRaw is { Length: > UnitMaxLength }) errors.Add($"o'lchov birligi {UnitMaxLength} belgidan oshmasligi kerak");
-
-                if (qty is null) errors.Add("miqdor (кол-во) kiritilmagan yoki noto'g'ri");
-                else
-                {
-                    qty = Math.Round(qty.Value, 2);
-                    if (qty < 0.01m) errors.Add("miqdor 0 dan katta bo'lishi kerak");
-                }
-                if (price is null) errors.Add("narx (цена за ед.) kiritilmagan yoki noto'g'ri");
-                else
-                {
-                    price = Math.Round(price.Value, 2);
-                    if (price < 0.01m) errors.Add("narx 0 dan katta bo'lishi kerak");
-                }
-
                 Material? material = null;
                 var isNew = false;
-                if (errors.Count == 0)
+                var materialResolved = false;
+                var materialFailed = false;
+
+                foreach (var (block, project, qtyCell, priceCell, qtyEmpty, priceEmpty) in cells)
                 {
-                    var key = (MatchKey(name), MatchKey(brand));
-                    if (catalog.TryGetValue(key, out var existing) || newMaterials.TryGetValue(key, out existing))
+                    var qty = qtyEmpty ? null : ReadDecimal(qtyCell);
+                    var price = priceEmpty ? null : ReadDecimal(priceCell);
+                    var qtyInvalid = !qtyEmpty && qty is null;
+                    if (!qtyInvalid && (qty ?? 0) == 0)
                     {
-                        material = existing;
-                        isNew = newMaterials.ContainsKey(key);
-                        if (unitRaw is not null && MatchKey(CanonicalUnit(unitRaw)) != MatchKey(material.Unit))
-                            errors.Add($"katalogda bu material \"{material.Unit}\" birligida, faylda \"{unitRaw}\" yozilgan");
-                        if (currentCategory is not null && material.Category is null && !isNew)
-                            categoryUpdates[material] = currentCategory;
+                        result.SkippedEmpty++;
+                        continue;
                     }
+
+                    if (project is null)
+                    {
+                        unknownWithData.TryAdd(block, row);
+                        continue;
+                    }
+
+                    result.TotalRows++;
+
+                    // Material qator bo'yicha bir marta aniqlanadi (barcha loyihalar uchun umumiy).
+                    if (!materialResolved)
+                    {
+                        materialResolved = true;
+                        var materialErrors = new List<string>();
+                        if (name.Length > NameMaxLength) materialErrors.Add($"nomi {NameMaxLength} belgidan oshmasligi kerak");
+                        if (brand is { Length: > BrandMaxLength }) materialErrors.Add($"brend {BrandMaxLength} belgidan oshmasligi kerak");
+                        if (unitRaw is { Length: > UnitMaxLength }) materialErrors.Add($"o'lchov birligi {UnitMaxLength} belgidan oshmasligi kerak");
+
+                        if (materialErrors.Count == 0)
+                        {
+                            var key = (MatchKey(name), MatchKey(brand));
+                            if (catalog.TryGetValue(key, out var existing) || newMaterials.TryGetValue(key, out existing))
+                            {
+                                material = existing;
+                                isNew = newMaterials.ContainsKey(key);
+                                if (unitRaw is not null && MatchKey(CanonicalUnit(unitRaw)) != MatchKey(material.Unit))
+                                    materialErrors.Add($"katalogda bu material \"{material.Unit}\" birligida, faylda \"{unitRaw}\" yozilgan");
+                                else if (currentCategory is not null && material.Category is null && !isNew)
+                                    categoryUpdates[material] = currentCategory;
+                            }
+                            else
+                            {
+                                material = new Material
+                                {
+                                    Name = name,
+                                    Brand = brand,
+                                    Unit = unitRaw is null ? "dona" : CanonicalUnit(unitRaw),
+                                    Category = currentCategory,
+                                    CompanyAdminId = companyAdminId,
+                                    CreatedAt = now
+                                };
+                                newMaterials[key] = material;
+                                isNew = true;
+                            }
+                        }
+
+                        if (materialErrors.Count > 0)
+                        {
+                            materialFailed = true;
+                            AddPurchaseIssue(result, row, rawName, "", materialErrors);
+                        }
+                    }
+                    if (materialFailed) continue;
+
+                    var errors = new List<string>();
+                    if (qty is null) errors.Add("miqdor (кол-во) kiritilmagan yoki noto'g'ri");
                     else
                     {
-                        material = new Material
-                        {
-                            Name = name,
-                            Brand = brand,
-                            Unit = unitRaw is null ? "dona" : CanonicalUnit(unitRaw),
-                            Category = currentCategory,
-                            CompanyAdminId = companyAdminId,
-                            CreatedAt = now
-                        };
-                        newMaterials[key] = material;
-                        isNew = true;
+                        qty = Math.Round(qty.Value, 2);
+                        if (qty < 0.01m) errors.Add("miqdor 0 dan katta bo'lishi kerak");
                     }
-                }
+                    if (price is null) errors.Add("narx (цена за ед.) kiritilmagan yoki noto'g'ri");
+                    else
+                    {
+                        price = Math.Round(price.Value, 2);
+                        if (price < 0.01m) errors.Add("narx 0 dan katta bo'lishi kerak");
+                    }
+                    if (errors.Count > 0)
+                    {
+                        AddPurchaseIssue(result, row, rawName, Prefix(block, project), errors);
+                        continue;
+                    }
 
-                if (errors.Count > 0)
-                {
-                    var message = string.Join("; ", errors);
-                    result.Errors.Add(new MaterialImportIssueDto
+                    var total = Math.Round(qty!.Value * price!.Value, 2);
+                    purchases.Add(new MaterialPurchase
+                    {
+                        ProjectId = project.Id,
+                        MaterialId = material!.Id,
+                        Material = material,
+                        Quantity = qty.Value,
+                        Unit = material.Unit,
+                        UnitPrice = price.Value,
+                        TotalCost = total,
+                        Currency = "UZS",
+                        ExchangeRateToUzs = rate,
+                        OriginalUnitPrice = price.Value,
+                        Brand = material.Brand,
+                        PurchaseDate = date,
+                        CreatedByUserId = createdByUserId,
+                        CreatedAt = now
+                    });
+                    result.Rows.Add(new MaterialPurchaseImportRowDto
                     {
                         Row = row,
-                        Name = rawName,
-                        Message = char.ToUpperInvariant(message[0]) + message[1..] + "."
+                        ProjectId = project.Id,
+                        ProjectName = project.Name,
+                        MaterialName = material.Name,
+                        Brand = material.Brand,
+                        Unit = material.Unit,
+                        Category = currentCategory ?? material.Category,
+                        Quantity = qty.Value,
+                        UnitPrice = price.Value,
+                        Currency = "UZS",
+                        TotalCostUzs = total,
+                        PurchaseDate = date,
+                        IsNewMaterial = isNew
                     });
-                    continue;
                 }
+            }
 
-                var total = Math.Round(qty!.Value * price!.Value, 2);
-                purchases.Add(new MaterialPurchase
-                {
-                    ProjectId = projectId,
-                    MaterialId = material!.Id,
-                    Material = material,
-                    Quantity = qty.Value,
-                    Unit = material.Unit,
-                    UnitPrice = price.Value,
-                    TotalCost = total,
-                    Currency = "UZS",
-                    ExchangeRateToUzs = rate,
-                    OriginalUnitPrice = price.Value,
-                    Brand = material.Brand,
-                    PurchaseDate = date,
-                    CreatedByUserId = createdByUserId,
-                    CreatedAt = now
-                });
-                result.Rows.Add(new MaterialPurchaseImportRowDto
+            foreach (var (block, row) in unknownWithData)
+            {
+                result.Errors.Add(new MaterialImportIssueDto
                 {
                     Row = row,
-                    MaterialName = material.Name,
-                    Brand = material.Brand,
-                    Unit = material.Unit,
-                    Category = currentCategory ?? material.Category,
-                    Quantity = qty.Value,
-                    UnitPrice = price.Value,
-                    Currency = "UZS",
-                    TotalCostUzs = total,
-                    PurchaseDate = date,
-                    IsNewMaterial = isNew
+                    Name = block.Label ?? $"{Col(block.QtyCol)} ustuni",
+                    Message = block.Label is null
+                        ? $"{Col(block.QtyCol)} ustuni ustida loyiha nomi yozilmagan."
+                        : $"«{block.Label}» nomli loyiha tizimda topilmadi ({Col(block.QtyCol)} ustun). Loyihani yarating, nomini to'g'rilang yoki ustunni o'chiring."
                 });
+            }
+
+            foreach (var group in targets.Where(t => t.Project is not null).GroupBy(t => t.Project!.Id).Where(g => g.Count() > 1))
+            {
+                var cols = string.Join(", ", group.Select(t => Col(t.Block.QtyCol)));
+                result.Warnings.Add($"«{group.First().Project!.Name}» loyihasi faylda {group.Count()} marta uchraydi ({cols} ustunlar) — hammasi qo'shiladi.");
             }
 
             if (result.TotalRows == 0 && result.Errors.Count == 0)
@@ -375,6 +590,16 @@ public partial class MaterialService
             result.TotalCostUsd = rate > 0 ? Math.Round(result.TotalCostUzs / rate, 2) : 0;
             result.NewMaterials = newMaterials.Values
                 .Select(m => m.Brand is null ? $"{m.Name} ({m.Unit})" : $"{m.Name} [{m.Brand}] ({m.Unit})")
+                .ToList();
+            result.Projects = result.Rows
+                .GroupBy(r => (r.ProjectId, r.ProjectName))
+                .Select(g => new MaterialPurchaseImportProjectDto
+                {
+                    ProjectId = g.Key.ProjectId,
+                    ProjectName = g.Key.ProjectName,
+                    Count = g.Count(),
+                    TotalCostUzs = g.Sum(r => r.TotalCostUzs)
+                })
                 .ToList();
 
             if (dryRun || result.Errors.Count > 0)
@@ -389,6 +614,17 @@ public partial class MaterialService
             result.Created = purchases.Count;
             return result;
         }
+    }
+
+    private static void AddPurchaseIssue(MaterialPurchaseImportResultDto result, int row, string name, string prefix, List<string> errors)
+    {
+        var message = string.Join("; ", errors);
+        result.Errors.Add(new MaterialImportIssueDto
+        {
+            Row = row,
+            Name = name,
+            Message = prefix + char.ToUpperInvariant(message[0]) + message[1..] + "."
+        });
     }
 
     private static bool IsBlankNumber(IXLCell cell)

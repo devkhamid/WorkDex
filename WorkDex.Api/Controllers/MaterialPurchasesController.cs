@@ -114,6 +114,57 @@ public class MaterialPurchasesController : ControllerBase
         }
     }
 
+    [HttpGet("api/material-purchases/import/template")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
+    public async Task<IActionResult> DownloadMultiProjectImportTemplate([FromQuery] List<Guid>? projectIds = null)
+    {
+        try
+        {
+            var bytes = await _materialService.BuildMultiProjectPurchaseTemplateAsync(User.GetUserId(), projectIds);
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "WorkDex_Loyihalar_Material_Shablon.xlsx");
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("api/material-purchases/import")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<IActionResult> ImportMultiProjectPurchases([FromForm] ImportMaterialsDto dto, [FromQuery] bool dryRun = true, [FromQuery] DateTime? purchaseDate = null)
+    {
+        var file = dto.File;
+        if (file is null || file.Length == 0)
+            return BadRequest(new { message = "Fayl tanlanmagan." });
+        if (!Path.GetExtension(file.FileName).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { message = "Faqat .xlsx formatidagi Excel fayl qabul qilinadi." });
+        if (file.Length > 5 * 1024 * 1024)
+            return BadRequest(new { message = "Fayl hajmi 5 MB dan oshmasligi kerak." });
+
+        try
+        {
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            stream.Position = 0;
+            var result = await _materialService.ImportMultiProjectPurchasesAsync(stream, User.GetUserId(), dryRun, purchaseDate);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
     [HttpPut("api/projects/{projectId:guid}/material-purchases/{purchaseId:guid}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdatePurchase(Guid projectId, Guid purchaseId, [FromBody] UpdateMaterialPurchaseDto dto)
