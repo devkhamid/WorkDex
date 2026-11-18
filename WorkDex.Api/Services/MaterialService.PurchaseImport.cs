@@ -166,44 +166,21 @@ public partial class MaterialService
             row++;
         }
 
-        // 1) Standart ro'yxat ("Materiallar_UA" tartibida). Katalogda bor bo'lsa — katalogdagi birligi yoziladi.
+        // Faqat "Materiallar_UA" smetasidagi ro'yxat, o'sha tartib va bo'limlarda — boshqa material qo'shilmaydi.
+        // Katalogda shu material boshqa birlikda saqlangan bo'lsa — katalogdagi birligi yoziladi (import xato bermasligi uchun).
         var catalogByKey = catalog
             .Where(m => m.Brand is null)
             .GroupBy(m => MatchKey(m.Name))
             .ToDictionary(g => g.Key, g => g.First());
-        var covered = new HashSet<Guid>();
         Material? FindInCatalog(DefaultMaterial d) =>
             catalogByKey.TryGetValue(MatchKey(d.Name), out var m) || catalogByKey.TryGetValue(MatchKey(d.Russian), out m) ? m : null;
-        foreach (var d in DefaultPurchaseSections.SelectMany(s => s.Items))
-            if (FindInCatalog(d) is { } m) covered.Add(m.Id);
-
-        // 2) Katalogdagi qolgan materiallar — o'z kategoriyasining birinchi bo'limiga qo'shiladi.
-        var extras = catalog
-            .Where(m => !covered.Contains(m.Id))
-            .GroupBy(m => m.Category is not null && StandardCategories.Contains(m.Category) ? m.Category : "Boshqa")
-            .ToDictionary(g => g.Key, g => g.ToList());
-        void Extras(string category)
-        {
-            if (!extras.Remove(category, out var items)) return;
-            foreach (var m in items) Item(m.Brand is null ? m.Name : $"{m.Name} [{m.Brand}]", m.Unit);
-        }
 
         foreach (var section in DefaultPurchaseSections)
         {
             Section(section.Title);
             foreach (var d in section.Items)
                 Item(d.Name, FindInCatalog(d)?.Unit ?? d.Unit);
-            Extras(section.Category);
         }
-        foreach (var category in StandardCategories.Where(c => c != "Boshqa"))
-        {
-            if (!extras.ContainsKey(category)) continue;
-            Section(SectionTitles[category]);
-            Extras(category);
-        }
-        Section(SectionTitles["Boshqa"]);
-        Extras("Boshqa");
-        for (var i = 0; i < 5; i++) Item(null, null);
 
         var lastItemRow = row - 1;
         void Grid(IXLRange range)
@@ -247,7 +224,7 @@ public partial class MaterialService
                 : "   Miqdori bo'sh yoki 0 bo'lgan qatorlar o'tkazib yuboriladi.",
             "3. Ko'k fonli qatorlar — bo'limlar (ish turi). Ularning ostidagi materiallar shu kategoriyaga kiradi.",
             "   O'z bo'limingizni qo'shishingiz mumkin: faqat A ustuniga nom yozing (masalan \"Yoritish montaji\").",
-            "4. Standart materiallar ro'yxati va katalogdagi materiallar oldindan yozilgan. Yangi material uchun bo'sh qatorga yozing yoki qator qo'shing.",
+            "4. Materiallar ro'yxati \"Materiallar_UA\" smetasidagi kabi oldindan yozilgan. Kerak bo'lsa, o'zingiz qator qo'shib yangi material yozishingiz mumkin.",
             "   Brendni kvadrat qavsda yozish mumkin: \"Gipsokarton 12.5 [Knauf]\".",
             "5. Narxlar so'mda (UZS). Narx bo'sh qolsa — material faqat miqdori bo'yicha (narxsiz) qo'shiladi. Xarid sanasi yuklash oynasida tanlanadi.",
             "6. \"Jami materiallar\" qatoridan keyingi qatorlar o'qilmaydi.",
