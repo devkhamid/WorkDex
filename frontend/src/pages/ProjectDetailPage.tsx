@@ -436,6 +436,34 @@ export const ProjectDetailPage: React.FC = () => {
     return { uzs, usd, categories, materialCount: new Set(purchases.map((p) => p.materialId)).size };
   })();
 
+  // Ustalar tahlili: jami to'langan (USD + so'm), kelishilgan, qarz va ustalar bo'yicha ulush.
+  const workerTotals = (() => {
+    const paidUsdByWorker = new Map<string, number>();
+    for (const wp of workerPayments) {
+      const usd = wp.paidAmountUsd ?? (cbuRate > 0 ? wp.paidAmount / cbuRate : 0);
+      paidUsdByWorker.set(wp.workerId, (paidUsdByWorker.get(wp.workerId) ?? 0) + usd);
+    }
+    const rows = workersSummary
+      .map((w) => ({
+        workerId: w.workerId,
+        workerName: w.workerName,
+        specialty: w.specialty,
+        jobs: w.jobCount,
+        paid: w.totalPaidAmount,
+        paidUsd: paidUsdByWorker.get(w.workerId) ?? 0,
+        debt: Math.max(w.totalAgreedAmount - w.totalPaidAmount, 0),
+      }))
+      .sort((a, b) => b.paid - a.paid);
+    return {
+      rows,
+      paid: rows.reduce((s, r) => s + r.paid, 0),
+      paidUsd: rows.reduce((s, r) => s + r.paidUsd, 0),
+      agreed: workersSummary.reduce((s, w) => s + w.totalAgreedAmount, 0),
+      debt: rows.reduce((s, r) => s + r.debt, 0),
+      jobs: rows.reduce((s, r) => s + r.jobs, 0),
+    };
+  })();
+
   // Xaridlar ro'yxati filtri: nomi/brend/yetkazuvchi bo'yicha qidiruv, ish turi va sana oralig'i.
   const purchaseQuery = normalizeText(purchaseSearch);
   const filteredPurchases = purchases.filter((p) => {
@@ -1509,6 +1537,78 @@ export const ProjectDetailPage: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            {workerTotals.rows.length > 0 && (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-gray-50/70 border border-gray-100 p-2.5 rounded-lg text-xs">
+                  <div className="min-w-0">
+                    <span className="block text-[10px] text-gray-500">Ustalarga jami to'langan:</span>
+                    <UsdWithUzs className="text-[#ff7a16] font-bold" usd={workerTotals.paidUsd} uzs={workerTotals.paid} />
+                  </div>
+                  <div className="min-w-0 sm:text-center">
+                    <span className="block text-[10px] text-gray-500">Kelishilgan:</span>
+                    <UsdWithUzs className="text-gray-800 font-bold sm:items-center" uzs={workerTotals.agreed} />
+                  </div>
+                  <div className="min-w-0 sm:text-center">
+                    <span className="block text-[10px] text-gray-500">Qoldiq qarzimiz:</span>
+                    <UsdWithUzs className={`font-bold sm:items-center ${workerTotals.debt > 0 ? 'text-red-600' : 'text-emerald-700'}`} uzs={workerTotals.debt} />
+                  </div>
+                  <div className="min-w-0 sm:text-right">
+                    <span className="block text-[10px] text-gray-500">Ustalar / ishlar:</span>
+                    <b className="text-gray-800">{workerTotals.rows.length} usta · {workerTotals.jobs} ta ish</b>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto scrollbar-none">
+                  <table className="w-full min-w-[640px] text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-[#e4e7ec] bg-gray-50/50">
+                        <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">USTA</th>
+                        <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">ISHLAR</th>
+                        <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px] w-[32%]">ULUSHI (TO'LANGAN)</th>
+                        <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px] text-right">TO'LANGAN</th>
+                        <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px] text-right">QARZ</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {workerTotals.rows.map((w) => {
+                        const share = workerTotals.paid > 0 ? (w.paid / workerTotals.paid) * 100 : 0;
+                        return (
+                          <tr key={w.workerId} className="hover:bg-gray-50/50">
+                            <td className="py-2.5 px-3">
+                              <div className="font-semibold text-gray-900">{w.workerName}</div>
+                              {w.specialty && w.specialty !== w.workerName && <div className="text-[10px] text-gray-400">{w.specialty}</div>}
+                            </td>
+                            <td className="py-2.5 px-3 text-gray-600">{w.jobs} ta</td>
+                            <td className="py-2.5 px-3">
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-2 bg-[#edf0f3] rounded-full overflow-hidden">
+                                  <div
+                                    style={{ width: `${share > 0 ? Math.max(share, 1) : 0}%` }}
+                                    className="h-full bg-gradient-to-r from-[#ff7a16] to-[#ff9438] rounded-full"
+                                  />
+                                </div>
+                                <span className="w-12 text-right text-[11px] font-bold text-gray-700">{share.toFixed(1)}%</span>
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-3 text-right">
+                              <UsdWithUzs className="font-bold text-[#ff7a16] items-end" usd={w.paidUsd} uzs={w.paid} />
+                            </td>
+                            <td className="py-2.5 px-3 text-right">
+                              {w.debt > 0
+                                ? <UsdWithUzs className="font-bold text-red-600 items-end" uzs={w.debt} />
+                                : <span className="text-[11px] font-semibold text-emerald-700">To'langan</span>}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="text-[10px] font-bold text-gray-500 uppercase pt-1">Ustalar balansi</div>
+              </>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {workersSummary.map((w) => {
