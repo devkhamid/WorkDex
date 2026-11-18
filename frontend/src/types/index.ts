@@ -208,6 +208,11 @@ export interface Material {
   createdAt: string;
 }
 
+export interface MaterialBulkDeleteResult {
+  deleted: number;
+  skipped: { id: string; name: string; purchaseCount: number }[];
+}
+
 export interface MaterialImportIssue {
   row: number;
   name?: string;

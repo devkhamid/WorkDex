@@ -139,6 +139,14 @@ public class MaterialsController : ControllerBase
         }
     }
 
+    [HttpPost("bulk-delete")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
+    public async Task<IActionResult> BulkDelete([FromBody] BulkDeleteMaterialsDto dto)
+    {
+        var result = await _materialService.DeleteMaterialsAsync(dto.Ids.Distinct().ToList(), User.GetUserId(), User.GetUserRole());
+        return Ok(result);
+    }
+
     [HttpDelete("{id:guid}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(Guid id)

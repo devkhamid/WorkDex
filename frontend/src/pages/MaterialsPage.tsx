@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Package, Search, BarChart3, ChevronDown, ChevronRight, GitMerge, AlertTriangle, X, FileSpreadsheet, Download, Upload, CheckCircle2, Pencil, Tag } from 'lucide-react';
+import { Plus, Package, Search, BarChart3, ChevronDown, ChevronRight, GitMerge, AlertTriangle, X, FileSpreadsheet, Download, Upload, CheckCircle2, Pencil, Tag, Trash2 } from 'lucide-react';
 import { materialsApi } from '../api/services';
 import { Material, MaterialImportResult, MaterialUsage, UserRole } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -53,6 +53,11 @@ export const MaterialsPage: React.FC = () => {
   const [importResult, setImportResult] = useState<MaterialImportResult | null>(null);
   const [importError, setImportError] = useState('');
   const [templateLoading, setTemplateLoading] = useState(false);
+
+  const canBulkDelete = user?.role === UserRole.Admin || user?.role === UserRole.SuperAdmin;
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkMessage, setBulkMessage] = useState<{ ok: string; skipped: string[] } | null>(null);
 
   const openImport = () => {
     setImportFile(null);
@@ -179,6 +184,52 @@ export const MaterialsPage: React.FC = () => {
     (normalizeText(m.name).includes(normalizeText(search)) ||
       (m.brand && normalizeText(m.brand).includes(normalizeText(search))))
   );
+
+  // Katalog yangilanganda o'chib ketgan materiallar tanlovdan chiqariladi.
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === 0) return prev;
+      const alive = new Set(materials.map((m) => m.id));
+      return new Set([...prev].filter((x) => alive.has(x)));
+    });
+  }, [materials]);
+
+  const toggleSelected = (materialId: string) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(materialId)) next.delete(materialId); else next.add(materialId);
+      return next;
+    });
+
+  const selectMany = (list: Material[]) =>
+    setSelectedIds((prev) => new Set([...prev, ...list.map((m) => m.id)]));
+
+  const unusedFiltered = filtered.filter((m) => (m.purchaseCount ?? 0) === 0);
+  const selectedUsed = materials.filter((m) => selectedIds.has(m.id) && (m.purchaseCount ?? 0) > 0).length;
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    const deletable = selectedIds.size - selectedUsed;
+    const warning = selectedUsed > 0
+      ? `\n\n${selectedUsed} ta material loyiha xaridlarida ishlatilgan — ular o'chirilmaydi (avval loyihadan xaridlarni o'chiring).`
+      : '';
+    if (!window.confirm(`${deletable} ta material katalogdan butunlay o'chiriladi.${warning}\n\nDavom etasizmi?`)) return;
+    setBulkDeleting(true);
+    setBulkMessage(null);
+    try {
+      const result = await materialsApi.bulkDelete([...selectedIds]);
+      setBulkMessage({
+        ok: `${result.deleted} ta material o'chirildi.`,
+        skipped: result.skipped.map((s) => `${s.name} — ${s.purchaseCount} ta xarid`),
+      });
+      setSelectedIds(new Set());
+      await loadMaterials();
+    } catch (err: any) {
+      alert(err.response?.data?.message || "O'chirishda xatolik yuz berdi");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
 
   const dupMap = useMemo(() => {
     const map = new Map<string, Material[]>();
@@ -352,10 +403,85 @@ export const MaterialsPage: React.FC = () => {
             ))}
           </div>
 
+          {canBulkDelete && materials.length > 0 && (
+            <div className="bg-white border border-[#e4e7ec] rounded-xl p-2.5 flex flex-wrap items-center gap-2 shadow-xs">
+              <button
+                type="button"
+                onClick={() => selectMany(filtered)}
+                disabled={bulkDeleting || filtered.length === 0}
+                className="h-8 px-3 border border-[#e4e7ec] rounded-lg text-[11px] font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+              >
+                Ko'rinayotganlarni tanlash ({filtered.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => selectMany(unusedFiltered)}
+                disabled={bulkDeleting || unusedFiltered.length === 0}
+                className="h-8 px-3 border border-[#e4e7ec] rounded-lg text-[11px] font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                title="Hech bir loyihada xaridi yo'q materiallar"
+              >
+                Xaridsizlarni tanlash ({unusedFiltered.length})
+              </button>
+              {selectedIds.size > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedIds(new Set())}
+                  disabled={bulkDeleting}
+                  className="h-8 px-3 rounded-lg text-[11px] font-semibold text-gray-500 hover:text-gray-800"
+                >
+                  Tanlovni bekor qilish
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleBulkDelete}
+                disabled={selectedIds.size === 0 || bulkDeleting}
+                className="h-8 px-3 ml-auto rounded-lg text-[11px] font-semibold inline-flex items-center gap-1.5 border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {bulkDeleting ? "O'chirilmoqda..." : `Tanlanganlarni o'chirish${selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}`}
+              </button>
+            </div>
+          )}
+
+          {bulkMessage && (
+            <div className="bg-white border border-[#e4e7ec] rounded-xl p-3 text-[11px] space-y-1.5 shadow-xs">
+              <div className="flex items-start justify-between gap-2">
+                <span className="flex items-center gap-1.5 font-semibold text-green-700">
+                  <CheckCircle2 className="w-4 h-4" /> {bulkMessage.ok}
+                </span>
+                <button onClick={() => setBulkMessage(null)} className="text-gray-400 hover:text-gray-600" aria-label="Yopish">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              {bulkMessage.skipped.length > 0 && (
+                <div className="text-amber-800 bg-amber-50 border border-amber-100 rounded-lg p-2">
+                  <div className="font-semibold mb-0.5">
+                    {bulkMessage.skipped.length} ta material o'chirilmadi — loyiha xaridlarida ishlatilgan. Avval loyihadan xaridlarni o'chiring:
+                  </div>
+                  <div className="max-h-28 overflow-y-auto">{bulkMessage.skipped.join(' · ')}</div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
             {filtered.map((m) => (
-              <div key={m.id} className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs space-y-2">
+              <div
+                key={m.id}
+                className={`bg-white border rounded-xl p-4 shadow-xs space-y-2 ${selectedIds.has(m.id) ? 'border-red-300 ring-1 ring-red-200' : 'border-[#e4e7ec]'}`}
+              >
                 <div className="flex items-start gap-2.5">
+                  {canBulkDelete && (
+                    <input
+                      type="checkbox"
+                      aria-label={`${m.name} — tanlash`}
+                      checked={selectedIds.has(m.id)}
+                      onChange={() => toggleSelected(m.id)}
+                      disabled={bulkDeleting}
+                      className="w-4 h-4 mt-2 accent-[#ff7a16] cursor-pointer flex-shrink-0"
+                    />
+                  )}
                   <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
                     <Package className="w-4 h-4" />
                   </div>

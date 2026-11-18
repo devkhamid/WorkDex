@@ -9,6 +9,7 @@ import {
   ExtraWork,
   Material,
   MaterialImportResult,
+  MaterialBulkDeleteResult,
   MaterialPurchase,
   MaterialPurchaseImportResult,
   MaterialSummary,
@@ -495,6 +496,10 @@ export const materialsApi = {
   },
   getUsage: async (from?: string, to?: string): Promise<MaterialUsage[]> => {
     const res = await apiClient.get<MaterialUsage[]>('/materials/usage', { params: { from: from || undefined, to: to || undefined } });
+    return res.data;
+  },
+  bulkDelete: async (ids: string[]): Promise<MaterialBulkDeleteResult> => {
+    const res = await apiClient.post<MaterialBulkDeleteResult>('/materials/bulk-delete', { ids });
     return res.data;
   },
   merge: async (sourceId: string, targetId: string): Promise<Material> => {

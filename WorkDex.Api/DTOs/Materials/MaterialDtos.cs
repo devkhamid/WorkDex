@@ -31,6 +31,27 @@ public class MaterialDto
     public int PurchaseCount { get; set; }    public DateTime CreatedAt { get; set; }
 }
 
+public class BulkDeleteMaterialsDto
+{
+    [Required]
+    [MinLength(1, ErrorMessage = "Hech qanday material tanlanmagan.")]
+    [MaxLength(10000)]
+    public List<Guid> Ids { get; set; } = new();
+}
+
+public class MaterialBulkDeleteSkippedDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public int PurchaseCount { get; set; }
+}
+
+public class MaterialBulkDeleteResultDto
+{
+    public int Deleted { get; set; }
+    public List<MaterialBulkDeleteSkippedDto> Skipped { get; set; } = new();
+}
+
 public class MergeMaterialDto
 {
     [Required]

@@ -124,6 +124,38 @@ public partial class MaterialService : IMaterialService
         await _context.SaveChangesAsync();
     }
 
+    public async Task<MaterialBulkDeleteResultDto> DeleteMaterialsAsync(IReadOnlyCollection<Guid> ids, Guid requestingUserId, UserRole requestingUserRole)
+    {
+        var result = new MaterialBulkDeleteResultDto();
+        if (ids.Count == 0) return result;
+
+        var query = _context.Materials.Where(m => ids.Contains(m.Id));
+        if (requestingUserRole != UserRole.SuperAdmin)
+        {
+            var companyAdminId = await ResolveCompanyAdminIdAsync(requestingUserId, requestingUserRole);
+            query = query.Where(m => m.CompanyAdminId == companyAdminId);
+        }
+
+        var rows = await query
+            .Select(m => new { Material = m, Purchases = m.Purchases.Count() })
+            .ToListAsync();
+
+        // Xaridlarda ishlatilgan materiallar o'chirilmaydi — loyihalardagi xaridlar yo'qolmasligi uchun.
+        foreach (var row in rows.Where(r => r.Purchases > 0))
+            result.Skipped.Add(new MaterialBulkDeleteSkippedDto
+            {
+                Id = row.Material.Id,
+                Name = row.Material.Brand is null ? row.Material.Name : $"{row.Material.Name} [{row.Material.Brand}]",
+                PurchaseCount = row.Purchases
+            });
+
+        var deletable = rows.Where(r => r.Purchases == 0).Select(r => r.Material).ToList();
+        _context.Materials.RemoveRange(deletable);
+        await _context.SaveChangesAsync();
+        result.Deleted = deletable.Count;
+        return result;
+    }
+
     public async Task<MaterialDto> MergeMaterialAsync(Guid sourceId, Guid targetId, Guid requestingUserId, UserRole requestingUserRole)
     {
         if (sourceId == targetId)
