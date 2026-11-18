@@ -39,7 +39,9 @@ public partial class MaterialService
         Alias("komplekt", "kompl", "компл", "комплект", "к-т", "кт");
         Alias("rulon", "рулон");
         Alias("list", "лист", "листов");
-        Alias("qop", "мешок", "меш", "меш.");
+        Alias("qop", "мешок", "меш", "меш.", "коп", "қоп");
+        Alias("pachka", "пачка", "пач", "pack");
+        Alias("chelak", "ведро", "вед", "челак", "челяк");
         return map;
     }
 

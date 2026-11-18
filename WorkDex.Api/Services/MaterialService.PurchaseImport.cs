@@ -20,18 +20,19 @@ public partial class MaterialService
     private static readonly XLColor HeaderFill = XLColor.FromHtml("#172B4D");
     private static readonly XLColor SectionFill = XLColor.FromHtml("#DDEBF1");
 
+    // Standart ro'yxatda bo'limi bo'lmagan kategoriyalar uchun bo'lim nomlari.
     private static readonly Dictionary<string, string> SectionTitles = new()
     {
-        ["Qora ishlar"] = "Черновые работы",
-        ["Elektr"] = "Электрические работы",
-        ["Santexnika"] = "Сантехнические работы",
-        ["Bo'yoq va suvoq"] = "Штукатурные и малярные работы",
-        ["Gipsokarton"] = "Гипсокартонные работы",
-        ["Plitka"] = "Облицовочные работы",
-        ["Pol qoplamasi"] = "Напольные покрытия",
-        ["Eshik va deraza"] = "Двери и окна",
-        ["Isitish va ventilyatsiya"] = "Отопление и вентиляция",
-        ["Boshqa"] = "Прочее",
+        ["Qora ishlar"] = "Qora ishlar",
+        ["Elektr"] = "Elektr ishlari",
+        ["Santexnika"] = "Santexnika ishlari",
+        ["Bo'yoq va suvoq"] = "Suvoq va bo'yoq ishlari",
+        ["Gipsokarton"] = "Gipsokarton ishlari",
+        ["Plitka"] = "Kafel-plitka ishlari",
+        ["Pol qoplamasi"] = "Pol qoplamasi",
+        ["Eshik va deraza"] = "Eshik va derazalar",
+        ["Isitish va ventilyatsiya"] = "Isitish va ventilyatsiya",
+        ["Boshqa"] = "Boshqa materiallar",
     };
 
     private static readonly (string Category, string[] Keywords)[] SectionKeywords =
@@ -57,6 +58,7 @@ public partial class MaterialService
 
     private static string SectionToCategory(string section)
     {
+        if (DefaultSectionCategories.TryGetValue(MatchKey(section), out var known)) return known;
         var normalized = NormalizeCategory(section);
         if (normalized is not null && StandardCategories.Contains(normalized)) return normalized;
 
@@ -116,8 +118,8 @@ public partial class MaterialService
         using var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add("Materiallar");
 
-        ws.Range(1, ColName, 2, ColName).Merge().Value = "Наименование материалов";
-        ws.Range(1, ColUnit, 2, ColUnit).Merge().Value = "ед.изм.";
+        ws.Range(1, ColName, 2, ColName).Merge().Value = "Material nomi";
+        ws.Range(1, ColUnit, 2, ColUnit).Merge().Value = "O'lchov birligi";
         StyleHeader(ws.Range(1, ColName, 2, ColUnit));
         ws.Column(ColName).Width = 53;
         ws.Column(ColUnit).Width = 9;
@@ -126,9 +128,9 @@ public partial class MaterialService
         {
             var q = QtyColOf(i);
             ws.Range(1, q, 1, q + 2).Merge().Value = projects[i].Name;
-            ws.Cell(2, q).Value = "кол-во";
-            ws.Cell(2, q + 1).Value = "цена за ед.";
-            ws.Cell(2, q + 2).Value = "всего мат";
+            ws.Cell(2, q).Value = "Miqdori";
+            ws.Cell(2, q + 1).Value = "Narxi (so'm)";
+            ws.Cell(2, q + 2).Value = "Jami";
             StyleHeader(ws.Range(1, q, 2, q + 2));
             ws.Column(q).Width = 10;
             ws.Column(q + 1).Width = 14;
@@ -148,12 +150,12 @@ public partial class MaterialService
             range.Style.Fill.BackgroundColor = SectionFill;
             row++;
         }
-        void Item(Material? m)
+        void Item(string? name, string? unit)
         {
-            if (m is not null)
+            if (name is not null)
             {
-                ws.Cell(row, ColName).Value = m.Brand is null ? m.Name : $"{m.Name} [{m.Brand}]";
-                ws.Cell(row, ColUnit).Value = m.Unit;
+                ws.Cell(row, ColName).Value = name;
+                ws.Cell(row, ColUnit).Value = unit;
             }
             for (var i = 0; i < projects.Count; i++)
             {
@@ -164,17 +166,44 @@ public partial class MaterialService
             row++;
         }
 
-        var byCategory = catalog
+        // 1) Standart ro'yxat ("Materiallar_UA" tartibida). Katalogda bor bo'lsa — katalogdagi birligi yoziladi.
+        var catalogByKey = catalog
+            .Where(m => m.Brand is null)
+            .GroupBy(m => MatchKey(m.Name))
+            .ToDictionary(g => g.Key, g => g.First());
+        var covered = new HashSet<Guid>();
+        Material? FindInCatalog(DefaultMaterial d) =>
+            catalogByKey.TryGetValue(MatchKey(d.Name), out var m) || catalogByKey.TryGetValue(MatchKey(d.Russian), out m) ? m : null;
+        foreach (var d in DefaultPurchaseSections.SelectMany(s => s.Items))
+            if (FindInCatalog(d) is { } m) covered.Add(m.Id);
+
+        // 2) Katalogdagi qolgan materiallar — o'z kategoriyasining birinchi bo'limiga qo'shiladi.
+        var extras = catalog
+            .Where(m => !covered.Contains(m.Id))
             .GroupBy(m => m.Category is not null && StandardCategories.Contains(m.Category) ? m.Category : "Boshqa")
             .ToDictionary(g => g.Key, g => g.ToList());
-
-        foreach (var category in StandardCategories)
+        void Extras(string category)
         {
-            Section(SectionTitles[category]);
-            if (byCategory.TryGetValue(category, out var items))
-                foreach (var m in items) Item(m);
-            for (var i = 0; i < 3; i++) Item(null);
+            if (!extras.Remove(category, out var items)) return;
+            foreach (var m in items) Item(m.Brand is null ? m.Name : $"{m.Name} [{m.Brand}]", m.Unit);
         }
+
+        foreach (var section in DefaultPurchaseSections)
+        {
+            Section(section.Title);
+            foreach (var d in section.Items)
+                Item(d.Name, FindInCatalog(d)?.Unit ?? d.Unit);
+            Extras(section.Category);
+        }
+        foreach (var category in StandardCategories.Where(c => c != "Boshqa"))
+        {
+            if (!extras.ContainsKey(category)) continue;
+            Section(SectionTitles[category]);
+            Extras(category);
+        }
+        Section(SectionTitles["Boshqa"]);
+        Extras("Boshqa");
+        for (var i = 0; i < 5; i++) Item(null, null);
 
         var lastItemRow = row - 1;
         void Grid(IXLRange range)
@@ -191,7 +220,7 @@ public partial class MaterialService
         }
 
         row++;
-        ws.Cell(row, ColName).Value = "Итого по материалу";
+        ws.Cell(row, ColName).Value = "Jami materiallar";
         for (var i = 0; i < projects.Count; i++)
         {
             var t = QtyColOf(i) + 2;
@@ -211,24 +240,24 @@ public partial class MaterialService
             "",
             "1. \"Materiallar\" varag'ida har bir qatorga bitta material: nomi (A) va o'lchov birligi (B).",
             multi
-                ? "2. Har bir loyiha — 1-qatorda nomi yozilgan alohida blok: кол-во (miqdor) | цена за ед. (narx) | всего мат (avtomatik)."
-                : "2. кол-во — miqdor, цена за ед. — birlik narxi, всего мат — avtomatik hisoblanadi.",
+                ? "2. Har bir loyiha — 1-qatorda nomi yozilgan alohida blok: Miqdori | Narxi (so'm) | Jami (avtomatik hisoblanadi)."
+                : "2. Miqdori va Narxi (bir birlik uchun) ni yozing, Jami — avtomatik hisoblanadi.",
             multi
                 ? "   Material qatorida faqat shu loyihada ishlatilgan miqdor va narxni yozing. Miqdori bo'sh yoki 0 kataklar o'tkazib yuboriladi."
                 : "   Miqdori bo'sh yoki 0 bo'lgan qatorlar o'tkazib yuboriladi.",
             "3. Ko'k fonli qatorlar — bo'limlar (ish turi). Ularning ostidagi materiallar shu kategoriyaga kiradi.",
-            "   O'z bo'limingizni qo'shishingiz mumkin: faqat A ustuniga nom yozing (masalan \"Монтаж освещения\").",
-            "4. Katalogdagi materiallar oldindan yozilgan. Yangi material qo'shish uchun bo'sh qatorga yozing yoki qator qo'shing.",
+            "   O'z bo'limingizni qo'shishingiz mumkin: faqat A ustuniga nom yozing (masalan \"Yoritish montaji\").",
+            "4. Standart materiallar ro'yxati va katalogdagi materiallar oldindan yozilgan. Yangi material uchun bo'sh qatorga yozing yoki qator qo'shing.",
             "   Brendni kvadrat qavsda yozish mumkin: \"Gipsokarton 12.5 [Knauf]\".",
-            "5. Narxlar so'mda (UZS). Xarid sanasi yuklash oynasida tanlanadi.",
-            "6. \"Итого по материалу\" qatoridan keyingi qatorlar o'qilmaydi.",
+            "5. Narxlar so'mda (UZS). Narx bo'sh qolsa — material faqat miqdori bo'yicha (narxsiz) qo'shiladi. Xarid sanasi yuklash oynasida tanlanadi.",
+            "6. \"Jami materiallar\" qatoridan keyingi qatorlar o'qilmaydi.",
             "7. Yuklashdan oldin natija ko'rsatiladi: bitta katakda ham xato bo'lsa, hech narsa saqlanmaydi.",
         };
         if (multi)
         {
             lines.Add("");
             lines.Add("Mavjud smeta faylingiz (masalan \"Materiallar_UA\" varag'i) shu tuzilishda bo'lsa, uni to'g'ridan-to'g'ri yuklash mumkin:");
-            lines.Add("   nomida \"Materi...\" bo'lgan varaq o'qiladi, loyihalar 1-qatordagi nom bo'yicha topiladi");
+            lines.Add("   nomida \"Materi...\" bo'lgan varaq o'qiladi, loyihalar 1-qatordagi nom bo'yicha topiladi, ruscha material nomlari o'zbekchaga o'giriladi");
             lines.Add("   (bo'shliq, tire va tirnoqlar hisobga olinmaydi: \"H -2-5\" = \"H-2-5\").");
             lines.Add("   Tizimda yo'q loyiha ustunida ma'lumot bo'lsa — xato ko'rsatiladi: loyihani avval yarating yoki ustunni o'chiring.");
             lines.Add("   Loyiha ustunlarini o'chirish yoki tartibini o'zgartirish mumkin — faqat nomlar muhim.");
@@ -405,6 +434,7 @@ public partial class MaterialService
             var categoryUpdates = new Dictionary<Material, string>();
             var purchases = new List<MaterialPurchase>();
             var unknownWithData = new Dictionary<PurchaseBlock, int>();
+            var withoutPrice = 0;
             string? currentCategory = null;
 
             for (var row = firstRow; row <= lastRow; row++)
@@ -434,12 +464,16 @@ public partial class MaterialService
 
                 if (unitRaw is null && cells.All(c => c.QtyEmpty && c.PriceEmpty))
                 {
-                    if (!nameCell.Value.IsNumber)
+                    // Bo'sh qolgan standart material qatori (masalan "Стекло перегородка") bo'lim emas.
+                    if (!nameCell.Value.IsNumber && FindDefaultMaterial(rawName) is null)
                         currentCategory = SectionToCategory(rawName);
                     continue;
                 }
 
                 var (name, brand) = SplitBrand(rawName);
+                // Eski ruscha smetadagi nom ("Подъем материала") standart o'zbekcha nomga o'giriladi.
+                var standard = brand is null ? FindDefaultMaterial(name) : null;
+                if (standard is not null) name = standard.Name;
                 Material? material = null;
                 var isNew = false;
                 var materialResolved = false;
@@ -476,7 +510,9 @@ public partial class MaterialService
                         if (materialErrors.Count == 0)
                         {
                             var key = (MatchKey(name), MatchKey(brand));
-                            if (catalog.TryGetValue(key, out var existing) || newMaterials.TryGetValue(key, out existing))
+                            if (catalog.TryGetValue(key, out var existing)
+                                || (standard is not null && catalog.TryGetValue((MatchKey(standard.Russian), ""), out existing))
+                                || newMaterials.TryGetValue(key, out existing))
                             {
                                 material = existing;
                                 isNew = newMaterials.ContainsKey(key);
@@ -491,7 +527,7 @@ public partial class MaterialService
                                 {
                                     Name = name,
                                     Brand = brand,
-                                    Unit = unitRaw is null ? "dona" : CanonicalUnit(unitRaw),
+                                    Unit = unitRaw is not null ? CanonicalUnit(unitRaw) : standard?.Unit ?? "dona",
                                     Category = currentCategory,
                                     CompanyAdminId = companyAdminId,
                                     CreatedAt = now
@@ -516,11 +552,13 @@ public partial class MaterialService
                         qty = Math.Round(qty.Value, 2);
                         if (qty < 0.01m) errors.Add("miqdor 0 dan katta bo'lishi kerak");
                     }
-                    if (price is null) errors.Add("narx (цена за ед.) kiritilmagan yoki noto'g'ri");
+                    // Narx bo'sh yoki 0 — xato emas: material faqat miqdori bo'yicha (narxsiz) qo'shiladi.
+                    if (priceEmpty) price = 0;
+                    if (price is null) errors.Add("narx (цена за ед.) noto'g'ri yozilgan");
                     else
                     {
                         price = Math.Round(price.Value, 2);
-                        if (price < 0.01m) errors.Add("narx 0 dan katta bo'lishi kerak");
+                        if (price < 0) errors.Add("narx manfiy bo'lishi mumkin emas");
                     }
                     if (errors.Count > 0)
                     {
@@ -528,6 +566,7 @@ public partial class MaterialService
                         continue;
                     }
 
+                    if (price == 0) withoutPrice++;
                     var total = Math.Round(qty!.Value * price!.Value, 2);
                     purchases.Add(new MaterialPurchase
                     {
@@ -582,6 +621,9 @@ public partial class MaterialService
                 var cols = string.Join(", ", group.Select(t => Col(t.Block.QtyCol)));
                 result.Warnings.Add($"«{group.First().Project!.Name}» loyihasi faylda {group.Count()} marta uchraydi ({cols} ustunlar) — hammasi qo'shiladi.");
             }
+
+            if (withoutPrice > 0)
+                result.Warnings.Add($"{withoutPrice} ta materialning narxi ko'rsatilmagan — ular faqat miqdori bo'yicha (narxsiz) qo'shiladi.");
 
             if (result.TotalRows == 0 && result.Errors.Count == 0)
                 throw new ArgumentException("Faylda miqdori va narxi to'ldirilgan birorta ham material topilmadi.");

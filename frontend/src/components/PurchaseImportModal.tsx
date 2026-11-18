@@ -138,13 +138,13 @@ export const PurchaseImportModal: React.FC<Props> = ({ projectId, projectName, o
               <div className="text-xs font-semibold text-[#171b25]">1. Shablonni yuklab oling va to'ldiring</div>
               {multi ? (
                 <p className="text-[11px] text-gray-500">
-                  Umumiy smeta ko'rinishida (<b>Materiallar_UA</b> kabi): A — material nomi, B — ед.изм., keyin har bir loyiha uchun blok
-                  <b> кол-во · цена за ед. · всего мат</b>, blok ustida loyiha nomi. Shablonda barcha loyihalaringiz tayyor turadi.
+                  Umumiy smeta ko'rinishida (<b>Materiallar_UA</b> kabi): A — material nomi, B — o'lchov birligi, keyin har bir loyiha uchun blok
+                  <b> Miqdori · Narxi · Jami</b>, blok ustida loyiha nomi. Shablonda barcha loyihalaringiz tayyor turadi.
                   Mavjud smeta faylingizni ham shu yerga to'g'ridan-to'g'ri yuklashingiz mumkin — loyihalar nomi bo'yicha topiladi.
                 </p>
               ) : (
               <p className="text-[11px] text-gray-500">
-                Smeta ko'rinishida: <b>Наименование · ед.изм. · кол-во · цена за ед.</b> Ko'k qatorlar — bo'limlar (Сантехнические, Электрические...),
+                Smeta ko'rinishida: <b>Material nomi · O'lchov birligi · Miqdori · Narxi</b> Ko'k qatorlar — bo'limlar (Santexnika, Elektr...),
                 ostidagi materiallar shu kategoriyaga kiradi. Katalogdagi materiallar oldindan yozilgan — faqat olinganlarining miqdori va narxini to'ldiring.
                 Miqdori bo'sh yoki 0 bo'lgan qatorlar o'tkazib yuboriladi. Narxlar so'mda.
               </p>
