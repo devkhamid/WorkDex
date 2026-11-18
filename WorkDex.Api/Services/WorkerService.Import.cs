@@ -56,10 +56,12 @@ public partial class WorkerService
 
     // ---------- Shablon ----------
 
-    public async Task<byte[]> BuildJobImportTemplateAsync(Guid requestingUserId)
+    public async Task<byte[]> BuildJobImportTemplateAsync(Guid requestingUserId, Guid? projectId = null)
     {
         var companyAdminId = await ResolveJobCompanyAsync(requestingUserId);
-        var projects = await CompanyProjects(companyAdminId).OrderBy(p => p.CreatedAt).ToListAsync();
+        var projects = projectId.HasValue
+            ? new List<Project> { await _context.Projects.FindAsync(projectId.Value) ?? throw new KeyNotFoundException("Loyiha topilmadi.") }
+            : await CompanyProjects(companyAdminId).OrderBy(p => p.CreatedAt).ToListAsync();
         if (projects.Count == 0)
             throw new ArgumentException("Hali birorta ham loyiha yo'q.");
         if (projects.Count > MaxJobImportBlocks)
@@ -177,9 +179,13 @@ public partial class WorkerService
 
     // ---------- Import ----------
 
-    public async Task<WorkerJobImportResultDto> ImportJobsAsync(Stream excelStream, Guid createdByUserId, bool dryRun, DateTime? paymentDate = null)
+    public async Task<WorkerJobImportResultDto> ImportJobsAsync(Stream excelStream, Guid createdByUserId, bool dryRun, DateTime? paymentDate = null, Guid? projectId = null)
     {
         var companyAdminId = await ResolveJobCompanyAsync(createdByUserId);
+        var singleProject = projectId.HasValue
+            ? await _context.Projects.FindAsync(projectId.Value) ?? throw new KeyNotFoundException("Loyiha topilmadi.")
+            : null;
+        if (singleProject?.CompanyAdminId is { } projectCompany) companyAdminId = projectCompany;
 
         var today = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
         var date = paymentDate.HasValue ? DateTime.SpecifyKind(paymentDate.Value.Date, DateTimeKind.Utc) : today;
@@ -212,18 +218,32 @@ public partial class WorkerService
             if (lastRow - firstRow + 1 > MaxJobImportRows)
                 throw new ArgumentException($"Faylda juda ko'p qator bor (ko'pi bilan {MaxJobImportRows} ta).");
 
-            var byKey = (await CompanyProjects(companyAdminId).ToListAsync())
-                .GroupBy(p => ProjectKey(p.Name))
-                .Where(g => g.Key.Length > 0)
-                .ToDictionary(g => g.Key, g => g.ToList());
-            var ambiguous = blocks
-                .Where(b => byKey.TryGetValue(ProjectKey(b.Label), out var list) && list.Count > 1)
-                .Select(b => b.Label!).Distinct().ToList();
-            if (ambiguous.Count > 0)
-                throw new ArgumentException($"Tizimda bir xil nomli bir nechta loyiha bor: {string.Join(", ", ambiguous)}. Loyihalarni qayta nomlang.");
-            var targets = blocks
-                .Select(b => (Block: b, Project: byKey.TryGetValue(ProjectKey(b.Label), out var list) ? list[0] : null))
-                .ToList();
+            List<(JobBlock Block, Project? Project)> targets;
+            if (singleProject is not null)
+            {
+                // Loyiha ichidan: bitta blok — nomidan qat'i nazar shu loyihaga; umumiy smeta — faqat shu loyiha nomli ustun.
+                var key = ProjectKey(singleProject.Name);
+                targets = blocks.Count == 1
+                    ? new() { (blocks[0], singleProject) }
+                    : blocks.Where(b => ProjectKey(b.Label) == key).Select(b => (b, (Project?)singleProject)).ToList();
+                if (targets.Count == 0)
+                    throw new ArgumentException($"Faylda bir nechta loyiha ustuni bor, lekin «{singleProject.Name}» nomli ustun topilmadi.");
+            }
+            else
+            {
+                var byKey = (await CompanyProjects(companyAdminId).ToListAsync())
+                    .GroupBy(p => ProjectKey(p.Name))
+                    .Where(g => g.Key.Length > 0)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+                var ambiguous = blocks
+                    .Where(b => byKey.TryGetValue(ProjectKey(b.Label), out var list) && list.Count > 1)
+                    .Select(b => b.Label!).Distinct().ToList();
+                if (ambiguous.Count > 0)
+                    throw new ArgumentException($"Tizimda bir xil nomli bir nechta loyiha bor: {string.Join(", ", ambiguous)}. Loyihalarni qayta nomlang.");
+                targets = blocks
+                    .Select(b => (Block: b, Project: byKey.TryGetValue(ProjectKey(b.Label), out var list) ? list[0] : null))
+                    .ToList();
+            }
 
             var workers = (await _context.Workers.Where(w => w.CompanyAdminId == companyAdminId).ToListAsync())
                 .GroupBy(w => TextKey(w.FullName))

@@ -140,11 +140,11 @@ public class WorkerPaymentsController : ControllerBase
 
     [HttpGet("api/worker-jobs/import/template")]
     [Authorize(Roles = "SuperAdmin,Admin,Finance")]
-    public async Task<IActionResult> DownloadJobImportTemplate()
+    public async Task<IActionResult> DownloadJobImportTemplate([FromQuery] Guid? projectId = null)
     {
         try
         {
-            var bytes = await _workerService.BuildJobImportTemplateAsync(User.GetUserId());
+            var bytes = await _workerService.BuildJobImportTemplateAsync(User.GetUserId(), projectId);
             return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "WorkDex_Ishchilik_Shablon.xlsx");
         }
         catch (ArgumentException ex)
@@ -161,7 +161,7 @@ public class WorkerPaymentsController : ControllerBase
     [Authorize(Roles = "SuperAdmin,Admin,Finance")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(10 * 1024 * 1024)]
-    public async Task<IActionResult> ImportJobs(IFormFile? file, [FromQuery] bool dryRun = true, [FromQuery] DateTime? paymentDate = null)
+    public async Task<IActionResult> ImportJobs(IFormFile? file, [FromQuery] bool dryRun = true, [FromQuery] DateTime? paymentDate = null, [FromQuery] Guid? projectId = null)
     {
         if (file is null || file.Length == 0)
             return BadRequest(new { message = "Fayl tanlanmagan." });
@@ -175,7 +175,7 @@ public class WorkerPaymentsController : ControllerBase
             using var stream = new MemoryStream();
             await file.CopyToAsync(stream);
             stream.Position = 0;
-            var result = await _workerService.ImportJobsAsync(stream, User.GetUserId(), dryRun, paymentDate);
+            var result = await _workerService.ImportJobsAsync(stream, User.GetUserId(), dryRun, paymentDate, projectId);
             return Ok(result);
         }
         catch (ArgumentException ex)

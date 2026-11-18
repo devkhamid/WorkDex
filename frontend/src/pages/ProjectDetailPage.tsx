@@ -23,6 +23,7 @@ import { MoneyInput, UsdWithUzs } from '../components/Money';
 import { MaterialPicker } from '../components/MaterialPicker';
 import { RenameProjectModal } from '../components/RenameProjectModal';
 import { PurchaseImportModal } from '../components/PurchaseImportModal';
+import { WorkerJobImportModal } from '../components/WorkerJobImportModal';
 import { EditTarget, ProjectRecordEditModal } from '../components/ProjectRecordEditModal';
 import { AiAnalysisPanel } from '../components/AiAnalysisPanel';
 import { useAuth } from '../context/AuthContext';
@@ -89,6 +90,7 @@ export const ProjectDetailPage: React.FC = () => {
   const canAttachAgreementPdf = canRename || user?.role === UserRole.Finance;
   const canUseAi = canAttachAgreementPdf;
   const isCompanyAdmin = user?.role === UserRole.Admin;
+  const canImportWorkerJobs = user?.role === UserRole.SuperAdmin || user?.role === UserRole.Admin || user?.role === UserRole.Finance;
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
   const [summary, setSummary] = useState<ProjectSummary | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'finance' | 'tasks' | 'materials' | 'workers' | 'expenses' | 'extraworks' | 'photos' | 'documents' | 'ai'>('overview');
@@ -117,6 +119,7 @@ export const ProjectDetailPage: React.FC = () => {
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [isPurchaseImportOpen, setIsPurchaseImportOpen] = useState(false);
+  const [isWorkerJobImportOpen, setIsWorkerJobImportOpen] = useState(false);
   const [isWorkerModalOpen, setIsWorkerModalOpen] = useState(false);
   const [isExtraWorkModalOpen, setIsExtraWorkModalOpen] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
@@ -1487,13 +1490,24 @@ export const ProjectDetailPage: React.FC = () => {
                 <h3 className="font-bold text-xs text-[#171b25]">Ustalar Balansi (Qarzlar Nazorati)</h3>
                 <div className="text-[10px] text-[#9399a4]">Usta qancha ishladi, qancha to'landi, qancha qarzmiz</div>
               </div>
-              <button
-                onClick={handleOpenWorkerModal}
-                className="bg-[#ff7a16] hover:bg-[#e86807] text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-xs transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>+ Ustaga ish biriktirish</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                {canImportWorkerJobs && (
+                  <button
+                    onClick={() => setIsWorkerJobImportOpen(true)}
+                    className="bg-white hover:bg-gray-50 text-[#171b25] border border-[#e4e7ec] text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-xs"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-green-600" />
+                    <span>Excel orqali</span>
+                  </button>
+                )}
+                <button
+                  onClick={handleOpenWorkerModal}
+                  className="bg-[#ff7a16] hover:bg-[#e86807] text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-xs transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ Ustaga ish biriktirish</span>
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -2198,6 +2212,15 @@ export const ProjectDetailPage: React.FC = () => {
           expenseCategoryLabels={expenseCategoryLabels}
           onClose={() => setEditTarget(null)}
           onSaved={() => loadAllData(id)}
+        />
+      )}
+
+      {isWorkerJobImportOpen && id && (
+        <WorkerJobImportModal
+          projectId={id}
+          projectName={project?.name}
+          onClose={() => setIsWorkerJobImportOpen(false)}
+          onImported={() => loadAllData(id)}
         />
       )}
 

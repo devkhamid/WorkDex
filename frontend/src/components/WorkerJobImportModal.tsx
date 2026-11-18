@@ -8,12 +8,16 @@ import { UsdWithUzs } from './Money';
 const fmtNum = (n?: number) => (n == null ? '' : n.toLocaleString('ru-RU', { maximumFractionDigits: 2 }));
 
 interface Props {
+  /** Berilsa — faqat shu loyiha uchun (umumiy smetadan shu loyiha nomli ustun olinadi). */
+  projectId?: string;
+  projectName?: string;
   onClose: () => void;
   onImported: () => void;
 }
 
-/** "Ishchilik_UA" ko'rinishidagi smeta orqali barcha loyihalarga usta ishlarini (ish haqi) qo'shish. */
-export const WorkerJobImportModal: React.FC<Props> = ({ onClose, onImported }) => {
+/** "Ishchilik_UA" ko'rinishidagi smeta orqali loyiha(lar)ga usta ishlarini (ish haqi) qo'shish. */
+export const WorkerJobImportModal: React.FC<Props> = ({ projectId, projectName, onClose, onImported }) => {
+  const multi = !projectId;
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<WorkerJobImportResult | null>(null);
   const [saved, setSaved] = useState<WorkerJobImportResult | null>(null);
@@ -39,7 +43,7 @@ export const WorkerJobImportModal: React.FC<Props> = ({ onClose, onImported }) =
     setTemplateLoading(true);
     setError('');
     try {
-      await workersApi.downloadJobImportTemplate();
+      await workersApi.downloadJobImportTemplate(projectId);
     } catch (err) {
       setError(errorMessage(err, 'Shablonni yuklab olishda xatolik yuz berdi'));
     } finally {
@@ -53,7 +57,7 @@ export const WorkerJobImportModal: React.FC<Props> = ({ onClose, onImported }) =
     setError('');
     setBusy(true);
     try {
-      setPreview(await workersApi.importJobs(selected, true, paymentDate));
+      setPreview(await workersApi.importJobs(selected, true, paymentDate, projectId));
     } catch (err) {
       setError(errorMessage(err, 'Faylni tekshirishda xatolik yuz berdi'));
     } finally {
@@ -66,7 +70,7 @@ export const WorkerJobImportModal: React.FC<Props> = ({ onClose, onImported }) =
     setBusy(true);
     setError('');
     try {
-      const result = await workersApi.importJobs(file, false, paymentDate);
+      const result = await workersApi.importJobs(file, false, paymentDate, projectId);
       if (result.errors.length > 0) {
         setPreview(result);
         return;
@@ -94,7 +98,9 @@ export const WorkerJobImportModal: React.FC<Props> = ({ onClose, onImported }) =
         <div className="flex justify-between items-center border-b pb-3 gap-2">
           <h3 className="font-bold text-sm text-[#171b25] flex items-center gap-1.5 min-w-0">
             <HardHat className="w-4 h-4 text-green-600 flex-shrink-0" />
-            <span className="truncate">Excel orqali ishchilik — barcha loyihalar</span>
+            <span className="truncate">
+              {multi ? 'Excel orqali ishchilik — barcha loyihalar' : `Excel orqali usta ish haqi${projectName ? ` — ${projectName}` : ''}`}
+            </span>
           </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 min-w-8 min-h-8 inline-flex items-center justify-center flex-shrink-0">
             <X className="w-4 h-4" />
@@ -106,7 +112,7 @@ export const WorkerJobImportModal: React.FC<Props> = ({ onClose, onImported }) =
             <div className="flex items-center gap-2 text-sm font-semibold text-green-700 bg-green-50 border border-green-100 rounded-lg p-3">
               <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
               <span>
-                {saved.created} ta ish saqlandi ({saved.projects.length} ta loyiha) — jami {formatUzs(saved.totalUzs)}
+                {saved.created} ta ish saqlandi{multi ? ` (${saved.projects.length} ta loyiha)` : ''} — jami {formatUzs(saved.totalUzs)}
               </span>
             </div>
             {saved.newWorkers.length > 0 && (
@@ -126,7 +132,9 @@ export const WorkerJobImportModal: React.FC<Props> = ({ onClose, onImported }) =
                 <b>Ishchilik_UA</b> ko'rinishida: A — ish turi, B — ish nomi, keyin har bir loyiha uchun blok
                 <b> Ish (dona / m / m2) · Narx · Ishchilik</b>, blok ustida loyiha nomi. Har bir ish turi uchun shu nomli usta bog'lanadi
                 (yo'q bo'lsa — yaratiladi). Summalar so'mda va <b>to'liq to'langan</b> deb yoziladi — loyiha xarajatida ko'rinadi.
-                Mavjud smeta faylingizni ham to'g'ridan-to'g'ri yuklashingiz mumkin.
+                {multi
+                  ? "Mavjud smeta faylingizni ham to'g'ridan-to'g'ri yuklashingiz mumkin."
+                  : `Umumiy smeta faylini (barcha loyihalar bilan) yuklasangiz, faqat «${projectName ?? 'shu loyiha'}» nomli ustun olinadi.`}
               </p>
               <button
                 type="button"
@@ -192,7 +200,7 @@ export const WorkerJobImportModal: React.FC<Props> = ({ onClose, onImported }) =
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <div className="border border-[#e4e7ec] rounded-lg p-2.5">
                       <div className="text-[10px] font-bold text-gray-500 uppercase">Ishlar</div>
-                      <div className="text-base font-bold text-[#171b25]">{preview.rows.length} ta · {preview.projects.length} loyiha</div>
+                      <div className="text-base font-bold text-[#171b25]">{preview.rows.length} ta{multi ? ` · ${preview.projects.length} loyiha` : ''}</div>
                     </div>
                     <div className="border border-[#e4e7ec] rounded-lg p-2.5 sm:col-span-2">
                       <div className="text-[10px] font-bold text-gray-500 uppercase">Jami ishchilik (to'langan)</div>
@@ -233,7 +241,7 @@ export const WorkerJobImportModal: React.FC<Props> = ({ onClose, onImported }) =
                   </div>
                 )}
 
-                {preview.errors.length === 0 && preview.projects.length > 0 && (
+                {multi && preview.errors.length === 0 && preview.projects.length > 0 && (
                   <div className="border border-[#e4e7ec] rounded-lg overflow-hidden">
                     <div className="px-2.5 py-1.5 bg-gray-50 text-[10px] font-bold text-gray-500 uppercase">Loyihalar bo'yicha · {preview.projects.length} ta</div>
                     <div className="max-h-44 overflow-y-auto divide-y divide-gray-100">
