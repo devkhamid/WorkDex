@@ -13,7 +13,9 @@ import {
   HardHat,
   Upload,
   Trash2,
-  Pencil
+  Pencil,
+  Search,
+  X
 } from 'lucide-react';
 import { projectsApi, reportsApi, materialsApi, workersApi, agreementsApi } from '../api/services';
 import { uploadAgreementPdfToProject, isAgreementPdfDoc } from '../utils/agreementPdf';
@@ -25,6 +27,7 @@ import { EditTarget, ProjectRecordEditModal } from '../components/ProjectRecordE
 import { AiAnalysisPanel } from '../components/AiAnalysisPanel';
 import { useAuth } from '../context/AuthContext';
 import { formatUsd, formatUzs, useCbuRate } from '../utils/money';
+import { normalizeText } from '../utils/materials';
 import { apiClient, getFileUrl } from '../api/client';
 import {
   Project,
@@ -97,6 +100,11 @@ export const ProjectDetailPage: React.FC = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [purchases, setPurchases] = useState<MaterialPurchase[]>([]);
   const [selectedPurchaseIds, setSelectedPurchaseIds] = useState<Set<string>>(new Set());
+  const [purchaseSelectMode, setPurchaseSelectMode] = useState(false);
+  const [purchaseSearch, setPurchaseSearch] = useState('');
+  const [purchaseCategory, setPurchaseCategory] = useState('');
+  const [purchaseFrom, setPurchaseFrom] = useState('');
+  const [purchaseTo, setPurchaseTo] = useState('');
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [workerPayments, setWorkerPayments] = useState<WorkerPayment[]>([]);
   const [workersSummary, setWorkersSummary] = useState<WorkerSummary[]>([]);
@@ -425,7 +433,29 @@ export const ProjectDetailPage: React.FC = () => {
     return { uzs, usd, categories, materialCount: new Set(purchases.map((p) => p.materialId)).size };
   })();
 
-  const allPurchasesSelected = purchases.length > 0 && selectedPurchaseIds.size === purchases.length;
+  // Xaridlar ro'yxati filtri: nomi/brend/yetkazuvchi bo'yicha qidiruv, ish turi va sana oralig'i.
+  const purchaseQuery = normalizeText(purchaseSearch);
+  const filteredPurchases = purchases.filter((p) => {
+    if (purchaseQuery && ![p.materialName, p.brand, p.supplier, p.createdByName].some((v) => normalizeText(v).includes(purchaseQuery))) return false;
+    if (purchaseCategory && (p.category || 'Kategoriyasiz') !== purchaseCategory) return false;
+    const day = p.purchaseDate.slice(0, 10);
+    if (purchaseFrom && day < purchaseFrom) return false;
+    if (purchaseTo && day > purchaseTo) return false;
+    return true;
+  });
+  const hasPurchaseFilter = !!(purchaseSearch || purchaseCategory || purchaseFrom || purchaseTo);
+  const filteredPurchaseUzs = filteredPurchases.reduce((sum, p) => sum + p.totalCost, 0);
+  const filteredPurchaseUsd = filteredPurchases.reduce((sum, p) => sum + (p.totalCostUsd ?? 0), 0);
+  const clearPurchaseFilters = () => {
+    setPurchaseSearch('');
+    setPurchaseCategory('');
+    setPurchaseFrom('');
+    setPurchaseTo('');
+  };
+
+  // Faqat ekranda ko'rinib turgan (filtrdan o'tgan) tanlanganlar o'chiriladi.
+  const selectedVisiblePurchases = filteredPurchases.filter((p) => selectedPurchaseIds.has(p.id));
+  const allPurchasesSelected = filteredPurchases.length > 0 && selectedVisiblePurchases.length === filteredPurchases.length;
 
   const togglePurchase = (purchaseId: string) =>
     setSelectedPurchaseIds((prev) => {
@@ -435,17 +465,26 @@ export const ProjectDetailPage: React.FC = () => {
     });
 
   const toggleAllPurchases = () =>
-    setSelectedPurchaseIds(allPurchasesSelected ? new Set() : new Set(purchases.map((p) => p.id)));
+    setSelectedPurchaseIds((prev) => {
+      const next = new Set(prev);
+      filteredPurchases.forEach((p) => (allPurchasesSelected ? next.delete(p.id) : next.add(p.id)));
+      return next;
+    });
+
+  const exitPurchaseSelectMode = () => {
+    setPurchaseSelectMode(false);
+    setSelectedPurchaseIds(new Set());
+  };
 
   const handleBulkDeletePurchases = async () => {
-    if (!id || selectedPurchaseIds.size === 0) return;
-    const chosen = purchases.filter((p) => selectedPurchaseIds.has(p.id));
+    if (!id || selectedVisiblePurchases.length === 0) return;
+    const chosen = selectedVisiblePurchases;
     const total = chosen.reduce((sum, p) => sum + p.totalCost, 0);
     if (!window.confirm(`${chosen.length} ta material xaridi (jami ${formatUzs(total)}) butunlay o'chiriladi va loyiha hisob-kitoblari qayta hisoblanadi. Davom etasizmi?`)) return;
     setBulkDeleting(true);
     try {
       await projectsApi.deletePurchases(id, chosen.map((p) => p.id));
-      setSelectedPurchaseIds(new Set());
+      exitPurchaseSelectMode();
       await loadAllData(id);
     } catch (err: any) {
       alert(err.response?.data?.message || "O'chirishda xatolik yuz berdi");
@@ -1126,11 +1165,11 @@ export const ProjectDetailPage: React.FC = () => {
 
       {activeTab === 'materials' && (
         <div className="space-y-4">
-          <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pb-3 border-b border-[#e4e7ec] mb-3">
+          <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 sm:p-5 shadow-xs space-y-3.5 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
               <div>
                 <h3 className="font-bold text-xs text-[#171b25]">Materiallar xarajati</h3>
-                <div className="text-[10px] text-[#9399a4]">Materiallarga jami qancha sarflangani va qaysi ish turiga qancha ketgani</div>
+                <div className="text-[10px] text-[#9399a4]">Materiallarga jami sarflangan summa va ish turlari bo'yicha taqsimot</div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {canAttachAgreementPdf && (
@@ -1153,94 +1192,198 @@ export const ProjectDetailPage: React.FC = () => {
             </div>
 
             {purchases.length === 0 ? (
-              <div className="py-6 text-center text-xs text-gray-400">Material xaridlari mavjud emas</div>
+              <div className="py-6 text-center text-xs text-gray-400 border-t border-gray-100">Material xaridlari mavjud emas</div>
             ) : (
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="sm:col-span-2 rounded-xl border border-orange-100 bg-orange-50/60 p-3.5">
-                    <div className="text-[10px] font-bold text-[#c96b08] uppercase tracking-wide">Materiallarga jami sarflangan</div>
-                    <div className="mt-1 text-2xl font-bold text-[#171b25] break-words">{formatUsd(materialTotals.usd)}</div>
-                    <div className="text-sm font-semibold text-gray-600 break-words">{formatUzs(materialTotals.uzs)}</div>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 border-t border-gray-100 bg-gray-50/70 p-2.5 rounded-lg text-xs">
+                  <div className="min-w-0">
+                    <span className="block text-[10px] text-gray-500">Materiallarga jami sarflangan:</span>
+                    <UsdWithUzs className="text-[#ff7a16] font-bold" usd={materialTotals.usd} uzs={materialTotals.uzs} />
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-1 gap-3">
-                    <div className="rounded-xl border border-[#e4e7ec] p-3">
-                      <div className="text-[10px] font-bold text-gray-500 uppercase">Xaridlar</div>
-                      <div className="text-base font-bold text-[#171b25]">{purchases.length} ta</div>
-                    </div>
-                    <div className="rounded-xl border border-[#e4e7ec] p-3">
-                      <div className="text-[10px] font-bold text-gray-500 uppercase">Turli materiallar</div>
-                      <div className="text-base font-bold text-[#171b25]">{materialTotals.materialCount} ta</div>
-                    </div>
+                  <div className="sm:text-center">
+                    <span className="block text-[10px] text-gray-500">Xaridlar soni:</span>
+                    <b className="text-gray-800">{purchases.length} ta</b>
+                  </div>
+                  <div className="sm:text-right">
+                    <span className="block text-[10px] text-gray-500">Turli materiallar:</span>
+                    <b className="text-gray-800">{materialTotals.materialCount} xil</b>
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-[#e4e7ec] divide-y divide-gray-100">
-                  <div className="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase bg-gray-50/60 rounded-t-xl">Ish turlari bo'yicha</div>
-                  {materialTotals.categories.map((c) => {
-                    const share = materialTotals.uzs > 0 ? (c.uzs / materialTotals.uzs) * 100 : 0;
-                    return (
-                      <div key={c.name} className="px-3 py-2.5 space-y-1.5">
-                        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-                          <div className="min-w-0">
-                            <span className="text-xs font-bold text-gray-900">{c.name}</span>
-                            <span className="ml-2 text-[10px] text-gray-400">{c.materials} xil material · {c.count} ta xarid</span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-xs font-bold text-[#ff7a16]">{formatUsd(c.usd)}</span>
-                            <span className="ml-1.5 text-[10px] text-gray-500">{formatUzs(c.uzs)}</span>
-                            <span className="ml-1.5 text-[10px] font-semibold text-gray-400">{share.toFixed(1)}%</span>
-                          </div>
-                        </div>
-                        <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                          <div className="h-full rounded-full bg-[#ff7a16]" style={{ width: `${Math.max(share, 0.5)}%` }} />
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="overflow-x-auto scrollbar-none">
+                  <table className="w-full min-w-[600px] text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-[#e4e7ec] bg-gray-50/50">
+                        <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">ISH TURI</th>
+                        <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">MATERIALLAR</th>
+                        <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px] w-[34%]">ULUSHI</th>
+                        <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px] text-right">SARFLANGAN</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {materialTotals.categories.map((c) => {
+                        const share = materialTotals.uzs > 0 ? (c.uzs / materialTotals.uzs) * 100 : 0;
+                        const active = purchaseCategory === c.name;
+                        return (
+                          <tr
+                            key={c.name}
+                            onClick={() => setPurchaseCategory(active ? '' : c.name)}
+                            title="Bosing — quyidagi ro'yxat shu ish turi bo'yicha filtrlanadi"
+                            className={`cursor-pointer transition-colors ${active ? 'bg-orange-50/60' : 'hover:bg-gray-50/50'}`}
+                          >
+                            <td className="py-2.5 px-3 font-semibold text-gray-900">{c.name}</td>
+                            <td className="py-2.5 px-3 text-gray-600">
+                              {c.materials} xil <span className="text-gray-400">· {c.count} ta xarid</span>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-2 bg-[#edf0f3] rounded-full overflow-hidden">
+                                  <div
+                                    style={{ width: `${Math.max(share, 1)}%` }}
+                                    className="h-full bg-gradient-to-r from-[#ff7a16] to-[#ff9438] rounded-full"
+                                  />
+                                </div>
+                                <span className="w-12 text-right text-[11px] font-bold text-gray-700">{share.toFixed(1)}%</span>
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-3 text-right">
+                              <UsdWithUzs className="font-bold text-[#ff7a16] items-end" usd={c.usd} uzs={c.uzs} />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-              </div>
+              </>
             )}
           </div>
 
-          <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs">
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-              <h3 className="font-bold text-xs text-[#171b25]">Barcha Xarid Cheklari</h3>
+          <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs space-y-3 min-w-0">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="font-bold text-xs text-[#171b25]">Barcha Xarid Cheklari</h3>
+                <div className="text-[10px] text-[#9399a4]">
+                  {hasPurchaseFilter
+                    ? `${filteredPurchases.length} / ${purchases.length} ta xarid · ${formatUsd(filteredPurchaseUsd)} (${formatUzs(filteredPurchaseUzs)})`
+                    : `${purchases.length} ta xarid`}
+                </div>
+              </div>
               {isCompanyAdmin && purchases.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2">
+                purchaseSelectMode ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={toggleAllPurchases}
+                      disabled={bulkDeleting || filteredPurchases.length === 0}
+                      className="h-8 px-3 border border-[#e4e7ec] rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      {allPurchasesSelected ? 'Tanlovni olib tashlash' : `Hammasini tanlash (${filteredPurchases.length})`}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleBulkDeletePurchases}
+                      disabled={selectedVisiblePurchases.length === 0 || bulkDeleting}
+                      className="h-8 px-3 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 bg-red-600 text-white hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      {bulkDeleting ? "O'chirilmoqda..." : `O'chirish (${selectedVisiblePurchases.length})`}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={exitPurchaseSelectMode}
+                      disabled={bulkDeleting}
+                      className="h-8 px-3 border border-[#e4e7ec] rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      Bekor qilish
+                    </button>
+                  </div>
+                ) : (
                   <button
                     type="button"
-                    onClick={toggleAllPurchases}
-                    disabled={bulkDeleting}
-                    className="h-8 px-3 border border-[#e4e7ec] rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    {allPurchasesSelected ? 'Tanlovni bekor qilish' : `Hammasini tanlash (${purchases.length})`}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleBulkDeletePurchases}
-                    disabled={selectedPurchaseIds.size === 0 || bulkDeleting}
-                    className="h-8 px-3 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                    onClick={() => setPurchaseSelectMode(true)}
+                    className="h-8 px-3 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 border border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    {bulkDeleting ? "O'chirilmoqda..." : `Tanlanganlarni o'chirish${selectedPurchaseIds.size > 0 ? ` (${selectedPurchaseIds.size})` : ''}`}
+                    Bir nechtasini o'chirish
                   </button>
-                </div>
+                )
               )}
             </div>
+
+            {purchaseSelectMode && (
+              <div className="text-[11px] text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                O'chiriladigan xaridlarni belgilang, so'ng <b>O'chirish</b> tugmasini bosing.
+              </div>
+            )}
+
+            {purchases.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative flex-1 min-w-full sm:min-w-[220px]">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={purchaseSearch}
+                    onChange={(e) => setPurchaseSearch(e.target.value)}
+                    placeholder="Material, brend yoki yetkazuvchi bo'yicha qidirish..."
+                    className="w-full h-8 pl-8 pr-3 border border-[#e4e7ec] rounded-lg text-xs outline-none focus:border-[#ff7a16]"
+                  />
+                </div>
+                <select
+                  value={purchaseCategory}
+                  onChange={(e) => setPurchaseCategory(e.target.value)}
+                  className="h-8 px-2 border border-[#e4e7ec] rounded-lg text-xs outline-none focus:border-[#ff7a16] bg-white"
+                >
+                  <option value="">Barcha ish turlari</option>
+                  {materialTotals.categories.map((c) => (
+                    <option key={c.name} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="date"
+                    value={purchaseFrom}
+                    max={purchaseTo || undefined}
+                    onChange={(e) => setPurchaseFrom(e.target.value)}
+                    aria-label="Sanadan"
+                    className="h-8 px-2 border border-[#e4e7ec] rounded-lg text-xs outline-none focus:border-[#ff7a16]"
+                  />
+                  <span className="text-gray-400 text-xs">—</span>
+                  <input
+                    type="date"
+                    value={purchaseTo}
+                    min={purchaseFrom || undefined}
+                    onChange={(e) => setPurchaseTo(e.target.value)}
+                    aria-label="Sanagacha"
+                    className="h-8 px-2 border border-[#e4e7ec] rounded-lg text-xs outline-none focus:border-[#ff7a16]"
+                  />
+                </div>
+                {hasPurchaseFilter && (
+                  <button
+                    type="button"
+                    onClick={clearPurchaseFilters}
+                    className="h-8 px-2.5 rounded-lg text-xs font-semibold text-gray-500 hover:text-gray-800 hover:bg-gray-50 inline-flex items-center gap-1"
+                  >
+                    <X className="w-3.5 h-3.5" /> Tozalash
+                  </button>
+                )}
+              </div>
+            )}
+
             <div className="overflow-x-auto scrollbar-none">
               <table className="w-full min-w-[760px] text-left text-xs">
                 <thead>
                   <tr className="border-b border-[#e4e7ec] bg-gray-50/50">
-                    {isCompanyAdmin && (
+                    {purchaseSelectMode && (
                       <th className="py-2.5 pl-3 w-8">
                         <input
                           type="checkbox"
                           aria-label="Hammasini tanlash"
                           checked={allPurchasesSelected}
-                          ref={(el) => { if (el) el.indeterminate = selectedPurchaseIds.size > 0 && !allPurchasesSelected; }}
+                          ref={(el) => { if (el) el.indeterminate = selectedVisiblePurchases.length > 0 && !allPurchasesSelected; }}
                           onChange={toggleAllPurchases}
-                          disabled={purchases.length === 0 || bulkDeleting}
-                          className="w-4 h-4 accent-[#ff7a16] cursor-pointer"
+                          disabled={filteredPurchases.length === 0 || bulkDeleting}
+                          className="w-4 h-4 accent-red-600 cursor-pointer"
                         />
                       </th>
                     )}
@@ -1252,67 +1395,80 @@ export const ProjectDetailPage: React.FC = () => {
                     <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">JAMI</th>
                     <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">DO'KON / YETKAZUVCHI</th>
                     <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">KIM OLDI</th>
-                    {isCompanyAdmin && <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px] text-right">AMALLAR</th>}
+                    {isCompanyAdmin && !purchaseSelectMode && <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px] text-right">AMALLAR</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {purchases.map((pur) => (
-                    <tr key={pur.id} className={selectedPurchaseIds.has(pur.id) ? 'bg-red-50/40' : 'hover:bg-gray-50/50'}>
-                      {isCompanyAdmin && (
-                        <td className="py-2.5 pl-3 w-8">
-                          <input
-                            type="checkbox"
-                            aria-label={`${pur.materialName} — tanlash`}
-                            checked={selectedPurchaseIds.has(pur.id)}
-                            onChange={() => togglePurchase(pur.id)}
-                            disabled={bulkDeleting}
-                            className="w-4 h-4 accent-[#ff7a16] cursor-pointer"
-                          />
-                        </td>
-                      )}
-                      <td className="py-2.5 px-3">{formatDateUz(pur.purchaseDate)}</td>
-                      <td className="py-2.5 px-3 font-semibold text-gray-900">{pur.materialName}</td>
-                      <td className="py-2.5 px-3">
-                        {pur.brand ? (
-                          <span className="px-1.5 py-0.5 bg-orange-50 text-[#ff7a16] border border-orange-100 rounded text-[9px] font-bold">
-                            {pur.brand}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400">-</span>
+                  {filteredPurchases.map((pur) => {
+                    const selected = purchaseSelectMode && selectedPurchaseIds.has(pur.id);
+                    return (
+                      <tr
+                        key={pur.id}
+                        onClick={purchaseSelectMode && !bulkDeleting ? () => togglePurchase(pur.id) : undefined}
+                        className={`${selected ? 'bg-red-50/60' : 'hover:bg-gray-50/50'} ${purchaseSelectMode ? 'cursor-pointer' : ''}`}
+                      >
+                        {purchaseSelectMode && (
+                          <td className="py-2.5 pl-3 w-8">
+                            <input
+                              type="checkbox"
+                              aria-label={`${pur.materialName} — tanlash`}
+                              checked={selected}
+                              onChange={() => togglePurchase(pur.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              disabled={bulkDeleting}
+                              className="w-4 h-4 accent-red-600 cursor-pointer"
+                            />
+                          </td>
                         )}
-                      </td>
-                      <td className="py-2.5 px-3">{pur.quantity} {pur.unit}</td>
-                      <td className="py-2.5 px-3 font-medium">
-                        {pur.currency === 'USD' && pur.originalUnitPrice ? (
-                          <div>
-                            <span>{formatUsd(pur.originalUnitPrice)}</span>
-                            <div className="text-[10px] text-gray-400">kurs: {pur.exchangeRateToUzs?.toLocaleString('ru-RU')}</div>
-                          </div>
-                        ) : (
-                          formatUzs(pur.unitPrice)
-                        )}
-                      </td>
-                      <td className="py-2.5 px-3 font-bold text-[#ff7a16]">
-                        <UsdWithUzs usd={pur.totalCostUsd} uzs={pur.totalCost} />
-                      </td>
-                      <td className="py-2.5 px-3 text-gray-600">{pur.supplier || '-'}</td>
-                      <td className="py-2.5 px-3 text-gray-600 font-medium">{pur.createdByName || '-'}</td>
-                      {isCompanyAdmin && (
-                        <td className="py-1.5 px-3">
-                          <div className="flex justify-end">
-                            {adminActions(
-                              () => setEditTarget({ kind: 'purchase', item: pur }),
-                              () => handleDeleteRecord(`Material xaridi: ${pur.materialName} — ${pur.quantity} ${pur.unit}, ${formatUzs(pur.totalCost)}`, (pid) => projectsApi.deletePurchase(pid, pur.id)),
-                            )}
-                          </div>
+                        <td className="py-2.5 px-3">{formatDateUz(pur.purchaseDate)}</td>
+                        <td className="py-2.5 px-3">
+                          <div className="font-semibold text-gray-900">{pur.materialName}</div>
+                          {pur.category && <div className="text-[10px] text-gray-400">{pur.category}</div>}
                         </td>
-                      )}
-                    </tr>
-                  ))}
-                  {purchases.length === 0 && (
+                        <td className="py-2.5 px-3">
+                          {pur.brand ? (
+                            <span className="px-1.5 py-0.5 bg-orange-50 text-[#ff7a16] border border-orange-100 rounded text-[9px] font-bold">
+                              {pur.brand}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3">{pur.quantity} {pur.unit}</td>
+                        <td className="py-2.5 px-3 font-medium">
+                          {pur.currency === 'USD' && pur.originalUnitPrice ? (
+                            <div>
+                              <span>{formatUsd(pur.originalUnitPrice)}</span>
+                              <div className="text-[10px] text-gray-400">kurs: {pur.exchangeRateToUzs?.toLocaleString('ru-RU')}</div>
+                            </div>
+                          ) : (
+                            formatUzs(pur.unitPrice)
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3 font-bold text-[#ff7a16]">
+                          <UsdWithUzs usd={pur.totalCostUsd} uzs={pur.totalCost} />
+                        </td>
+                        <td className="py-2.5 px-3 text-gray-600">{pur.supplier || '-'}</td>
+                        <td className="py-2.5 px-3 text-gray-600 font-medium">{pur.createdByName || '-'}</td>
+                        {isCompanyAdmin && !purchaseSelectMode && (
+                          <td className="py-1.5 px-3">
+                            <div className="flex justify-end">
+                              {adminActions(
+                                () => setEditTarget({ kind: 'purchase', item: pur }),
+                                () => handleDeleteRecord(`Material xaridi: ${pur.materialName} — ${pur.quantity} ${pur.unit}, ${formatUzs(pur.totalCost)}`, (pid) => projectsApi.deletePurchase(pid, pur.id)),
+                              )}
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                  {filteredPurchases.length === 0 && (
                     <tr>
-                      <td colSpan={isCompanyAdmin ? 10 : 8} className="py-8 text-center text-xs text-gray-400">
-                        Xaridlar mavjud emas. Yuqoridagi "+ Material xaridi kiritish" orqali yangi xarid qo'shing.
+                      <td colSpan={10} className="py-8 text-center text-xs text-gray-400">
+                        {purchases.length === 0
+                          ? 'Xaridlar mavjud emas. Yuqoridagi "+ Material xaridi kiritish" orqali yangi xarid qo\'shing.'
+                          : 'Filtr bo\'yicha xarid topilmadi.'}
                       </td>
                     </tr>
                   )}

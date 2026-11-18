@@ -56,6 +56,7 @@ export const MaterialsPage: React.FC = () => {
 
   const canBulkDelete = user?.role === UserRole.Admin || user?.role === UserRole.SuperAdmin;
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectMode, setSelectMode] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkMessage, setBulkMessage] = useState<{ ok: string; skipped: string[] } | null>(null);
 
@@ -223,6 +224,7 @@ export const MaterialsPage: React.FC = () => {
         skipped: result.skipped.map((s) => `${s.name} — ${s.purchaseCount} ta xarid`),
       });
       setSelectedIds(new Set());
+      setSelectMode(false);
       await loadMaterials();
     } catch (err: any) {
       alert(err.response?.data?.message || "O'chirishda xatolik yuz berdi");
@@ -376,6 +378,16 @@ export const MaterialsPage: React.FC = () => {
               className="flex-1 min-w-0 text-xs outline-none"
             />
             <span className="text-xs text-gray-400 whitespace-nowrap">{filtered.length} ta material</span>
+            {canBulkDelete && materials.length > 0 && !selectMode && (
+              <button
+                type="button"
+                onClick={() => { setSelectMode(true); setBulkMessage(null); }}
+                className="h-8 px-3 rounded-lg text-[11px] font-semibold inline-flex items-center gap-1.5 border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 whitespace-nowrap flex-shrink-0"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Bir nechtasini o'chirish</span>
+              </button>
+            )}
           </div>
 
           <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
@@ -403,13 +415,14 @@ export const MaterialsPage: React.FC = () => {
             ))}
           </div>
 
-          {canBulkDelete && materials.length > 0 && (
-            <div className="bg-white border border-[#e4e7ec] rounded-xl p-2.5 flex flex-wrap items-center gap-2 shadow-xs">
+          {canBulkDelete && selectMode && (
+            <div className="bg-red-50/60 border border-red-100 rounded-xl p-2.5 flex flex-wrap items-center gap-2 shadow-xs">
+              <span className="text-[11px] text-red-700 w-full sm:w-auto">O'chiriladigan materiallarni belgilang:</span>
               <button
                 type="button"
                 onClick={() => selectMany(filtered)}
                 disabled={bulkDeleting || filtered.length === 0}
-                className="h-8 px-3 border border-[#e4e7ec] rounded-lg text-[11px] font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                className="h-8 px-3 bg-white border border-[#e4e7ec] rounded-lg text-[11px] font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
               >
                 Ko'rinayotganlarni tanlash ({filtered.length})
               </button>
@@ -417,30 +430,30 @@ export const MaterialsPage: React.FC = () => {
                 type="button"
                 onClick={() => selectMany(unusedFiltered)}
                 disabled={bulkDeleting || unusedFiltered.length === 0}
-                className="h-8 px-3 border border-[#e4e7ec] rounded-lg text-[11px] font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                className="h-8 px-3 bg-white border border-[#e4e7ec] rounded-lg text-[11px] font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
                 title="Hech bir loyihada xaridi yo'q materiallar"
               >
                 Xaridsizlarni tanlash ({unusedFiltered.length})
               </button>
-              {selectedIds.size > 0 && (
+              <div className="flex items-center gap-2 sm:ml-auto">
                 <button
                   type="button"
-                  onClick={() => setSelectedIds(new Set())}
-                  disabled={bulkDeleting}
-                  className="h-8 px-3 rounded-lg text-[11px] font-semibold text-gray-500 hover:text-gray-800"
+                  onClick={handleBulkDelete}
+                  disabled={selectedIds.size === 0 || bulkDeleting}
+                  className="h-8 px-3 rounded-lg text-[11px] font-semibold inline-flex items-center gap-1.5 bg-red-600 text-white hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  Tanlovni bekor qilish
+                  <Trash2 className="w-3.5 h-3.5" />
+                  {bulkDeleting ? "O'chirilmoqda..." : `O'chirish (${selectedIds.size})`}
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={handleBulkDelete}
-                disabled={selectedIds.size === 0 || bulkDeleting}
-                className="h-8 px-3 ml-auto rounded-lg text-[11px] font-semibold inline-flex items-center gap-1.5 border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                {bulkDeleting ? "O'chirilmoqda..." : `Tanlanganlarni o'chirish${selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}`}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => { setSelectMode(false); setSelectedIds(new Set()); }}
+                  disabled={bulkDeleting}
+                  className="h-8 px-3 bg-white border border-[#e4e7ec] rounded-lg text-[11px] font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Bekor qilish
+                </button>
+              </div>
             </div>
           )}
 
@@ -469,17 +482,19 @@ export const MaterialsPage: React.FC = () => {
             {filtered.map((m) => (
               <div
                 key={m.id}
-                className={`bg-white border rounded-xl p-4 shadow-xs space-y-2 ${selectedIds.has(m.id) ? 'border-red-300 ring-1 ring-red-200' : 'border-[#e4e7ec]'}`}
+                onClick={selectMode && !bulkDeleting ? () => toggleSelected(m.id) : undefined}
+                className={`bg-white border rounded-xl p-4 shadow-xs space-y-2 ${selectMode ? 'cursor-pointer' : ''} ${selectMode && selectedIds.has(m.id) ? 'border-red-300 ring-1 ring-red-200 bg-red-50/30' : 'border-[#e4e7ec]'}`}
               >
                 <div className="flex items-start gap-2.5">
-                  {canBulkDelete && (
+                  {selectMode && (
                     <input
                       type="checkbox"
                       aria-label={`${m.name} — tanlash`}
                       checked={selectedIds.has(m.id)}
                       onChange={() => toggleSelected(m.id)}
+                      onClick={(e) => e.stopPropagation()}
                       disabled={bulkDeleting}
-                      className="w-4 h-4 mt-2 accent-[#ff7a16] cursor-pointer flex-shrink-0"
+                      className="w-4 h-4 mt-2 accent-red-600 cursor-pointer flex-shrink-0"
                     />
                   )}
                   <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
@@ -512,7 +527,7 @@ export const MaterialsPage: React.FC = () => {
                       <AlertTriangle className="w-3 h-3" /> O'xshash bor
                     </span>
                   )}
-                  {canEdit && (
+                  {canEdit && !selectMode && (
                     <button
                       onClick={() => openEdit(m)}
                       className="flex items-center gap-1 text-[10px] font-semibold text-gray-600 hover:text-gray-900 min-h-8 whitespace-nowrap"
@@ -520,7 +535,7 @@ export const MaterialsPage: React.FC = () => {
                       <Pencil className="w-3 h-3" /> Tahrirlash
                     </button>
                   )}
-                  {canMerge && materials.length > 1 && (
+                  {canMerge && !selectMode && materials.length > 1 && (
                     <button
                       onClick={() => openMerge(m)}
                       className="flex items-center gap-1 text-[10px] font-semibold text-blue-600 hover:text-blue-800 min-h-8 whitespace-nowrap"
