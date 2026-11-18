@@ -428,6 +428,20 @@ public partial class MaterialService : IMaterialService
         await _context.SaveChangesAsync();
     }
 
+    public async Task<int> DeletePurchasesAsync(Guid projectId, IReadOnlyCollection<Guid> purchaseIds)
+    {
+        if (purchaseIds.Count == 0) return 0;
+        if (!await _context.Projects.AnyAsync(p => p.Id == projectId))
+            throw new KeyNotFoundException("Loyiha topilmadi.");
+
+        var purchases = await _context.MaterialPurchases
+            .Where(mp => mp.ProjectId == projectId && purchaseIds.Contains(mp.Id))
+            .ToListAsync();
+        _context.MaterialPurchases.RemoveRange(purchases);
+        await _context.SaveChangesAsync();
+        return purchases.Count;
+    }
+
     public async Task<List<ProjectMaterialSummaryDto>> GetProjectMaterialSummaryAsync(Guid projectId)
     {
         var projectExists = await _context.Projects.AnyAsync(p => p.Id == projectId);

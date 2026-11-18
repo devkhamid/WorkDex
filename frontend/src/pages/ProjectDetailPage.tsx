@@ -97,6 +97,8 @@ export const ProjectDetailPage: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [purchases, setPurchases] = useState<MaterialPurchase[]>([]);
+  const [selectedPurchaseIds, setSelectedPurchaseIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [materialsSummary, setMaterialsSummary] = useState<MaterialSummary[]>([]);
   const [workerPayments, setWorkerPayments] = useState<WorkerPayment[]>([]);
   const [workersSummary, setWorkersSummary] = useState<WorkerSummary[]>([]);
@@ -395,6 +397,44 @@ export const ProjectDetailPage: React.FC = () => {
       await loadAllData(id);
     } catch (err: any) {
       alert(err.response?.data?.message || "O'chirishda xatolik yuz berdi");
+    }
+  };
+
+  // Ro'yxat yangilanganda faqat hali mavjud xaridlar tanlangan bo'lib qoladi.
+  useEffect(() => {
+    setSelectedPurchaseIds((prev) => {
+      if (prev.size === 0) return prev;
+      const alive = new Set(purchases.map((p) => p.id));
+      return new Set([...prev].filter((x) => alive.has(x)));
+    });
+  }, [purchases]);
+
+  const allPurchasesSelected = purchases.length > 0 && selectedPurchaseIds.size === purchases.length;
+
+  const togglePurchase = (purchaseId: string) =>
+    setSelectedPurchaseIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(purchaseId)) next.delete(purchaseId); else next.add(purchaseId);
+      return next;
+    });
+
+  const toggleAllPurchases = () =>
+    setSelectedPurchaseIds(allPurchasesSelected ? new Set() : new Set(purchases.map((p) => p.id)));
+
+  const handleBulkDeletePurchases = async () => {
+    if (!id || selectedPurchaseIds.size === 0) return;
+    const chosen = purchases.filter((p) => selectedPurchaseIds.has(p.id));
+    const total = chosen.reduce((sum, p) => sum + p.totalCost, 0);
+    if (!window.confirm(`${chosen.length} ta material xaridi (jami ${formatUzs(total)}) butunlay o'chiriladi va loyiha hisob-kitoblari qayta hisoblanadi. Davom etasizmi?`)) return;
+    setBulkDeleting(true);
+    try {
+      await projectsApi.deletePurchases(id, chosen.map((p) => p.id));
+      setSelectedPurchaseIds(new Set());
+      await loadAllData(id);
+    } catch (err: any) {
+      alert(err.response?.data?.message || "O'chirishda xatolik yuz berdi");
+    } finally {
+      setBulkDeleting(false);
     }
   };
 
@@ -1124,11 +1164,47 @@ export const ProjectDetailPage: React.FC = () => {
           </div>
 
           <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs">
-            <h3 className="font-bold text-xs text-[#171b25] mb-3">Barcha Xarid Cheklari</h3>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <h3 className="font-bold text-xs text-[#171b25]">Barcha Xarid Cheklari</h3>
+              {isCompanyAdmin && purchases.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={toggleAllPurchases}
+                    disabled={bulkDeleting}
+                    className="h-8 px-3 border border-[#e4e7ec] rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    {allPurchasesSelected ? 'Tanlovni bekor qilish' : `Hammasini tanlash (${purchases.length})`}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleBulkDeletePurchases}
+                    disabled={selectedPurchaseIds.size === 0 || bulkDeleting}
+                    className="h-8 px-3 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    {bulkDeleting ? "O'chirilmoqda..." : `Tanlanganlarni o'chirish${selectedPurchaseIds.size > 0 ? ` (${selectedPurchaseIds.size})` : ''}`}
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="overflow-x-auto scrollbar-none">
               <table className="w-full min-w-[760px] text-left text-xs">
                 <thead>
                   <tr className="border-b border-[#e4e7ec] bg-gray-50/50">
+                    {isCompanyAdmin && (
+                      <th className="py-2.5 pl-3 w-8">
+                        <input
+                          type="checkbox"
+                          aria-label="Hammasini tanlash"
+                          checked={allPurchasesSelected}
+                          ref={(el) => { if (el) el.indeterminate = selectedPurchaseIds.size > 0 && !allPurchasesSelected; }}
+                          onChange={toggleAllPurchases}
+                          disabled={purchases.length === 0 || bulkDeleting}
+                          className="w-4 h-4 accent-[#ff7a16] cursor-pointer"
+                        />
+                      </th>
+                    )}
                     <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">SANA</th>
                     <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">MATERIAL</th>
                     <th className="py-2.5 px-3 font-bold text-gray-500 text-[10px]">BREND</th>
@@ -1142,7 +1218,19 @@ export const ProjectDetailPage: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {purchases.map((pur) => (
-                    <tr key={pur.id} className="hover:bg-gray-50/50">
+                    <tr key={pur.id} className={selectedPurchaseIds.has(pur.id) ? 'bg-red-50/40' : 'hover:bg-gray-50/50'}>
+                      {isCompanyAdmin && (
+                        <td className="py-2.5 pl-3 w-8">
+                          <input
+                            type="checkbox"
+                            aria-label={`${pur.materialName} — tanlash`}
+                            checked={selectedPurchaseIds.has(pur.id)}
+                            onChange={() => togglePurchase(pur.id)}
+                            disabled={bulkDeleting}
+                            className="w-4 h-4 accent-[#ff7a16] cursor-pointer"
+                          />
+                        </td>
+                      )}
                       <td className="py-2.5 px-3">{formatDateUz(pur.purchaseDate)}</td>
                       <td className="py-2.5 px-3 font-semibold text-gray-900">{pur.materialName}</td>
                       <td className="py-2.5 px-3">
@@ -1184,7 +1272,7 @@ export const ProjectDetailPage: React.FC = () => {
                   ))}
                   {purchases.length === 0 && (
                     <tr>
-                      <td colSpan={isCompanyAdmin ? 9 : 8} className="py-8 text-center text-xs text-gray-400">
+                      <td colSpan={isCompanyAdmin ? 10 : 8} className="py-8 text-center text-xs text-gray-400">
                         Xaridlar mavjud emas. Yuqoridagi "+ Material xaridi kiritish" orqali yangi xarid qo'shing.
                       </td>
                     </tr>

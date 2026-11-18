@@ -271,6 +271,10 @@ export const projectsApi = {
   deletePurchase: async (projectId: string, purchaseId: string): Promise<void> => {
     await apiClient.delete(`/projects/${projectId}/material-purchases/${purchaseId}`);
   },
+  deletePurchases: async (projectId: string, ids: string[]): Promise<number> => {
+    const res = await apiClient.post<{ deleted: number }>(`/projects/${projectId}/material-purchases/bulk-delete`, { ids });
+    return res.data.deleted;
+  },
   updateWorkerJob: async (projectId: string, jobId: string, data: {
     jobDescription: string; agreedAmount: number; currency: Currency; workAmountUzs: number; paidAmountUzs: number; notes?: string;
   }): Promise<WorkerPayment> => {

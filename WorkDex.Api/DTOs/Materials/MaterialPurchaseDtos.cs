@@ -120,6 +120,14 @@ public class MaterialPurchaseImportResultDto
     public List<string> Warnings { get; set; } = new();
 }
 
+public class BulkDeletePurchasesDto
+{
+    [Required]
+    [MinLength(1, ErrorMessage = "Hech qanday xarid tanlanmagan.")]
+    [MaxLength(10000)]
+    public List<Guid> Ids { get; set; } = new();
+}
+
 public class MaterialPurchaseImportProjectDto
 {
     public Guid ProjectId { get; set; }

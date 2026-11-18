@@ -183,6 +183,21 @@ public class MaterialPurchasesController : ControllerBase
         }
     }
 
+    [HttpPost("api/projects/{projectId:guid}/material-purchases/bulk-delete")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance")]
+    public async Task<IActionResult> BulkDeletePurchases(Guid projectId, [FromBody] BulkDeletePurchasesDto dto)
+    {
+        try
+        {
+            var deleted = await _materialService.DeletePurchasesAsync(projectId, dto.Ids.Distinct().ToList());
+            return Ok(new { deleted });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
     [HttpDelete("api/projects/{projectId:guid}/material-purchases/{purchaseId:guid}")]
     [Authorize(Roles = "SuperAdmin,Admin,Finance")]
     public async Task<IActionResult> DeletePurchase(Guid projectId, Guid purchaseId)
