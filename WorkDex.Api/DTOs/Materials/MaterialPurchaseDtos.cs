@@ -43,6 +43,7 @@ public class MaterialPurchaseDto
     public Guid ProjectId { get; set; }
     public Guid MaterialId { get; set; }
     public string MaterialName { get; set; } = string.Empty;
+    public string? Category { get; set; }
     public string? Brand { get; set; }
     public decimal Quantity { get; set; }
     public string Unit { get; set; } = string.Empty;

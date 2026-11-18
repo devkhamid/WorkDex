@@ -33,7 +33,6 @@ import {
   Payment,
   Expense,
   MaterialPurchase,
-  MaterialSummary,
   WorkerPayment,
   WorkerSummary,
   ExtraWork,
@@ -99,7 +98,6 @@ export const ProjectDetailPage: React.FC = () => {
   const [purchases, setPurchases] = useState<MaterialPurchase[]>([]);
   const [selectedPurchaseIds, setSelectedPurchaseIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
-  const [materialsSummary, setMaterialsSummary] = useState<MaterialSummary[]>([]);
   const [workerPayments, setWorkerPayments] = useState<WorkerPayment[]>([]);
   const [workersSummary, setWorkersSummary] = useState<WorkerSummary[]>([]);
   const [extraWorks, setExtraWorks] = useState<ExtraWork[]>([]);
@@ -229,7 +227,6 @@ export const ProjectDetailPage: React.FC = () => {
         pay,
         exp,
         pur,
-        mSum,
         wp,
         wSum,
         ew,
@@ -245,7 +242,6 @@ export const ProjectDetailPage: React.FC = () => {
         projectsApi.getPayments(projId),
         projectsApi.getExpenses(projId),
         projectsApi.getPurchases(projId),
-        projectsApi.getMaterialsSummary(projId),
         projectsApi.getWorkerPayments(projId),
         projectsApi.getWorkersSummary(projId),
         projectsApi.getExtraWorks(projId),
@@ -262,7 +258,6 @@ export const ProjectDetailPage: React.FC = () => {
       setPayments(pay);
       setExpenses(exp);
       setPurchases(pur);
-      setMaterialsSummary(mSum);
       setWorkerPayments(wp);
       setWorkersSummary(wSum);
       setExtraWorks(ew);
@@ -408,6 +403,27 @@ export const ProjectDetailPage: React.FC = () => {
       return new Set([...prev].filter((x) => alive.has(x)));
     });
   }, [purchases]);
+
+  const materialTotals = (() => {
+    const map = new Map<string, { uzs: number; usd: number; count: number; materials: Set<string> }>();
+    let uzs = 0;
+    let usd = 0;
+    for (const p of purchases) {
+      const key = p.category || 'Kategoriyasiz';
+      const g = map.get(key) ?? { uzs: 0, usd: 0, count: 0, materials: new Set<string>() };
+      g.uzs += p.totalCost;
+      g.usd += p.totalCostUsd ?? 0;
+      g.count += 1;
+      g.materials.add(p.materialId);
+      map.set(key, g);
+      uzs += p.totalCost;
+      usd += p.totalCostUsd ?? 0;
+    }
+    const categories = [...map.entries()]
+      .map(([name, g]) => ({ name, uzs: g.uzs, usd: g.usd, count: g.count, materials: g.materials.size }))
+      .sort((a, b) => b.uzs - a.uzs);
+    return { uzs, usd, categories, materialCount: new Set(purchases.map((p) => p.materialId)).size };
+  })();
 
   const allPurchasesSelected = purchases.length > 0 && selectedPurchaseIds.size === purchases.length;
 
@@ -1113,8 +1129,8 @@ export const ProjectDetailPage: React.FC = () => {
           <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pb-3 border-b border-[#e4e7ec] mb-3">
               <div>
-                <h3 className="font-bold text-xs text-[#171b25]">Materiallar Xulosasi (Tahlil)</h3>
-                <div className="text-[10px] text-[#9399a4]">Qaysi materialdan qancha olingani va jami summasi</div>
+                <h3 className="font-bold text-xs text-[#171b25]">Materiallar xarajati</h3>
+                <div className="text-[10px] text-[#9399a4]">Materiallarga jami qancha sarflangani va qaysi ish turiga qancha ketgani</div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {canAttachAgreementPdf && (
@@ -1136,31 +1152,54 @@ export const ProjectDetailPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {materialsSummary.map((m) => (
-                <div key={`${m.materialId}-${m.brand ?? ''}-${m.unit}`} className="p-3 bg-white border border-gray-200 rounded-xl shadow-xs space-y-1.5">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div className="font-bold text-xs text-gray-900 truncate">{m.materialName}</div>
-                    {m.brand && (
-                      <span className="px-1.5 py-0.5 bg-orange-50 text-[#ff7a16] border border-orange-100 rounded text-[9px] font-bold">
-                        {m.brand}
-                      </span>
-                    )}
+            {purchases.length === 0 ? (
+              <div className="py-6 text-center text-xs text-gray-400">Material xaridlari mavjud emas</div>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2 rounded-xl border border-orange-100 bg-orange-50/60 p-3.5">
+                    <div className="text-[10px] font-bold text-[#c96b08] uppercase tracking-wide">Materiallarga jami sarflangan</div>
+                    <div className="mt-1 text-2xl font-bold text-[#171b25] break-words">{formatUsd(materialTotals.usd)}</div>
+                    <div className="text-sm font-semibold text-gray-600 break-words">{formatUzs(materialTotals.uzs)}</div>
                   </div>
-                  <div className="flex justify-between text-xs text-gray-600">
-                    <span className="text-gray-500">Miqdor:</span>
-                    <b className="text-gray-800">{m.totalQuantity} {m.unit}</b>
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-600 pt-1 border-t border-gray-50">
-                    <span className="text-gray-500">Jami xarajat:</span>
-                    <UsdWithUzs className="text-[#ff7a16] font-bold items-end" usd={m.totalCostUsd} uzs={m.totalCost} />
+                  <div className="grid grid-cols-2 sm:grid-cols-1 gap-3">
+                    <div className="rounded-xl border border-[#e4e7ec] p-3">
+                      <div className="text-[10px] font-bold text-gray-500 uppercase">Xaridlar</div>
+                      <div className="text-base font-bold text-[#171b25]">{purchases.length} ta</div>
+                    </div>
+                    <div className="rounded-xl border border-[#e4e7ec] p-3">
+                      <div className="text-[10px] font-bold text-gray-500 uppercase">Turli materiallar</div>
+                      <div className="text-base font-bold text-[#171b25]">{materialTotals.materialCount} ta</div>
+                    </div>
                   </div>
                 </div>
-              ))}
-              {materialsSummary.length === 0 && (
-                <div className="col-span-1 sm:col-span-2 lg:col-span-3 py-6 text-center text-xs text-gray-400">Material xaridlari mavjud emas</div>
-              )}
-            </div>
+
+                <div className="rounded-xl border border-[#e4e7ec] divide-y divide-gray-100">
+                  <div className="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase bg-gray-50/60 rounded-t-xl">Ish turlari bo'yicha</div>
+                  {materialTotals.categories.map((c) => {
+                    const share = materialTotals.uzs > 0 ? (c.uzs / materialTotals.uzs) * 100 : 0;
+                    return (
+                      <div key={c.name} className="px-3 py-2.5 space-y-1.5">
+                        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                          <div className="min-w-0">
+                            <span className="text-xs font-bold text-gray-900">{c.name}</span>
+                            <span className="ml-2 text-[10px] text-gray-400">{c.materials} xil material · {c.count} ta xarid</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs font-bold text-[#ff7a16]">{formatUsd(c.usd)}</span>
+                            <span className="ml-1.5 text-[10px] text-gray-500">{formatUzs(c.uzs)}</span>
+                            <span className="ml-1.5 text-[10px] font-semibold text-gray-400">{share.toFixed(1)}%</span>
+                          </div>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                          <div className="h-full rounded-full bg-[#ff7a16]" style={{ width: `${Math.max(share, 0.5)}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-xs">

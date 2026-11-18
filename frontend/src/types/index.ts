@@ -269,6 +269,7 @@ export interface MaterialPurchase {
   projectId: string;
   materialId: string;
   materialName: string;
+  category?: string;
   brand?: string;
   quantity: number;
   unit: string;
