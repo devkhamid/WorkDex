@@ -24,6 +24,7 @@ import {
   ProjectUpdate,
   User,
   Worker,
+  WorkerJobImportResult,
   WorkerPayment,
   WorkerSummary,
   CustomerPortalProject
@@ -556,7 +557,27 @@ export const workersApi = {
   create: async (data: { fullName: string; phoneNumber: string; specialty?: string; notes?: string }): Promise<Worker> => {
     const res = await apiClient.post<Worker>('/workers', data);
     return res.data;
-  }
+  },
+  downloadJobImportTemplate: async (): Promise<void> => {
+    const response = await apiClient.get('/worker-jobs/import/template', { responseType: 'blob' });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'WorkDex_Ishchilik_Shablon.xlsx');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
+  importJobs: async (file: File, dryRun: boolean, paymentDate?: string): Promise<WorkerJobImportResult> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await apiClient.post<WorkerJobImportResult>('/worker-jobs/import', formData, {
+      params: { dryRun, paymentDate: paymentDate || undefined },
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
+  },
 };
 
 export const portalApi = {

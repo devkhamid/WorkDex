@@ -5,7 +5,7 @@ using WorkDex.Api.Models;
 
 namespace WorkDex.Api.Services;
 
-public class WorkerService : IWorkerService
+public partial class WorkerService : IWorkerService
 {
     private readonly AppDbContext _context;
     private readonly ICurrencyService _currencyService;

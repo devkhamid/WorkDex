@@ -208,6 +208,32 @@ export interface Material {
   createdAt: string;
 }
 
+export interface WorkerJobImportRow {
+  row: number;
+  projectId: string;
+  projectName: string;
+  section: string;
+  jobName: string;
+  workerName: string;
+  isNewWorker: boolean;
+  quantity?: number;
+  unitPrice?: number;
+  amountUzs: number;
+}
+
+export interface WorkerJobImportResult {
+  dryRun: boolean;
+  created: number;
+  totalUzs: number;
+  totalUsd: number;
+  exchangeRate: number;
+  newWorkers: string[];
+  projects: { projectId: string; projectName: string; count: number; amountUzs: number }[];
+  rows: WorkerJobImportRow[];
+  errors: MaterialImportIssue[];
+  warnings: string[];
+}
+
 export interface MaterialBulkDeleteResult {
   deleted: number;
   skipped: { id: string; name: string; purchaseCount: number }[];

@@ -19,4 +19,7 @@ public interface IWorkerService
     Task<WorkerPaymentDto> UpdateWorkerJobAsync(Guid projectId, Guid paymentId, UpdateWorkerJobDto dto);
     Task DeleteWorkerJobAsync(Guid projectId, Guid paymentId);
     Task<List<ProjectWorkerSummaryDto>> GetProjectWorkersSummaryAsync(Guid projectId);
+
+    Task<byte[]> BuildJobImportTemplateAsync(Guid requestingUserId);
+    Task<WorkerJobImportResultDto> ImportJobsAsync(Stream excelStream, Guid createdByUserId, bool dryRun, DateTime? paymentDate = null);
 }

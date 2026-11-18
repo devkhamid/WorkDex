@@ -138,6 +138,56 @@ public class WorkerPaymentsController : ControllerBase
         }
     }
 
+    [HttpGet("api/worker-jobs/import/template")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance")]
+    public async Task<IActionResult> DownloadJobImportTemplate()
+    {
+        try
+        {
+            var bytes = await _workerService.BuildJobImportTemplateAsync(User.GetUserId());
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "WorkDex_Ishchilik_Shablon.xlsx");
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("api/worker-jobs/import")]
+    [Authorize(Roles = "SuperAdmin,Admin,Finance")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<IActionResult> ImportJobs(IFormFile? file, [FromQuery] bool dryRun = true, [FromQuery] DateTime? paymentDate = null)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest(new { message = "Fayl tanlanmagan." });
+        if (!Path.GetExtension(file.FileName).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { message = "Faqat .xlsx formatidagi Excel fayl qabul qilinadi." });
+        if (file.Length > 5 * 1024 * 1024)
+            return BadRequest(new { message = "Fayl hajmi 5 MB dan oshmasligi kerak." });
+
+        try
+        {
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            stream.Position = 0;
+            var result = await _workerService.ImportJobsAsync(stream, User.GetUserId(), dryRun, paymentDate);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
     [HttpGet("api/projects/{projectId:guid}/workers-summary")]
     [Authorize(Roles = "SuperAdmin,Admin,Finance,ProjectManager")]
     public async Task<IActionResult> GetWorkersSummary(Guid projectId)

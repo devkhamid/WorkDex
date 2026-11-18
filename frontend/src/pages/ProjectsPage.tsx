@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Building2, ArrowRight, Pencil, FileSpreadsheet } from 'lucide-react';
+import { Search, Building2, ArrowRight, Pencil, FileSpreadsheet, HardHat } from 'lucide-react';
 import { projectsApi } from '../api/services';
 import { Project, ProjectStatus, UserRole } from '../types';
 import { UsdWithUzs } from '../components/Money';
 import { RenameProjectModal } from '../components/RenameProjectModal';
 import { PurchaseImportModal } from '../components/PurchaseImportModal';
+import { WorkerJobImportModal } from '../components/WorkerJobImportModal';
 import { useAuth } from '../context/AuthContext';
 
 interface ProjectsPageProps {
@@ -23,6 +24,8 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenNewProject }) 
   const canRename = user?.role === UserRole.SuperAdmin || user?.role === UserRole.Admin || user?.role === UserRole.ProjectManager;
   const canImportMaterials = canRename || user?.role === UserRole.Finance;
   const [importOpen, setImportOpen] = useState(false);
+  const canImportJobs = user?.role === UserRole.SuperAdmin || user?.role === UserRole.Admin || user?.role === UserRole.Finance;
+  const [jobsImportOpen, setJobsImportOpen] = useState(false);
 
   useEffect(() => {
     projectsApi.getAll().then((data) => {
@@ -69,16 +72,28 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenNewProject }) 
           <h2 className="text-xl font-bold text-[#171b25]">Loyihalar</h2>
           <p className="text-xs text-[#7b8190] mt-0.5 break-words">Barcha ta’mirlash va qurilish loyihalaringizni bir joydan boshqaring.</p>
         </div>
-        {canImportMaterials && (
-          <button
-            type="button"
-            onClick={() => setImportOpen(true)}
-            className="h-9 px-3 border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            Materiallar (Excel)
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {canImportMaterials && (
+            <button
+              type="button"
+              onClick={() => setImportOpen(true)}
+              className="h-9 px-3 border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              Materiallar (Excel)
+            </button>
+          )}
+          {canImportJobs && (
+            <button
+              type="button"
+              onClick={() => setJobsImportOpen(true)}
+              className="h-9 px-3 border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5"
+            >
+              <HardHat className="w-4 h-4" />
+              Ishchilik (Excel)
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="bg-white border border-[#e4e7ec] rounded-xl p-3 flex flex-wrap items-center gap-3 shadow-xs">
@@ -187,6 +202,13 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenNewProject }) 
           <div className="text-sm font-bold text-gray-700">Hech qanday loyiha topilmadi</div>
           <p className="text-xs text-gray-400 mt-1">Yangi loyiha yaratish uchun tepada "+ Yangi loyiha" tugmasini bosing</p>
         </div>
+      )}
+
+      {jobsImportOpen && (
+        <WorkerJobImportModal
+          onClose={() => setJobsImportOpen(false)}
+          onImported={() => projectsApi.getAll().then(setProjects)}
+        />
       )}
 
       {importOpen && (
