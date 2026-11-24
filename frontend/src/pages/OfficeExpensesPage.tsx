@@ -73,7 +73,8 @@ export const OfficeExpensesPage: React.FC = () => {
   const now = new Date();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
-  const [month, setMonth] = useState<MonthKey>({ y: now.getFullYear(), m: now.getMonth() });
+  /** null = barcha oylar (standart), aks holda tanlangan oy bo'yicha filtr */
+  const [month, setMonth] = useState<MonthKey | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState<FormState | null>(null);
@@ -90,31 +91,37 @@ export const OfficeExpensesPage: React.FC = () => {
   };
 
   const currentMonth: MonthKey = { y: now.getFullYear(), m: now.getMonth() };
-  const isCurrentMonth = sameMonth(month, currentMonth);
-  const prevMonth = shiftMonth(month, -1);
+  /** Oylik to'lovlar ro'yxati uchun oy: filtr tanlanmagan bo'lsa — joriy oy */
+  const billMonth = month ?? currentMonth;
+  const isCurrentMonth = sameMonth(billMonth, currentMonth);
+  const prevMonth = shiftMonth(billMonth, -1);
 
-  const monthExpenses = useMemo(
-    () => expenses.filter(e => sameMonth(monthOf(e.expenseDate), month)),
-    [expenses, month]
-  );
-  const prevMonthExpenses = useMemo(
-    () => expenses.filter(e => sameMonth(monthOf(e.expenseDate), prevMonth)),
-    [expenses, month]
-  );
-  const yearExpenses = useMemo(
-    () => expenses.filter(e => {
-      const k = monthOf(e.expenseDate);
-      return k.y === month.y && k.m <= month.m;
-    }),
-    [expenses, month]
-  );
+  const inMonth = (k: MonthKey) => expenses.filter(e => sameMonth(monthOf(e.expenseDate), k));
+  const billMonthExpenses = useMemo(() => inMonth(billMonth), [expenses, billMonth.y, billMonth.m]);
+  const prevMonthExpenses = useMemo(() => inMonth(prevMonth), [expenses, billMonth.y, billMonth.m]);
+  /** Jadval va taqsimot uchun: barcha xarajatlar yoki tanlangan oy */
+  const scopeExpenses = month ? billMonthExpenses : expenses;
 
-  const monthTotal = sumOf(monthExpenses);
+  // Ma'lumot bor oylar ro'yxati (filtr uchun), eng yangisi birinchi
+  const monthOptions = useMemo(() => {
+    const keys = new Map<string, MonthKey>();
+    [currentMonth, ...expenses.map(e => monthOf(e.expenseDate))].forEach(k => keys.set(`${k.y}-${k.m}`, k));
+    return [...keys.values()].sort((a, b) => b.y - a.y || b.m - a.m);
+  }, [expenses]);
+
+  const scopeTotal = sumOf(scopeExpenses);
+  const billMonthTotal = sumOf(billMonthExpenses);
   const prevTotal = sumOf(prevMonthExpenses);
-  const yearTotal = sumOf(yearExpenses);
-  const monthsInYear = month.m + 1;
-  const avgMonthly = { uzs: yearTotal.uzs / monthsInYear, usd: yearTotal.usd / monthsInYear };
-  const changePct = prevTotal.uzs > 0 ? ((monthTotal.uzs - prevTotal.uzs) / prevTotal.uzs) * 100 : null;
+  const changePct = prevTotal.uzs > 0 ? ((billMonthTotal.uzs - prevTotal.uzs) / prevTotal.uzs) * 100 : null;
+
+  // O'rtacha oylik: birinchi xarajat oyidan joriy oygacha
+  const monthsSpan = useMemo(() => {
+    if (expenses.length === 0) return 1;
+    const first = expenses.map(e => monthOf(e.expenseDate)).sort((a, b) => a.y - b.y || a.m - b.m)[0];
+    return Math.max(1, (currentMonth.y - first.y) * 12 + (currentMonth.m - first.m) + 1);
+  }, [expenses]);
+  const allTotal = sumOf(expenses);
+  const avgMonthly = { uzs: allTotal.uzs / monthsSpan, usd: allTotal.usd / monthsSpan };
 
   // Har bir doimiy to'lov uchun: shu oy to'langanmi va oxirgi to'lov qancha bo'lgan
   const lastPaymentBefore = (category: number, k: MonthKey) => {
@@ -125,7 +132,7 @@ export const OfficeExpensesPage: React.FC = () => {
   };
 
   const recurringStatus = RECURRING_CATEGORIES.map(cat => {
-    const paid = monthExpenses.filter(e => e.category === cat);
+    const paid = billMonthExpenses.filter(e => e.category === cat);
     const usedBefore = expenses.some(e => e.category === cat);
     return { cat, paid, total: sumOf(paid), last: lastPaymentBefore(cat, prevMonth), usedBefore };
   });
@@ -135,16 +142,16 @@ export const OfficeExpensesPage: React.FC = () => {
   // Kategoriyalar bo'yicha taqsimot (shu oy)
   const breakdown = useMemo(() => {
     const map = new Map<number, { uzs: number; usd: number }>();
-    monthExpenses.forEach(e => {
+    scopeExpenses.forEach(e => {
       const cur = map.get(e.category) || { uzs: 0, usd: 0 };
       cur.uzs += e.amount;
       cur.usd += e.amountUsd ?? 0;
       map.set(e.category, cur);
     });
     return [...map.entries()].sort((a, b) => b[1].uzs - a[1].uzs);
-  }, [monthExpenses]);
+  }, [scopeExpenses]);
 
-  const tableRows = monthExpenses
+  const tableRows = scopeExpenses
     .filter(e => categoryFilter == null || e.category === categoryFilter)
     .filter(e => {
       const q = search.trim().toLowerCase();
@@ -157,10 +164,10 @@ export const OfficeExpensesPage: React.FC = () => {
     });
 
   const defaultDateForMonth = () =>
-    isCurrentMonth ? toInputDate(now) : toInputDate(new Date(month.y, month.m, 1));
+    isCurrentMonth ? toInputDate(now) : toInputDate(new Date(billMonth.y, billMonth.m, 1));
 
   const openNew = (category = 13) => {
-    const last = lastPaymentBefore(category, month);
+    const last = lastPaymentBefore(category, billMonth);
     const isRecurring = RECURRING_CATEGORIES.includes(category);
     setForm({
       category,
@@ -189,7 +196,7 @@ export const OfficeExpensesPage: React.FC = () => {
   const changeFormCategory = (category: number) => {
     if (!form) return;
     if (form.id) { setForm({ ...form, category }); return; }
-    const last = lastPaymentBefore(category, month);
+    const last = lastPaymentBefore(category, billMonth);
     const isRecurring = RECURRING_CATEGORIES.includes(category);
     setForm({
       ...form,
@@ -259,23 +266,41 @@ export const OfficeExpensesPage: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-          <div className="flex items-center justify-between bg-white border border-[#e4e7ec] rounded-lg h-9">
-            <button onClick={() => setMonth(shiftMonth(month, -1))} className="h-9 w-9 flex items-center justify-center text-gray-500 hover:text-[#171b25]" title="Oldingi oy">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <span className="px-2 text-xs font-bold text-[#171b25] min-w-[110px] text-center">{monthLabel(month)}</span>
-            <button
-              onClick={() => setMonth(shiftMonth(month, 1))}
-              disabled={isCurrentMonth}
-              className="h-9 w-9 flex items-center justify-center text-gray-500 hover:text-[#171b25] disabled:opacity-30"
-              title="Keyingi oy"
+          <div className="flex items-center bg-white border border-[#e4e7ec] rounded-lg h-9">
+            {month && (
+              <button onClick={() => setMonth(shiftMonth(month, -1))} className="h-9 w-8 flex items-center justify-center text-gray-500 hover:text-[#171b25]" title="Oldingi oy">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            )}
+            <select
+              value={month ? `${month.y}-${month.m}` : 'all'}
+              onChange={e => {
+                const v = e.target.value;
+                if (v === 'all') { setMonth(null); return; }
+                const [y, m] = v.split('-').map(Number);
+                setMonth({ y, m });
+              }}
+              className={`h-9 flex-1 px-2 text-xs font-bold bg-transparent outline-none cursor-pointer ${month ? 'text-[#ff7a16]' : 'text-[#171b25]'}`}
             >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+              <option value="all">📅 Barcha oylar</option>
+              {monthOptions.map(k => (
+                <option key={`${k.y}-${k.m}`} value={`${k.y}-${k.m}`}>{monthLabel(k)}</option>
+              ))}
+            </select>
+            {month && (
+              <button
+                onClick={() => setMonth(shiftMonth(month, 1))}
+                disabled={isCurrentMonth}
+                className="h-9 w-8 flex items-center justify-center text-gray-500 hover:text-[#171b25] disabled:opacity-30"
+                title="Keyingi oy"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            )}
           </div>
-          {!isCurrentMonth && (
-            <button onClick={() => setMonth(currentMonth)} className="h-9 px-3 text-xs font-semibold text-[#ff7a16] hover:bg-[#fff3e8] rounded-lg">
-              Joriy oy
+          {month && (
+            <button onClick={() => setMonth(null)} className="h-9 px-3 text-xs font-semibold text-[#ff7a16] hover:bg-[#fff3e8] rounded-lg inline-flex items-center justify-center gap-1">
+              <X className="w-3.5 h-3.5" /> Filtrni tozalash
             </button>
           )}
           <button
@@ -291,27 +316,37 @@ export const OfficeExpensesPage: React.FC = () => {
       {/* Umumiy ko'rsatkichlar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden">
+          <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#ef5350]" />
+          <small className="block text-[11px] font-medium text-[#697180] mb-1.5">
+            {month ? `${monthLabel(month)} — jami` : 'Jami ofis xarajatlari (barcha oylar)'}
+          </small>
+          <UsdWithUzs className="text-xl sm:text-2xl font-bold text-[#171b25]" uzsClassName="text-xs" usd={scopeTotal.usd} uzs={scopeTotal.uzs} />
+          <div className="mt-2 text-[11px] text-[#969ca7]">{scopeExpenses.length} ta to'lov</div>
+        </div>
+        <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden">
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#ff7a16]" />
-          <small className="block text-[11px] font-medium text-[#697180] mb-1.5">{monthLabel(month)} — jami</small>
-          <UsdWithUzs className="text-xl sm:text-2xl font-bold text-[#171b25]" uzsClassName="text-xs" usd={monthTotal.usd} uzs={monthTotal.uzs} />
+          <small className="block text-[11px] font-medium text-[#697180] mb-1.5">
+            {month ? `${MONTHS[prevMonth.m]} ${prevMonth.y} — jami` : `Shu oy (${monthLabel(currentMonth)})`}
+          </small>
+          {month ? (
+            <UsdWithUzs className="text-xl sm:text-2xl font-bold text-[#171b25]" uzsClassName="text-xs" usd={prevTotal.usd} uzs={prevTotal.uzs} />
+          ) : (
+            <UsdWithUzs className="text-xl sm:text-2xl font-bold text-[#171b25]" uzsClassName="text-xs" usd={billMonthTotal.usd} uzs={billMonthTotal.uzs} />
+          )}
           {changePct != null && (
             <div className={`mt-2 inline-flex items-center gap-1 text-[11px] font-semibold ${changePct > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
               {changePct > 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-              {changePct > 0 ? '+' : ''}{changePct.toFixed(0)}% {MONTHS[prevMonth.m].toLowerCase()}ga nisbatan
+              {month
+                ? `Tanlangan oy ${changePct > 0 ? '+' : ''}${changePct.toFixed(0)}% ga ${changePct > 0 ? "ko'p" : 'kam'}`
+                : `${changePct > 0 ? '+' : ''}${changePct.toFixed(0)}% ${MONTHS[prevMonth.m].toLowerCase()}ga nisbatan`}
             </div>
           )}
         </div>
         <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden">
           <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#3b82f6]" />
-          <small className="block text-[11px] font-medium text-[#697180] mb-1.5">O'rtacha oylik ({month.y})</small>
+          <small className="block text-[11px] font-medium text-[#697180] mb-1.5">O'rtacha oylik xarajat</small>
           <UsdWithUzs className="text-xl sm:text-2xl font-bold text-[#171b25]" uzsClassName="text-xs" usd={avgMonthly.usd} uzs={avgMonthly.uzs} />
-          <div className="mt-2 text-[11px] text-[#969ca7]">Yanvar – {MONTHS[month.m]} bo'yicha</div>
-        </div>
-        <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden">
-          <div className="absolute left-0 top-4 w-1.5 h-8 rounded-r bg-[#ef5350]" />
-          <small className="block text-[11px] font-medium text-[#697180] mb-1.5">Yil boshidan beri ({month.y})</small>
-          <UsdWithUzs className="text-xl sm:text-2xl font-bold text-[#171b25]" uzsClassName="text-xs" usd={yearTotal.usd} uzs={yearTotal.uzs} />
-          <div className="mt-2 text-[11px] text-[#969ca7]">{yearExpenses.length} ta to'lov</div>
+          <div className="mt-2 text-[11px] text-[#969ca7]">{monthsSpan} oy bo'yicha</div>
         </div>
       </div>
 
@@ -320,7 +355,7 @@ export const OfficeExpensesPage: React.FC = () => {
         <div className="px-4 sm:px-5 py-3.5 border-b border-[#e4e7ec] flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Repeat className="w-4 h-4 text-[#ff7a16]" />
-            <span className="text-xs font-bold text-[#171b25]">Oylik to'lovlar — {monthLabel(month)}</span>
+            <span className="text-xs font-bold text-[#171b25]">Oylik to'lovlar — {monthLabel(billMonth)}</span>
           </div>
           {trackedBills.length > 0 && (
             <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${paidCount === trackedBills.length ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}`}>
@@ -389,11 +424,11 @@ export const OfficeExpensesPage: React.FC = () => {
       {/* Kategoriyalar bo'yicha taqsimot */}
       {breakdown.length > 0 && (
         <div className="bg-white border border-[#e4e7ec] rounded-xl shadow-xs p-4 sm:p-5">
-          <span className="block text-xs font-bold text-[#171b25] mb-3">Pul qayerga ketdi? — {monthLabel(month)}</span>
+          <span className="block text-xs font-bold text-[#171b25] mb-3">Pul qayerga ketdi? — {month ? monthLabel(month) : 'barcha oylar'}</span>
           <div className="space-y-2.5">
             {breakdown.map(([cat, s]) => {
               const meta = metaOf(cat);
-              const pct = monthTotal.uzs > 0 ? (s.uzs / monthTotal.uzs) * 100 : 0;
+              const pct = scopeTotal.uzs > 0 ? (s.uzs / scopeTotal.uzs) * 100 : 0;
               return (
                 <button
                   key={cat}
@@ -419,7 +454,7 @@ export const OfficeExpensesPage: React.FC = () => {
       <div className="bg-white border border-[#e4e7ec] rounded-xl shadow-xs overflow-hidden">
         <div className="px-4 sm:px-5 py-3.5 border-b border-[#e4e7ec] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-bold text-[#171b25]">{monthLabel(month)} — barcha to'lovlar</span>
+            <span className="text-xs font-bold text-[#171b25]">{month ? `${monthLabel(month)} — to'lovlar` : "Barcha to'lovlar"}</span>
             <span className="text-[11px] text-[#969ca7] font-semibold">{tableRows.length} ta</span>
             {categoryFilter != null && (
               <button onClick={() => setCategoryFilter(null)} className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#fff3e8] text-[#ff7a16]">
@@ -490,8 +525,8 @@ export const OfficeExpensesPage: React.FC = () => {
                   <td colSpan={6} className="py-12 text-center text-xs text-gray-400">
                     {loading
                       ? 'Yuklanmoqda...'
-                      : monthExpenses.length === 0
-                        ? `${monthLabel(month)} uchun hali xarajat kiritilmagan`
+                      : scopeExpenses.length === 0
+                        ? (month ? `${monthLabel(month)} uchun hali xarajat kiritilmagan` : 'Hali ofis xarajatlari kiritilmagan')
                         : 'Filtr bo\'yicha hech narsa topilmadi'}
                   </td>
                 </tr>
