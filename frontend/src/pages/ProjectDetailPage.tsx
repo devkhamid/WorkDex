@@ -76,7 +76,9 @@ export const expenseCategoryLabels: Record<number, string> = {
   14: 'Ofis jihozlari',
   15: 'Suv to\'lovi',
   16: 'Gaz to\'lovi',
-  17: 'Umumiy kommunal xarajatlar'
+  17: 'Umumiy kommunal xarajatlar',
+  18: 'Server / hosting',
+  19: 'Domen'
 };
 
 export const ProjectDetailPage: React.FC = () => {

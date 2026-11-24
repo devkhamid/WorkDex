@@ -39,13 +39,16 @@ export enum ExpenseCategory {
   OfficeSupplies = 14,
   Water = 15,
   Gas = 16,
-  Communal = 17
+  Communal = 17,
+  Server = 18,
+  Domain = 19
 }
 
 export enum ExpenseFrequency {
   OneTime = 1,
   Daily = 2,
-  Monthly = 3
+  Monthly = 3,
+  Yearly = 4
 }
 
 export type Currency = 'USD' | 'UZS';

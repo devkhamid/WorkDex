@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Plus, Trash2, X, Pencil, ChevronLeft, ChevronRight, CheckCircle2, Circle,
   Zap, Wifi, Building2, Droplets, Flame, Home, Package, Sparkles, Truck, Fuel, MoreHorizontal, Search,
-  TrendingUp, TrendingDown, Repeat,
+  TrendingUp, TrendingDown, Repeat, Server, Globe, AlertTriangle,
 } from 'lucide-react';
 import { officeExpensesApi } from '../api/services';
 import { Currency, Expense } from '../types';
@@ -21,11 +21,18 @@ const CATEGORY_META: Record<number, CategoryMeta> = {
   8: { label: 'Tozalash', icon: Sparkles, color: '#0d9488', bg: '#ccfbf1' },
   3: { label: 'Transport', icon: Truck, color: '#475569', bg: '#e2e8f0' },
   4: { label: "Yoqilg'i", icon: Fuel, color: '#b45309', bg: '#fef3c7' },
+  18: { label: 'Server / hosting', icon: Server, color: '#4f46e5', bg: '#e0e7ff' },
+  19: { label: 'Domen', icon: Globe, color: '#0284c7', bg: '#e0f2fe' },
   7: { label: 'Boshqa', icon: MoreHorizontal, color: '#6b7280', bg: '#f3f4f6' },
 };
 
 /** Har oy to'lanadigan asosiy ofis to'lovlari — "shu oy to'landimi?" ro'yxati uchun */
-const RECURRING_CATEGORIES = [13, 11, 12, 15, 16, 17];
+const RECURRING_CATEGORIES = [13, 11, 12, 15, 16, 17, 18];
+/** Yilda bir marta yangilanadigan to'lovlar (domen) — muddati kuzatiladi */
+const YEARLY_CATEGORIES = [19];
+const defaultFrequency = (cat: number) =>
+  RECURRING_CATEGORIES.includes(cat) ? 3 : YEARLY_CATEGORIES.includes(cat) ? 4 : 1;
+const isPeriodic = (cat: number) => RECURRING_CATEGORIES.includes(cat) || YEARLY_CATEGORIES.includes(cat);
 /** Boshqa (vaqti-vaqti bilan bo'ladigan) xarajatlar */
 const OTHER_CATEGORIES = [14, 8, 3, 4, 7];
 
@@ -131,10 +138,20 @@ export const OfficeExpensesPage: React.FC = () => {
       .sort((a, b) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime())[0];
   };
 
-  const recurringStatus = RECURRING_CATEGORIES.map(cat => {
-    const paid = billMonthExpenses.filter(e => e.category === cat);
+  const refDate = isCurrentMonth ? now : new Date(billMonth.y, billMonth.m + 1, 0, 23, 59);
+  const recurringStatus = [...RECURRING_CATEGORIES, ...YEARLY_CATEGORIES].map(cat => {
     const usedBefore = expenses.some(e => e.category === cat);
-    return { cat, paid, total: sumOf(paid), last: lastPaymentBefore(cat, prevMonth), usedBefore };
+    if (YEARLY_CATEGORIES.includes(cat)) {
+      // Yillik: oxirgi to'lovdan 1 yil o'tmagan bo'lsa — to'langan hisoblanadi
+      const last = lastPaymentBefore(cat, billMonth);
+      const nextDue = last ? new Date(new Date(last.expenseDate).setFullYear(new Date(last.expenseDate).getFullYear() + 1)) : null;
+      const covered = !!nextDue && nextDue > refDate;
+      const paid = covered && last ? [last] : [];
+      const dueSoon = covered && nextDue!.getTime() - refDate.getTime() < 30 * 86400000;
+      return { cat, yearly: true, paid, total: sumOf(paid), last, usedBefore, nextDue, dueSoon };
+    }
+    const paid = billMonthExpenses.filter(e => e.category === cat);
+    return { cat, yearly: false, paid, total: sumOf(paid), last: lastPaymentBefore(cat, prevMonth), usedBefore, nextDue: null as Date | null, dueSoon: false };
   });
   const trackedBills = recurringStatus.filter(r => r.usedBefore || r.paid.length > 0);
   const paidCount = trackedBills.filter(r => r.paid.length > 0).length;
@@ -168,10 +185,10 @@ export const OfficeExpensesPage: React.FC = () => {
 
   const openNew = (category = 13) => {
     const last = lastPaymentBefore(category, billMonth);
-    const isRecurring = RECURRING_CATEGORIES.includes(category);
+    const isRecurring = isPeriodic(category);
     setForm({
       category,
-      frequency: isRecurring ? 3 : 1,
+      frequency: defaultFrequency(category),
       amount: isRecurring && last ? (last.originalAmount ?? last.amount) : '',
       currency: (isRecurring && last?.currency === 'USD' ? 'USD' : 'UZS') as Currency,
       description: '',
@@ -197,11 +214,11 @@ export const OfficeExpensesPage: React.FC = () => {
     if (!form) return;
     if (form.id) { setForm({ ...form, category }); return; }
     const last = lastPaymentBefore(category, billMonth);
-    const isRecurring = RECURRING_CATEGORIES.includes(category);
+    const isRecurring = isPeriodic(category);
     setForm({
       ...form,
       category,
-      frequency: isRecurring ? 3 : 1,
+      frequency: defaultFrequency(category),
       amount: isRecurring && last ? (last.originalAmount ?? last.amount) : form.amount,
       currency: (isRecurring && last?.currency === 'USD' ? 'USD' : form.currency) as Currency,
     });
@@ -262,7 +279,7 @@ export const OfficeExpensesPage: React.FC = () => {
         <div className="min-w-0">
           <h2 className="text-lg font-bold text-[#171b25]">Mening Ofisim</h2>
           <p className="text-xs text-gray-400 break-words">
-            Ofisning umumiy xarajatlari: ijara, svet, internet, suv, gaz va boshqalar — oyma-oy
+            Ofisning umumiy xarajatlari: ijara, svet, internet, suv, gaz, server, domen va boshqalar
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
@@ -364,7 +381,7 @@ export const OfficeExpensesPage: React.FC = () => {
           )}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 p-4">
-          {recurringStatus.map(({ cat, paid, total, last }) => {
+          {recurringStatus.map(({ cat, yearly, paid, total, last, nextDue, dueSoon }) => {
             const meta = metaOf(cat);
             const Icon = meta.icon;
             const isPaid = paid.length > 0;
@@ -381,8 +398,19 @@ export const OfficeExpensesPage: React.FC = () => {
                   <Icon className="w-5 h-5" style={{ color: meta.color }} />
                 </span>
                 <span className="flex-1 min-w-0">
-                  <span className="block text-xs font-bold text-[#171b25]">{meta.label}</span>
-                  {isPaid ? (
+                  <span className="block text-xs font-bold text-[#171b25]">
+                    {meta.label}
+                    {yearly && <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-sky-100 text-sky-700 align-middle">yillik</span>}
+                  </span>
+                  {yearly && isPaid && nextDue ? (
+                    <span className={`block text-[11px] font-semibold truncate ${dueSoon ? 'text-orange-600' : 'text-emerald-700'}`}>
+                      {dueSoon ? 'Tez orada yangilash: ' : 'Keyingi yangilash: '}{formatDate(nextDue.toISOString())}
+                    </span>
+                  ) : yearly && last && nextDue ? (
+                    <span className="block text-[11px] font-semibold text-red-600 truncate">
+                      Muddati o'tgan: {formatDate(nextDue.toISOString())}
+                    </span>
+                  ) : isPaid ? (
                     <UsdWithUzs inline className="text-xs font-semibold text-emerald-700" usd={total.usd} uzs={total.uzs} />
                   ) : last ? (
                     <span className="block text-[11px] text-[#969ca7] truncate">
@@ -392,7 +420,9 @@ export const OfficeExpensesPage: React.FC = () => {
                     <span className="block text-[11px] text-[#969ca7]">Hali kiritilmagan</span>
                   )}
                 </span>
-                {isPaid ? (
+                {isPaid && dueSoon ? (
+                  <AlertTriangle className="w-5 h-5 text-orange-500 shrink-0" />
+                ) : isPaid ? (
                   <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
                 ) : (
                   <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-[#ff7a16]">
@@ -493,6 +523,9 @@ export const OfficeExpensesPage: React.FC = () => {
                       {(exp.frequency || 1) === 3 && (
                         <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-orange-100 text-orange-700">oylik</span>
                       )}
+                      {exp.frequency === 4 && (
+                        <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-sky-100 text-sky-700">yillik</span>
+                      )}
                     </div>
                   </td>
                   <td className="py-3 px-5 font-bold text-[#171b25]"><UsdWithUzs usd={exp.amountUsd} uzs={exp.amount} /></td>
@@ -554,7 +587,7 @@ export const OfficeExpensesPage: React.FC = () => {
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">Nima uchun? *</label>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                  {[...RECURRING_CATEGORIES, ...OTHER_CATEGORIES].map(cat => {
+                  {[...RECURRING_CATEGORIES, ...YEARLY_CATEGORIES, ...OTHER_CATEGORIES].map(cat => {
                     const meta = metaOf(cat);
                     const Icon = meta.icon;
                     const active = form.category === cat;
@@ -584,7 +617,7 @@ export const OfficeExpensesPage: React.FC = () => {
                 onChange={v => setForm({ ...form, amount: v })}
                 currency={form.currency}
                 onCurrencyChange={c => setForm({ ...form, currency: c })}
-                hint={!form.id && RECURRING_CATEGORIES.includes(form.category) && form.amount !== '' ? "Oldingi oydagi summa avtomatik qo'yildi — kerak bo'lsa o'zgartiring" : undefined}
+                hint={!form.id && isPeriodic(form.category) && form.amount !== '' ? "Oldingi to'lov summasi avtomatik qo'yildi — kerak bo'lsa o'zgartiring" : undefined}
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -595,8 +628,8 @@ export const OfficeExpensesPage: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">Turi</label>
-                  <div className="grid grid-cols-2 gap-1 bg-gray-100 p-1 rounded-lg h-9">
-                    {[{ v: 3, l: 'Har oylik' }, { v: 1, l: 'Bir martalik' }].map(o => (
+                  <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg h-9">
+                    {[{ v: 3, l: 'Har oy' }, { v: 4, l: 'Har yil' }, { v: 1, l: 'Bir marta' }].map(o => (
                       <button key={o.v} type="button" onClick={() => setForm({ ...form, frequency: o.v })}
                         className={`text-[11px] font-semibold rounded-md ${form.frequency === o.v ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500'}`}>
                         {o.l}

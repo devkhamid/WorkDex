@@ -45,6 +45,8 @@ public partial class ExcelExportService
         [ExpenseCategory.Water] = "Suv",
         [ExpenseCategory.Gas] = "Gaz",
         [ExpenseCategory.Communal] = "Kommunal",
+        [ExpenseCategory.Server] = "Server / hosting",
+        [ExpenseCategory.Domain] = "Domen",
     };
 
     private static readonly Dictionary<PaymentMethod, string> PaymentMethodLabels = new()
@@ -263,6 +265,7 @@ public partial class ExcelExportService
                 {
                     ExpenseFrequency.Daily => "Kunlik",
                     ExpenseFrequency.Monthly => "Oylik",
+                    ExpenseFrequency.Yearly => "Yillik",
                     _ => "Bir martalik"
                 };
                 ws.Cell(r, 13).Value = e.Description;
