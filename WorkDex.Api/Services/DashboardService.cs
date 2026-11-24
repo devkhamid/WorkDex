@@ -149,8 +149,32 @@ public class DashboardService : IDashboardService
         var totalNetProfitUsd = totalContractValue - totalExpensesUsd;
         var totalNetProfitUzs = (totalContractValue * defaultRate) - totalExpensesUzs;
 
-        var netBalanceUsd = totalRevenue - totalExpensesUsd;
-        var netBalanceUzs = (totalRevenue * defaultRate) - totalExpensesUzs;
+        // Ofis xarajatlari (Mening Ofisim) — kompaniya kassasidan chiqadi
+        decimal officeExpensesUsd = 0;
+        decimal officeExpensesUzs = 0;
+        if (requestingUserRole is UserRole.SuperAdmin or UserRole.Admin or UserRole.Finance)
+        {
+            var officeQuery = _context.Expenses.Where(e => e.ProjectId == null);
+            if (requestingUserRole != UserRole.SuperAdmin)
+            {
+                var requester = await _context.Users.FindAsync(requestingUserId);
+                var officeCompanyAdminId = requester?.CompanyAdminId ?? requestingUserId;
+                officeQuery = officeQuery.Where(e => e.CompanyAdminId == officeCompanyAdminId);
+            }
+
+            foreach (var e in await officeQuery.ToListAsync())
+            {
+                var eRate = e.ExchangeRateToUzs.HasValue && e.ExchangeRateToUzs > 0 ? e.ExchangeRateToUzs.Value : defaultRate;
+                officeExpensesUzs += e.Amount;
+                officeExpensesUsd += (e.Currency == "USD" && e.OriginalAmount.HasValue && e.OriginalAmount > 0)
+                    ? e.OriginalAmount.Value
+                    : (eRate > 0 ? Math.Round(e.Amount / eRate, 2) : e.Amount);
+            }
+        }
+
+        // Kassa: olingan tushum − loyiha xarajatlari − ofis xarajatlari
+        var netBalanceUsd = totalRevenue - totalExpensesUsd - officeExpensesUsd;
+        var netBalanceUzs = (totalRevenue * defaultRate) - totalExpensesUzs - officeExpensesUzs;
 
         var atRiskCount = 0;
         decimal totalBudgetUtilization = 0;
@@ -208,6 +232,7 @@ public class DashboardService : IDashboardService
             TotalExpenses = totalExpensesUsd,
             TotalNetProfit = totalNetProfitUsd,
             NetBalance = netBalanceUsd,
+            TotalOfficeExpenses = officeExpensesUsd,
 
             TotalContractValueUzs = Math.Round(totalContractValue * defaultRate, 2),
             TotalRevenueReceivedUzs = Math.Round(totalRevenue * defaultRate, 2),
@@ -215,6 +240,7 @@ public class DashboardService : IDashboardService
             TotalExpensesUzs = totalExpensesUzs,
             TotalNetProfitUzs = totalNetProfitUzs,
             NetBalanceUzs = netBalanceUzs,
+            TotalOfficeExpensesUzs = officeExpensesUzs,
 
             AverageBudgetUtilizationPercent = avgUtilization,
             AtRiskProjectsCount = atRiskCount

@@ -484,6 +484,8 @@ export interface DashboardStats {
   totalExpensesUzs?: number;
   totalNetProfitUzs?: number;
   netBalanceUzs?: number;
+  totalOfficeExpenses?: number;
+  totalOfficeExpensesUzs?: number;
   averageBudgetUtilizationPercent: number;
   atRiskProjectsCount: number;
 }

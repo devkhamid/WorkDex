@@ -15,6 +15,9 @@ public class DashboardStatsDto
     public decimal TotalExpensesUzs { get; set; }
     public decimal TotalNetProfitUzs { get; set; }
     public decimal NetBalanceUzs { get; set; }
+    /// <summary>Ofis (loyihaga bog'lanmagan) xarajatlari — Net Balansdan ayiriladi</summary>
+    public decimal TotalOfficeExpenses { get; set; }
+    public decimal TotalOfficeExpensesUzs { get; set; }
 
     public decimal AverageBudgetUtilizationPercent { get; set; }
     public int AtRiskProjectsCount { get; set; }}

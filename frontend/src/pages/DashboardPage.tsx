@@ -300,8 +300,10 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         {(() => {
-          const netBal = stats?.netBalance ?? ((stats?.totalRevenueReceived ?? 0) - (stats?.totalExpenses ?? 0));
-          const netBalUzs = stats?.netBalanceUzs ?? ((stats?.totalRevenueReceivedUzs ?? 0) - (stats?.totalExpensesUzs ?? 0));
+          const officeUsd = stats?.totalOfficeExpenses ?? 0;
+          const officeUzs = stats?.totalOfficeExpensesUzs ?? 0;
+          const netBal = stats?.netBalance ?? ((stats?.totalRevenueReceived ?? 0) - (stats?.totalExpenses ?? 0) - officeUsd);
+          const netBalUzs = stats?.netBalanceUzs ?? ((stats?.totalRevenueReceivedUzs ?? 0) - (stats?.totalExpensesUzs ?? 0) - officeUzs);
           const isNegative = netBal < 0;
           return (
             <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-xs relative overflow-hidden flex flex-col justify-between">
@@ -319,9 +321,14 @@ export const DashboardPage: React.FC = () => {
                 <span className="text-[11px] text-gray-400 block mt-0.5">
                   ≈ {isNegative ? `-${Math.abs(netBalUzs).toLocaleString()} so'm` : `${netBalUzs.toLocaleString()} so'm`}
                 </span>
+                {officeUsd > 0 && (
+                  <span className="text-[10px] text-gray-500 block mt-1" title="Mening Ofisim bo'limidagi xarajatlar kassadan ayirildi">
+                    Ofis xarajatlari ayirildi: <b className="text-rose-600">-${officeUsd.toLocaleString()}</b> (≈ {officeUzs.toLocaleString()} so'm)
+                  </span>
+                )}
               </div>
               <div className="text-[11px] font-medium mt-2 text-gray-500 flex flex-wrap items-center justify-between gap-1">
-                <span>Tushum − Xarajatlar</span>
+                <span>{officeUsd > 0 ? 'Tushum − Xarajatlar − Ofis' : 'Tushum − Xarajatlar'}</span>
                 {stats?.totalNetProfit !== undefined && (
                   <span className="text-[10px] text-purple-600 font-semibold" title="Kutilayotgan sof foyda">
                     Kutilayotgan: ${stats.totalNetProfit.toLocaleString()}
