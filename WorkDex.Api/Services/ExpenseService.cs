@@ -168,6 +168,7 @@ public class ExpenseService : IExpenseService
             Description = dto.Description.Trim(),
             ExpenseDate = dto.ExpenseDate.ToUniversalTime(),
             Notes = dto.Notes?.Trim(),
+            ServiceName = string.IsNullOrWhiteSpace(dto.ServiceName) ? null : dto.ServiceName.Trim(),
             CreatedByUserId = createdByUserId,
             CompanyAdminId = companyAdminId,
             CreatedAt = DateTime.UtcNow
@@ -203,6 +204,7 @@ public class ExpenseService : IExpenseService
         expense.Description = dto.Description.Trim();
         expense.ExpenseDate = dto.ExpenseDate.ToUniversalTime();
         expense.Notes = dto.Notes?.Trim();
+        expense.ServiceName = string.IsNullOrWhiteSpace(dto.ServiceName) ? null : dto.ServiceName.Trim();
         expense.Currency = currency;
         expense.ExchangeRateToUzs = rate;
         expense.OriginalAmount = dto.Amount;
@@ -249,6 +251,7 @@ public class ExpenseService : IExpenseService
             Description = e.Description,
             ExpenseDate = e.ExpenseDate,
             Notes = e.Notes,
+            ServiceName = e.ServiceName,
             CreatedByUserId = e.CreatedByUserId,
             CreatedByName = e.CreatedByUser?.FullName ?? "",
             CreatedAt = e.CreatedAt

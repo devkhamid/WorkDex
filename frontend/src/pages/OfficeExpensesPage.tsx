@@ -27,12 +27,17 @@ const CATEGORY_META: Record<number, CategoryMeta> = {
 };
 
 /** Har oy to'lanadigan asosiy ofis to'lovlari — "shu oy to'landimi?" ro'yxati uchun */
-const RECURRING_CATEGORIES = [13, 11, 12, 15, 16, 17, 18];
-/** Yilda bir marta yangilanadigan to'lovlar (domen) — muddati kuzatiladi */
-const YEARLY_CATEGORIES = [19];
+const RECURRING_CATEGORIES = [13, 11, 12, 15, 16, 17];
+/** Nomi bilan alohida kuzatiladigan xizmatlar: bir nechta server / domen bo'lishi mumkin */
+const SERVICE_CATEGORIES = [18, 19];
+const isService = (cat: number) => SERVICE_CATEGORIES.includes(cat);
 const defaultFrequency = (cat: number) =>
-  RECURRING_CATEGORIES.includes(cat) ? 3 : YEARLY_CATEGORIES.includes(cat) ? 4 : 1;
-const isPeriodic = (cat: number) => RECURRING_CATEGORIES.includes(cat) || YEARLY_CATEGORIES.includes(cat);
+  RECURRING_CATEGORIES.includes(cat) || cat === 18 ? 3 : cat === 19 ? 4 : 1;
+const isPeriodic = (cat: number) => RECURRING_CATEGORIES.includes(cat) || isService(cat);
+const serviceKeyOf = (category: number, name?: string | null) =>
+  `${category}|${(name || '').trim().toLowerCase()}`;
+const DAY_MS = 86400000;
+const addMonths = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth() + n, d.getDate());
 /** Boshqa (vaqti-vaqti bilan bo'ladigan) xarajatlar */
 const OTHER_CATEGORIES = [14, 8, 3, 4, 7];
 
@@ -74,6 +79,7 @@ type FormState = {
   description: string;
   expenseDate: string;
   notes: string;
+  serviceName: string;
 };
 
 export const OfficeExpensesPage: React.FC = () => {
@@ -139,20 +145,41 @@ export const OfficeExpensesPage: React.FC = () => {
   };
 
   const refDate = isCurrentMonth ? now : new Date(billMonth.y, billMonth.m + 1, 0, 23, 59);
-  const recurringStatus = [...RECURRING_CATEGORIES, ...YEARLY_CATEGORIES].map(cat => {
+  const recurringStatus = RECURRING_CATEGORIES.map(cat => {
     const usedBefore = expenses.some(e => e.category === cat);
-    if (YEARLY_CATEGORIES.includes(cat)) {
-      // Yillik: oxirgi to'lovdan 1 yil o'tmagan bo'lsa — to'langan hisoblanadi
-      const last = lastPaymentBefore(cat, billMonth);
-      const nextDue = last ? new Date(new Date(last.expenseDate).setFullYear(new Date(last.expenseDate).getFullYear() + 1)) : null;
-      const covered = !!nextDue && nextDue > refDate;
-      const paid = covered && last ? [last] : [];
-      const dueSoon = covered && nextDue!.getTime() - refDate.getTime() < 30 * 86400000;
-      return { cat, yearly: true, paid, total: sumOf(paid), last, usedBefore, nextDue, dueSoon };
-    }
     const paid = billMonthExpenses.filter(e => e.category === cat);
-    return { cat, yearly: false, paid, total: sumOf(paid), last: lastPaymentBefore(cat, prevMonth), usedBefore, nextDue: null as Date | null, dueSoon: false };
+    return { cat, paid, total: sumOf(paid), last: lastPaymentBefore(cat, prevMonth), usedBefore };
   });
+
+  /** Server / domenlar: har biri nomi bo'yicha alohida, oxirgi to'lovdan keyingi to'lov sanasi hisoblanadi */
+  const services = useMemo(() => {
+    const groups = new Map<string, Expense[]>();
+    expenses
+      .filter(e => isService(e.category) && new Date(e.expenseDate).getTime() <= refDate.getTime())
+      .forEach(e => {
+        const k = serviceKeyOf(e.category, e.serviceName);
+        groups.set(k, [...(groups.get(k) || []), e]);
+      });
+    return [...groups.values()].map(list => {
+      const sorted = [...list].sort((a, b) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime());
+      const last = sorted[0];
+      const yearly = last.frequency === 4 || (last.frequency !== 3 && last.category === 19);
+      const nextDue = addMonths(new Date(last.expenseDate), yearly ? 12 : 1);
+      const daysLeft = Math.ceil((nextDue.getTime() - refDate.getTime()) / DAY_MS);
+      const status: 'overdue' | 'soon' | 'ok' = daysLeft <= 0 ? 'overdue' : daysLeft <= (yearly ? 30 : 7) ? 'soon' : 'ok';
+      return { key: serviceKeyOf(last.category, last.serviceName), category: last.category, name: last.serviceName?.trim() || '', last, yearly, nextDue, daysLeft, status };
+    }).sort((a, b) => a.nextDue.getTime() - b.nextDue.getTime());
+  }, [expenses, refDate.getTime()]);
+  const overdueServices = services.filter(sv => sv.status === 'overdue').length;
+  const soonServices = services.filter(sv => sv.status === 'soon').length;
+
+  const serviceNameOptions = (category: number) =>
+    [...new Set(expenses.filter(e => e.category === category && e.serviceName).map(e => e.serviceName!.trim()))];
+
+  const lastServicePayment = (category: number, name: string) =>
+    expenses
+      .filter(e => serviceKeyOf(e.category, e.serviceName) === serviceKeyOf(category, name))
+      .sort((a, b) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime())[0];
   const trackedBills = recurringStatus.filter(r => r.usedBefore || r.paid.length > 0);
   const paidCount = trackedBills.filter(r => r.paid.length > 0).length;
 
@@ -176,6 +203,7 @@ export const OfficeExpensesPage: React.FC = () => {
       return (
         e.description.toLowerCase().includes(q) ||
         (e.notes || '').toLowerCase().includes(q) ||
+        (e.serviceName || '').toLowerCase().includes(q) ||
         metaOf(e.category).label.toLowerCase().includes(q)
       );
     });
@@ -183,17 +211,20 @@ export const OfficeExpensesPage: React.FC = () => {
   const defaultDateForMonth = () =>
     isCurrentMonth ? toInputDate(now) : toInputDate(new Date(billMonth.y, billMonth.m, 1));
 
-  const openNew = (category = 13) => {
-    const last = lastPaymentBefore(category, billMonth);
-    const isRecurring = isPeriodic(category);
+  const openNew = (category = 13, serviceName = '') => {
+    const last = isService(category)
+      ? (serviceName ? lastServicePayment(category, serviceName) : undefined)
+      : lastPaymentBefore(category, billMonth);
+    const prefill = isPeriodic(category) && !!last;
     setForm({
       category,
-      frequency: defaultFrequency(category),
-      amount: isRecurring && last ? (last.originalAmount ?? last.amount) : '',
-      currency: (isRecurring && last?.currency === 'USD' ? 'USD' : 'UZS') as Currency,
+      frequency: last && isService(category) ? (last.frequency || defaultFrequency(category)) : defaultFrequency(category),
+      amount: prefill ? (last!.originalAmount ?? last!.amount) : '',
+      currency: (prefill && last!.currency === 'USD' ? 'USD' : 'UZS') as Currency,
       description: '',
       expenseDate: defaultDateForMonth(),
       notes: '',
+      serviceName,
     });
   };
 
@@ -207,21 +238,35 @@ export const OfficeExpensesPage: React.FC = () => {
       description: exp.description,
       expenseDate: toInputDate(new Date(exp.expenseDate)),
       notes: exp.notes || '',
+      serviceName: exp.serviceName || '',
     });
   };
 
   const changeFormCategory = (category: number) => {
     if (!form) return;
     if (form.id) { setForm({ ...form, category }); return; }
-    const last = lastPaymentBefore(category, billMonth);
-    const isRecurring = isPeriodic(category);
+    const last = isService(category) ? undefined : lastPaymentBefore(category, billMonth);
     setForm({
       ...form,
       category,
+      serviceName: '',
       frequency: defaultFrequency(category),
-      amount: isRecurring && last ? (last.originalAmount ?? last.amount) : form.amount,
-      currency: (isRecurring && last?.currency === 'USD' ? 'USD' : form.currency) as Currency,
+      amount: isPeriodic(category) && last ? (last.originalAmount ?? last.amount) : (isService(category) ? '' : form.amount),
+      currency: (isPeriodic(category) && last?.currency === 'USD' ? 'USD' : form.currency) as Currency,
     });
+  };
+
+  /** Mavjud server/domen nomi tanlansa — oxirgi to'lov summasi va turi avtomatik qo'yiladi */
+  const changeServiceName = (serviceName: string) => {
+    if (!form) return;
+    const last = !form.id ? lastServicePayment(form.category, serviceName) : undefined;
+    setForm(last ? {
+      ...form,
+      serviceName,
+      frequency: last.frequency || form.frequency,
+      amount: last.originalAmount ?? last.amount,
+      currency: (last.currency === 'USD' ? 'USD' : 'UZS') as Currency,
+    } : { ...form, serviceName });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -229,7 +274,13 @@ export const OfficeExpensesPage: React.FC = () => {
     if (!form || !form.amount) return;
     setSubmitting(true);
     const d = new Date(form.expenseDate);
-    const autoDescription = `${metaOf(form.category).label} — ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+    const name = isService(form.category) ? form.serviceName.trim() : '';
+    if (isService(form.category) && !name) {
+      setSubmitting(false);
+      alert(form.category === 19 ? 'Domen nomini kiriting' : 'Server nomini kiriting');
+      return;
+    }
+    const autoDescription = `${metaOf(form.category).label}${name ? `: ${name}` : ''} — ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
     const payload = {
       category: form.category,
       frequency: form.frequency,
@@ -238,6 +289,7 @@ export const OfficeExpensesPage: React.FC = () => {
       description: form.description.trim() || autoDescription,
       expenseDate: new Date(form.expenseDate).toISOString(),
       notes: form.notes.trim() || undefined,
+      serviceName: name || undefined,
     };
     try {
       if (form.id) await officeExpensesApi.update(form.id, payload);
@@ -381,7 +433,7 @@ export const OfficeExpensesPage: React.FC = () => {
           )}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 p-4">
-          {recurringStatus.map(({ cat, yearly, paid, total, last, nextDue, dueSoon }) => {
+          {recurringStatus.map(({ cat, paid, total, last }) => {
             const meta = metaOf(cat);
             const Icon = meta.icon;
             const isPaid = paid.length > 0;
@@ -398,19 +450,8 @@ export const OfficeExpensesPage: React.FC = () => {
                   <Icon className="w-5 h-5" style={{ color: meta.color }} />
                 </span>
                 <span className="flex-1 min-w-0">
-                  <span className="block text-xs font-bold text-[#171b25]">
-                    {meta.label}
-                    {yearly && <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-sky-100 text-sky-700 align-middle">yillik</span>}
-                  </span>
-                  {yearly && isPaid && nextDue ? (
-                    <span className={`block text-[11px] font-semibold truncate ${dueSoon ? 'text-orange-600' : 'text-emerald-700'}`}>
-                      {dueSoon ? 'Tez orada yangilash: ' : 'Keyingi yangilash: '}{formatDate(nextDue.toISOString())}
-                    </span>
-                  ) : yearly && last && nextDue ? (
-                    <span className="block text-[11px] font-semibold text-red-600 truncate">
-                      Muddati o'tgan: {formatDate(nextDue.toISOString())}
-                    </span>
-                  ) : isPaid ? (
+                  <span className="block text-xs font-bold text-[#171b25]">{meta.label}</span>
+                  {isPaid ? (
                     <UsdWithUzs inline className="text-xs font-semibold text-emerald-700" usd={total.usd} uzs={total.uzs} />
                   ) : last ? (
                     <span className="block text-[11px] text-[#969ca7] truncate">
@@ -420,9 +461,7 @@ export const OfficeExpensesPage: React.FC = () => {
                     <span className="block text-[11px] text-[#969ca7]">Hali kiritilmagan</span>
                   )}
                 </span>
-                {isPaid && dueSoon ? (
-                  <AlertTriangle className="w-5 h-5 text-orange-500 shrink-0" />
-                ) : isPaid ? (
+                {isPaid ? (
                   <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
                 ) : (
                   <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-[#ff7a16]">
@@ -449,6 +488,90 @@ export const OfficeExpensesPage: React.FC = () => {
             );
           })}
         </div>
+      </div>
+
+      {/* Server va domenlar — har biri alohida */}
+      <div className="bg-white border border-[#e4e7ec] rounded-xl shadow-xs overflow-hidden">
+        <div className="px-4 sm:px-5 py-3.5 border-b border-[#e4e7ec] flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Server className="w-4 h-4 text-[#4f46e5]" />
+            <span className="text-xs font-bold text-[#171b25]">Server va domenlar</span>
+            {overdueServices > 0 && (
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">{overdueServices} ta muddati o'tgan</span>
+            )}
+            {soonServices > 0 && (
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">{soonServices} ta yaqinlashmoqda</span>
+            )}
+            {services.length > 0 && overdueServices === 0 && soonServices === 0 && (
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Hammasi to'langan</span>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => openNew(18)} className="h-8 px-3 rounded-lg border border-[#e4e7ec] text-[11px] font-semibold text-gray-700 hover:border-[#4f46e5] hover:text-[#4f46e5] inline-flex items-center gap-1.5">
+              <Plus className="w-3.5 h-3.5" /> Server
+            </button>
+            <button onClick={() => openNew(19)} className="h-8 px-3 rounded-lg border border-[#e4e7ec] text-[11px] font-semibold text-gray-700 hover:border-[#0284c7] hover:text-[#0284c7] inline-flex items-center gap-1.5">
+              <Plus className="w-3.5 h-3.5" /> Domen
+            </button>
+          </div>
+        </div>
+        {services.length === 0 ? (
+          <div className="py-8 px-4 text-center text-xs text-gray-400">
+            Hali server yoki domen kiritilmagan. Har birini nomi bilan qo'shing (masalan: <b>workdex.uz</b>, <b>Hetzner VPS</b>) — keyingi to'lov sanasi avtomatik kuzatiladi.
+          </div>
+        ) : (
+          <div className="divide-y divide-[#eef0f3]">
+            {services.map(sv => {
+              const meta = metaOf(sv.category);
+              const Icon = meta.icon;
+              const pill =
+                sv.status === 'overdue'
+                  ? { cls: 'bg-red-100 text-red-700', text: `Muddati o'tgan · ${Math.abs(sv.daysLeft)} kun` }
+                  : sv.status === 'soon'
+                    ? { cls: 'bg-orange-100 text-orange-700', text: `${sv.daysLeft} kun qoldi` }
+                    : { cls: 'bg-emerald-100 text-emerald-700', text: "To'langan" };
+              return (
+                <div key={sv.key} className={`px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center gap-3 ${sv.status === 'overdue' ? 'bg-red-50/40' : ''}`}>
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <span className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: meta.bg }}>
+                      <Icon className="w-4 h-4" style={{ color: meta.color }} />
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-bold text-[#171b25] truncate">{sv.name || <i className="text-gray-400 font-medium">nomi ko'rsatilmagan</i>}</span>
+                        <span className="text-[10px] text-gray-400">{meta.label} · {sv.yearly ? 'har yil' : 'har oy'}</span>
+                      </div>
+                      <div className="text-[11px] text-[#969ca7]">
+                        Oxirgi to'lov: {formatDate(sv.last.expenseDate)} · <UsdWithUzs inline usd={sv.last.amountUsd} uzs={sv.last.amount} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 sm:justify-end">
+                    <div className="text-left sm:text-right">
+                      <div className="text-[10px] text-gray-400">Keyingi to'lov</div>
+                      <div className={`text-xs font-bold ${sv.status === 'overdue' ? 'text-red-600' : sv.status === 'soon' ? 'text-orange-600' : 'text-[#171b25]'}`}>
+                        {formatDate(sv.nextDue.toISOString())}
+                      </div>
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap inline-flex items-center gap-1 ${pill.cls}`}>
+                      {sv.status === 'ok' ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
+                      {pill.text}
+                    </span>
+                    <button
+                      onClick={() => openNew(sv.category, sv.name)}
+                      className={`h-8 px-3 rounded-lg text-[11px] font-semibold inline-flex items-center gap-1 whitespace-nowrap ${
+                        sv.status === 'ok' ? 'border border-[#e4e7ec] text-gray-600 hover:border-[#ff7a16] hover:text-[#ff7a16]' : 'bg-[#ff7a16] hover:bg-[#e86807] text-white'
+                      }`}
+                      title="Shu xizmat uchun yangi to'lov kiritish"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> To'lash
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Kategoriyalar bo'yicha taqsimot */}
@@ -527,6 +650,7 @@ export const OfficeExpensesPage: React.FC = () => {
                         <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-sky-100 text-sky-700">yillik</span>
                       )}
                     </div>
+                    {exp.serviceName && <div className="text-[11px] font-semibold text-[#4f46e5] mt-0.5 ml-9 truncate">{exp.serviceName}</div>}
                   </td>
                   <td className="py-3 px-5 font-bold text-[#171b25]"><UsdWithUzs usd={exp.amountUsd} uzs={exp.amount} /></td>
                   <td className="py-3 px-5 text-gray-600 max-w-[240px]">
@@ -587,7 +711,7 @@ export const OfficeExpensesPage: React.FC = () => {
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">Nima uchun? *</label>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                  {[...RECURRING_CATEGORIES, ...YEARLY_CATEGORIES, ...OTHER_CATEGORIES].map(cat => {
+                  {[...RECURRING_CATEGORIES, ...SERVICE_CATEGORIES, ...OTHER_CATEGORIES].map(cat => {
                     const meta = metaOf(cat);
                     const Icon = meta.icon;
                     const active = form.category === cat;
@@ -609,6 +733,29 @@ export const OfficeExpensesPage: React.FC = () => {
                   })}
                 </div>
               </div>
+
+              {isService(form.category) && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    {form.category === 19 ? 'Domen nomi *' : 'Server nomi *'}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    list="office-service-names"
+                    placeholder={form.category === 19 ? 'Masalan: workdex.uz' : 'Masalan: Hetzner VPS, AWS, Beget'}
+                    value={form.serviceName}
+                    onChange={e => changeServiceName(e.target.value)}
+                    className="w-full h-9 px-3 border border-[#e4e7ec] rounded-lg text-xs outline-none focus:border-[#ff7a16]"
+                  />
+                  <datalist id="office-service-names">
+                    {serviceNameOptions(form.category).map(n => <option key={n} value={n} />)}
+                  </datalist>
+                  <p className="text-[10px] text-gray-400 mt-0.5">
+                    Har bir {form.category === 19 ? 'domen' : 'server'} nomi bo'yicha alohida kuzatiladi. Mavjudini tanlasangiz, oxirgi summa qo'yiladi.
+                  </p>
+                </div>
+              )}
 
               <MoneyInput
                 label="Summa"

@@ -195,6 +195,7 @@ export interface Expense {
   description: string;
   expenseDate: string;
   notes?: string;
+  serviceName?: string;
   createdByUserId: string;
   createdByName: string;
   createdAt: string;

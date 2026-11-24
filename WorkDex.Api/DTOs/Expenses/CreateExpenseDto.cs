@@ -26,4 +26,7 @@ public class CreateExpenseDto
 
     [MaxLength(1000)]
     public string? Notes { get; set; }
+
+    [MaxLength(200)]
+    public string? ServiceName { get; set; }
 }

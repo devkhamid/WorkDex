@@ -17,6 +17,7 @@ public class ExpenseDto
     public string Description { get; set; } = string.Empty;
     public DateTime ExpenseDate { get; set; }
     public string? Notes { get; set; }
+    public string? ServiceName { get; set; }
     public Guid CreatedByUserId { get; set; }
     public string CreatedByName { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }

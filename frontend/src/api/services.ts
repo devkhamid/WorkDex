@@ -683,6 +683,7 @@ export const officeExpensesApi = {
     description: string;
     expenseDate: string;
     notes?: string;
+    serviceName?: string;
   }): Promise<Expense> => {
     const res = await apiClient.post<Expense>('/office-expenses', data);
     return res.data;
@@ -695,6 +696,7 @@ export const officeExpensesApi = {
     description: string;
     expenseDate: string;
     notes?: string;
+    serviceName?: string;
   }): Promise<Expense> => {
     const res = await apiClient.put<Expense>(`/office-expenses/${id}`, data);
     return res.data;

@@ -274,6 +274,9 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Notes)
                 .HasMaxLength(1000);
 
+            entity.Property(e => e.ServiceName)
+                .HasMaxLength(200);
+
             entity.Property(e => e.ExpenseDate)
                 .IsRequired();
 

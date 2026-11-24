@@ -11,6 +11,8 @@ public class Expense
     public string Description { get; set; } = string.Empty;
     public DateTime ExpenseDate { get; set; }
     public string? Notes { get; set; }
+    /// <summary>Ofis xizmatining nomi (masalan domen "workdex.uz" yoki server "Hetzner VPS") — bir nechta server/domenni alohida kuzatish uchun</summary>
+    public string? ServiceName { get; set; }
 
     public string Currency { get; set; } = "UZS";    public decimal? ExchangeRateToUzs { get; set; }    public decimal? OriginalAmount { get; set; }
     public Guid CreatedByUserId { get; set; }
