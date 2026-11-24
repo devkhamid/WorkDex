@@ -548,10 +548,10 @@ export const OfficeExpensesPage: React.FC = () => {
               const elapsedPct = Math.min(100, Math.max(0, ((refDate.getTime() - lastTime) / periodMs) * 100));
               const tone =
                 sv.status === 'overdue'
-                  ? { card: 'border-red-200 bg-red-50/40', bar: '#ef4444', text: 'text-red-600', label: `${Math.abs(sv.daysLeft)} kun kechikdi` }
+                  ? { card: 'border-red-400 bg-white', bar: '#ef4444', text: 'text-red-600', label: `${Math.abs(sv.daysLeft)} kun kechikdi` }
                   : sv.status === 'soon'
-                    ? { card: 'border-orange-200 bg-orange-50/30', bar: '#f97316', text: 'text-orange-600', label: `${sv.daysLeft} kun qoldi` }
-                    : { card: 'border-[#e4e7ec]', bar: '#10b981', text: 'text-emerald-600', label: `${sv.daysLeft} kun qoldi` };
+                    ? { card: 'border-orange-300 bg-white', bar: '#f97316', text: 'text-orange-600', label: `${sv.daysLeft} kun qoldi` }
+                    : { card: 'border-[#e4e7ec] bg-white', bar: '#10b981', text: 'text-emerald-600', label: `${sv.daysLeft} kun qoldi` };
               return (
                 <div key={sv.key} className={`rounded-xl border p-3.5 flex flex-col gap-3 ${tone.card}`}>
                   <div className="flex items-center gap-3 min-w-0">
