@@ -39,6 +39,24 @@ public class OfficeExpensesController : ControllerBase
         }
     }
 
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] CreateExpenseDto dto)
+    {
+        try
+        {
+            var expense = await _expenseService.UpdateOfficeExpenseAsync(id, dto, User.GetUserId(), User.GetUserRole());
+            return Ok(expense);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

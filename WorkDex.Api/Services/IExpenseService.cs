@@ -13,5 +13,6 @@ public interface IExpenseService
 
     Task<List<ExpenseDto>> GetOfficeExpensesAsync(Guid requestingUserId, UserRole requestingUserRole);
     Task<ExpenseDto> CreateOfficeExpenseAsync(CreateExpenseDto dto, Guid createdByUserId);
+    Task<ExpenseDto> UpdateOfficeExpenseAsync(Guid expenseId, CreateExpenseDto dto, Guid requestingUserId, UserRole requestingUserRole);
     Task DeleteOfficeExpenseAsync(Guid expenseId, Guid requestingUserId, UserRole requestingUserRole);
 }

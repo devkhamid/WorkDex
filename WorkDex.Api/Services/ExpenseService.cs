@@ -181,6 +181,37 @@ public class ExpenseService : IExpenseService
         return MapToDto(expense, expense.ExchangeRateToUzs!.Value);
     }
 
+    public async Task<ExpenseDto> UpdateOfficeExpenseAsync(Guid expenseId, CreateExpenseDto dto, Guid requestingUserId, UserRole requestingUserRole)
+    {
+        var companyAdminId = await ResolveOfficeCompanyAdminIdAsync(requestingUserId, requestingUserRole);
+
+        var query = _context.Expenses
+            .Include(e => e.CreatedByUser)
+            .Where(e => e.Id == expenseId && e.ProjectId == null);
+
+        if (companyAdminId != null)
+            query = query.Where(e => e.CompanyAdminId == companyAdminId);
+
+        var expense = await query.FirstOrDefaultAsync()
+            ?? throw new KeyNotFoundException("Xarajat topilmadi.");
+
+        var currency = Money.Normalize(dto.Currency, "UZS");
+        var rate = expense.ExchangeRateToUzs is > 0 ? expense.ExchangeRateToUzs.Value : await Money.CurrentRateAsync(_currencyService);
+
+        expense.Category = dto.Category;
+        expense.Frequency = dto.Frequency;
+        expense.Description = dto.Description.Trim();
+        expense.ExpenseDate = dto.ExpenseDate.ToUniversalTime();
+        expense.Notes = dto.Notes?.Trim();
+        expense.Currency = currency;
+        expense.ExchangeRateToUzs = rate;
+        expense.OriginalAmount = dto.Amount;
+        expense.Amount = Money.ToUzs(dto.Amount, currency, rate);
+
+        await _context.SaveChangesAsync();
+        return MapToDto(expense, rate);
+    }
+
     public async Task DeleteOfficeExpenseAsync(Guid expenseId, Guid requestingUserId, UserRole requestingUserRole)
     {
         var companyAdminId = await ResolveOfficeCompanyAdminIdAsync(requestingUserId, requestingUserRole);

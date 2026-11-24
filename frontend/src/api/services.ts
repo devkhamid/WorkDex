@@ -687,6 +687,18 @@ export const officeExpensesApi = {
     const res = await apiClient.post<Expense>('/office-expenses', data);
     return res.data;
   },
+  update: async (id: string, data: {
+    category: number;
+    frequency: number;
+    amount: number;
+    currency: Currency;
+    description: string;
+    expenseDate: string;
+    notes?: string;
+  }): Promise<Expense> => {
+    const res = await apiClient.put<Expense>(`/office-expenses/${id}`, data);
+    return res.data;
+  },
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(`/office-expenses/${id}`);
   }
