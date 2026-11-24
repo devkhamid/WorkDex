@@ -311,7 +311,7 @@ export const OfficeExpensesPage: React.FC = () => {
     }
   };
 
-  const CategoryBadge: React.FC<{ category: number }> = ({ category }) => {
+  const CategoryBadge: React.FC<{ category: number; sub?: string }> = ({ category, sub }) => {
     const meta = metaOf(category);
     const Icon = meta.icon;
     return (
@@ -319,7 +319,10 @@ export const OfficeExpensesPage: React.FC = () => {
         <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: meta.bg }}>
           <Icon className="w-3.5 h-3.5" style={{ color: meta.color }} />
         </span>
-        <span className="font-semibold text-[#171b25] truncate">{meta.label}</span>
+        <span className="min-w-0 leading-tight">
+          <span className="block font-semibold text-[#171b25] truncate">{sub || meta.label}</span>
+          {sub && <span className="block text-[10px] text-[#969ca7] truncate">{meta.label}</span>}
+        </span>
       </span>
     );
   };
@@ -493,76 +496,104 @@ export const OfficeExpensesPage: React.FC = () => {
       {/* Server va domenlar — har biri alohida */}
       <div className="bg-white border border-[#e4e7ec] rounded-xl shadow-xs overflow-hidden">
         <div className="px-4 sm:px-5 py-3.5 border-b border-[#e4e7ec] flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Server className="w-4 h-4 text-[#4f46e5]" />
+          <div className="flex items-center gap-2 min-w-0">
+            <Server className="w-4 h-4 text-[#ff7a16]" />
             <span className="text-xs font-bold text-[#171b25]">Server va domenlar</span>
-            {overdueServices > 0 && (
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">{overdueServices} ta muddati o'tgan</span>
-            )}
-            {soonServices > 0 && (
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">{soonServices} ta yaqinlashmoqda</span>
-            )}
-            {services.length > 0 && overdueServices === 0 && soonServices === 0 && (
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Hammasi to'langan</span>
+            {services.length > 0 && (
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                overdueServices > 0 ? 'bg-red-100 text-red-700' : soonServices > 0 ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700'
+              }`}>
+                {overdueServices > 0
+                  ? `${overdueServices} ta muddati o'tgan`
+                  : soonServices > 0
+                    ? `${soonServices} ta to'lov yaqin`
+                    : "Hammasi to'langan"}
+              </span>
             )}
           </div>
-          <div className="flex gap-2">
-            <button onClick={() => openNew(18)} className="h-8 px-3 rounded-lg border border-[#e4e7ec] text-[11px] font-semibold text-gray-700 hover:border-[#4f46e5] hover:text-[#4f46e5] inline-flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5">
+            <button onClick={() => openNew(18)} className="h-8 px-2.5 rounded-lg text-[11px] font-semibold text-gray-600 hover:bg-gray-100 inline-flex items-center gap-1">
               <Plus className="w-3.5 h-3.5" /> Server
             </button>
-            <button onClick={() => openNew(19)} className="h-8 px-3 rounded-lg border border-[#e4e7ec] text-[11px] font-semibold text-gray-700 hover:border-[#0284c7] hover:text-[#0284c7] inline-flex items-center gap-1.5">
+            <button onClick={() => openNew(19)} className="h-8 px-2.5 rounded-lg text-[11px] font-semibold text-gray-600 hover:bg-gray-100 inline-flex items-center gap-1">
               <Plus className="w-3.5 h-3.5" /> Domen
             </button>
           </div>
         </div>
+
         {services.length === 0 ? (
-          <div className="py-8 px-4 text-center text-xs text-gray-400">
-            Hali server yoki domen kiritilmagan. Har birini nomi bilan qo'shing (masalan: <b>workdex.uz</b>, <b>Hetzner VPS</b>) — keyingi to'lov sanasi avtomatik kuzatiladi.
+          <div className="p-4">
+            <div className="rounded-xl border border-dashed border-[#e4e7ec] py-8 px-4 flex flex-col items-center text-center gap-2">
+              <div className="flex gap-2">
+                <span className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: metaOf(18).bg }}>
+                  <Server className="w-4 h-4" style={{ color: metaOf(18).color }} />
+                </span>
+                <span className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: metaOf(19).bg }}>
+                  <Globe className="w-4 h-4" style={{ color: metaOf(19).color }} />
+                </span>
+              </div>
+              <p className="text-xs font-semibold text-[#171b25]">Hali server yoki domen yo'q</p>
+              <p className="text-[11px] text-gray-400 max-w-sm">
+                Har birini nomi bilan qo'shing — keyingi to'lov sanasi avtomatik kuzatiladi va vaqti kelganda shu yerda ko'rinadi.
+              </p>
+            </div>
           </div>
         ) : (
-          <div className="divide-y divide-[#eef0f3]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 p-4">
             {services.map(sv => {
               const meta = metaOf(sv.category);
               const Icon = meta.icon;
-              const pill =
+              const lastTime = new Date(sv.last.expenseDate).getTime();
+              const periodMs = Math.max(1, sv.nextDue.getTime() - lastTime);
+              const elapsedPct = Math.min(100, Math.max(0, ((refDate.getTime() - lastTime) / periodMs) * 100));
+              const tone =
                 sv.status === 'overdue'
-                  ? { cls: 'bg-red-100 text-red-700', text: `Muddati o'tgan · ${Math.abs(sv.daysLeft)} kun` }
+                  ? { card: 'border-red-200 bg-red-50/40', bar: '#ef4444', text: 'text-red-600', label: `${Math.abs(sv.daysLeft)} kun kechikdi` }
                   : sv.status === 'soon'
-                    ? { cls: 'bg-orange-100 text-orange-700', text: `${sv.daysLeft} kun qoldi` }
-                    : { cls: 'bg-emerald-100 text-emerald-700', text: "To'langan" };
+                    ? { card: 'border-orange-200 bg-orange-50/30', bar: '#f97316', text: 'text-orange-600', label: `${sv.daysLeft} kun qoldi` }
+                    : { card: 'border-[#e4e7ec]', bar: '#10b981', text: 'text-emerald-600', label: `${sv.daysLeft} kun qoldi` };
               return (
-                <div key={sv.key} className={`px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center gap-3 ${sv.status === 'overdue' ? 'bg-red-50/40' : ''}`}>
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <span className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: meta.bg }}>
-                      <Icon className="w-4 h-4" style={{ color: meta.color }} />
+                <div key={sv.key} className={`rounded-xl border p-3.5 flex flex-col gap-3 ${tone.card}`}>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: meta.bg }}>
+                      <Icon className="w-5 h-5" style={{ color: meta.color }} />
                     </span>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-xs font-bold text-[#171b25] truncate">{sv.name || <i className="text-gray-400 font-medium">nomi ko'rsatilmagan</i>}</span>
-                        <span className="text-[10px] text-gray-400">{meta.label} · {sv.yearly ? 'har yil' : 'har oy'}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-bold text-[#171b25] truncate" title={sv.name}>
+                        {sv.name || <span className="text-gray-400 font-medium">Nomsiz</span>}
                       </div>
-                      <div className="text-[11px] text-[#969ca7]">
-                        Oxirgi to'lov: {formatDate(sv.last.expenseDate)} · <UsdWithUzs inline usd={sv.last.amountUsd} uzs={sv.last.amount} />
+                      <div className="text-[11px] text-[#969ca7] truncate">
+                        {meta.label} · {sv.yearly ? 'har yili' : 'har oy'}
                       </div>
+                    </div>
+                    {sv.status === 'ok'
+                      ? <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                      : <AlertTriangle className={`w-5 h-5 shrink-0 ${tone.text}`} />}
+                  </div>
+
+                  <div>
+                    <div className="flex items-baseline justify-between gap-2 mb-1.5">
+                      <span className="text-[11px] text-[#969ca7]">
+                        Keyingi to'lov: <b className="text-[#171b25] font-semibold">{formatDate(sv.nextDue.toISOString())}</b>
+                      </span>
+                      <span className={`text-[11px] font-bold whitespace-nowrap ${tone.text}`}>{tone.label}</span>
+                    </div>
+                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${elapsedPct}%`, background: tone.bar }} />
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 sm:justify-end">
-                    <div className="text-left sm:text-right">
-                      <div className="text-[10px] text-gray-400">Keyingi to'lov</div>
-                      <div className={`text-xs font-bold ${sv.status === 'overdue' ? 'text-red-600' : sv.status === 'soon' ? 'text-orange-600' : 'text-[#171b25]'}`}>
-                        {formatDate(sv.nextDue.toISOString())}
-                      </div>
-                    </div>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap inline-flex items-center gap-1 ${pill.cls}`}>
-                      {sv.status === 'ok' ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
-                      {pill.text}
+
+                  <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-[#eef0f3]">
+                    <span className="text-[11px] text-[#969ca7] min-w-0 truncate">
+                      Oxirgi: <UsdWithUzs inline className="text-[#171b25] font-semibold" usd={sv.last.amountUsd} uzs={sv.last.amount} />
                     </span>
                     <button
                       onClick={() => openNew(sv.category, sv.name)}
-                      className={`h-8 px-3 rounded-lg text-[11px] font-semibold inline-flex items-center gap-1 whitespace-nowrap ${
-                        sv.status === 'ok' ? 'border border-[#e4e7ec] text-gray-600 hover:border-[#ff7a16] hover:text-[#ff7a16]' : 'bg-[#ff7a16] hover:bg-[#e86807] text-white'
+                      className={`h-7 px-3 rounded-lg text-[11px] font-semibold inline-flex items-center gap-1 shrink-0 transition-colors ${
+                        sv.status === 'ok'
+                          ? 'text-[#ff7a16] hover:bg-[#fff3e8]'
+                          : 'bg-[#ff7a16] hover:bg-[#e86807] text-white shadow-sm'
                       }`}
-                      title="Shu xizmat uchun yangi to'lov kiritish"
                     >
                       <Plus className="w-3.5 h-3.5" /> To'lash
                     </button>
@@ -642,7 +673,7 @@ export const OfficeExpensesPage: React.FC = () => {
                 <tr key={exp.id} className="hover:bg-[#fafbfc] transition-colors">
                   <td className="py-3 px-5">
                     <div className="flex items-center gap-2">
-                      <CategoryBadge category={exp.category} />
+                      <CategoryBadge category={exp.category} sub={exp.serviceName} />
                       {(exp.frequency || 1) === 3 && (
                         <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-orange-100 text-orange-700">oylik</span>
                       )}
@@ -650,7 +681,6 @@ export const OfficeExpensesPage: React.FC = () => {
                         <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-sky-100 text-sky-700">yillik</span>
                       )}
                     </div>
-                    {exp.serviceName && <div className="text-[11px] font-semibold text-[#4f46e5] mt-0.5 ml-9 truncate">{exp.serviceName}</div>}
                   </td>
                   <td className="py-3 px-5 font-bold text-[#171b25]"><UsdWithUzs usd={exp.amountUsd} uzs={exp.amount} /></td>
                   <td className="py-3 px-5 text-gray-600 max-w-[240px]">
@@ -742,18 +772,29 @@ export const OfficeExpensesPage: React.FC = () => {
                   <input
                     type="text"
                     required
-                    list="office-service-names"
                     placeholder={form.category === 19 ? 'Masalan: workdex.uz' : 'Masalan: Hetzner VPS, AWS, Beget'}
                     value={form.serviceName}
                     onChange={e => changeServiceName(e.target.value)}
                     className="w-full h-9 px-3 border border-[#e4e7ec] rounded-lg text-xs outline-none focus:border-[#ff7a16]"
                   />
-                  <datalist id="office-service-names">
-                    {serviceNameOptions(form.category).map(n => <option key={n} value={n} />)}
-                  </datalist>
-                  <p className="text-[10px] text-gray-400 mt-0.5">
-                    Har bir {form.category === 19 ? 'domen' : 'server'} nomi bo'yicha alohida kuzatiladi. Mavjudini tanlasangiz, oxirgi summa qo'yiladi.
-                  </p>
+                  {serviceNameOptions(form.category).length > 0 && !form.id && (
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {serviceNameOptions(form.category).map(n => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => changeServiceName(n)}
+                          className={`h-6 px-2 rounded-md text-[10px] font-semibold border transition-colors ${
+                            form.serviceName.trim().toLowerCase() === n.toLowerCase()
+                              ? 'border-[#ff7a16] bg-[#fff3e8] text-[#ff7a16]'
+                              : 'border-[#e4e7ec] text-gray-600 hover:border-gray-300'
+                          }`}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
